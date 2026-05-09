@@ -1,0 +1,15 @@
+{
+  "d_jepa": 32,
+  "d_core": 64,
+  "d_ram": 64,
+  "vocab_size": 256,
+  "patch_size": 4,
+  "image_size": 16,
+  "encoder_depth": 1,
+  "predictor_depth": 1,
+  "dca_layers": 1,
+  "dit_layers": 1,
+  "heads": 4,
+  "dtype": "bfloat16"
+}
+

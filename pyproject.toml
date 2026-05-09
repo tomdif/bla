@@ -1,0 +1,19 @@
+[project]
+name = "project-bla"
+version = "0.1.0"
+description = "Bicameral Latent Architecture research scaffold."
+requires-python = ">=3.9"
+dependencies = [
+  "numpy>=1.23",
+  "torch>=2.0",
+]
+
+[project.optional-dependencies]
+ram = ["faiss-cpu>=1.7"]
+dev = ["pytest>=7"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
