@@ -1,0 +1,39 @@
+{
+  "checkpoint": "runs/sweep_B_random_m075_d512/final.pt",
+  "step": 4000,
+  "epochs": 5,
+  "best_test_accuracy": 0.1,
+  "final_test_accuracy": 0.1,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 2.3479297438049316,
+      "train_accuracy": 0.09966,
+      "test_accuracy": 0.1
+    },
+    {
+      "epoch": 2,
+      "train_loss": 2.342382105484009,
+      "train_accuracy": 0.10036,
+      "test_accuracy": 0.1
+    },
+    {
+      "epoch": 3,
+      "train_loss": 2.3428251208496094,
+      "train_accuracy": 0.10178,
+      "test_accuracy": 0.1
+    },
+    {
+      "epoch": 4,
+      "train_loss": 2.3328441045379638,
+      "train_accuracy": 0.10072,
+      "test_accuracy": 0.1
+    },
+    {
+      "epoch": 5,
+      "train_loss": 2.3360451257324217,
+      "train_accuracy": 0.10178,
+      "test_accuracy": 0.1
+    }
+  ]
+}

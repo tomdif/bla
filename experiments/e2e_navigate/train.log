@@ -1,0 +1,140 @@
+W0509 15:42:40.220000 15818 torch/distributed/run.py:774] 
+W0509 15:42:40.220000 15818 torch/distributed/run.py:774] *****************************************
+W0509 15:42:40.220000 15818 torch/distributed/run.py:774] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0509 15:42:40.220000 15818 torch/distributed/run.py:774] *****************************************
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+{"event": "init", "world_size": 6, "n_params": 5612290, "config": {"steps": 4000, "episodes_per_step": 8, "max_steps_per_ep": 8, "image_size": 32, "patch_size": 4, "d": 256, "encoder_depth": 4, "encoder_heads": 8, "predictor_depth": 3, "predictor_heads": 8, "lr": 0.0003, "weight_decay": 0.01, "grad_clip": 1.0, "warmup": 200, "bc_weight": 1.0, "reward_weight": 0.5, "value_weight": 0.5, "world_weight": 0.1, "seed": 0, "log_every": 50, "eval_every": 200, "eval_episodes": 64, "cem_iter": 4, "cem_pop": 128, "ckpt_every": 1000, "output": "runs/e2e_navigate", "amp": true}}
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+[rank4]:[W509 15:42:50.213533635 reducer.cpp:1457] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank0]:[W509 15:42:50.234633511 reducer.cpp:1457] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank1]:[W509 15:42:50.260532146 reducer.cpp:1457] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank2]:[W509 15:42:50.261395244 reducer.cpp:1457] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank3]:[W509 15:42:50.264628077 reducer.cpp:1457] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+[rank5]:[W509 15:42:50.266467651 reducer.cpp:1457] Warning: find_unused_parameters=True was specified in DDP constructor, but did not find any unused parameters in the forward pass. This flag results in an extra traversal of the autograd graph every iteration,  which can adversely affect performance. If your model indeed never has any unused parameters in the forward pass, consider turning this flag off. Note that this warning may be a false positive if your model has flow control causing later iterations to have unused parameters. (function operator())
+{"step": 50, "loss": 145.12514862060547, "bc": 0.6389978551119566, "rew": 13.50532257080078, "val": 275.06125396728515, "world": 2.028619203567505, "lr": 7.5e-05, "elapsed_s": 2.8}
+{"step": 100, "loss": 134.5190071105957, "bc": 0.040577606074512, "rew": 9.110718274116516, "val": 259.4214514160156, "world": 2.1234441089630125, "lr": 0.00015, "elapsed_s": 5.0}
+{"step": 150, "loss": 109.04821426391601, "bc": 0.0557722494751215, "rew": 3.8967869091033935, "val": 213.6469155883789, "world": 2.205913043022156, "lr": 0.000225, "elapsed_s": 7.1}
+{"step": 200, "loss": 73.09694248199463, "bc": 0.10046883046627045, "rew": 2.8467590188980103, "val": 142.69474739074707, "world": 2.257205801010132, "lr": 0.0003, "elapsed_s": 9.3}
+{"event": "eval", "step": 200, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 14.27302098274231}
+{"step": 250, "loss": 47.31394016265869, "bc": 0.1675532240793109, "rew": 3.1788657093048096, "val": 90.65292068481445, "world": 2.304935622215271, "lr": 0.00029987693725933126, "elapsed_s": 15.4}
+{"step": 300, "loss": 29.051358547210693, "bc": 0.18274301916360855, "rew": 3.139385628700256, "val": 54.15737457275391, "world": 2.202353482246399, "lr": 0.00029949786354727375, "elapsed_s": 17.5}
+{"step": 350, "loss": 19.13789192199707, "bc": 0.11893940351903438, "rew": 2.7811594152450563, "val": 34.8415295791626, "world": 2.0760824036598207, "lr": 0.0002988633752431129, "elapsed_s": 19.7}
+{"step": 400, "loss": 15.675995960235596, "bc": 0.11321287371218204, "rew": 2.8241565585136414, "val": 27.909639282226564, "world": 1.95885027885437, "lr": 0.0002979745563594731, "elapsed_s": 21.8}
+{"event": "eval", "step": 400, "success_rate": 0.0625, "successes": 4, "total": 64, "mean_final_dist": 14.032170295715332}
+{"step": 450, "loss": 14.630441904067993, "bc": 0.06711038928478956, "rew": 2.602305655479431, "val": 26.170097103118895, "world": 1.7713031888008117, "lr": 0.0002968329254285074, "elapsed_s": 27.8}
+{"step": 500, "loss": 14.704332389831542, "bc": 0.05698810338973999, "rew": 2.3787977504730224, "val": 26.580875205993653, "world": 1.6750780582427978, "lr": 0.000295440432907511, "elapsed_s": 29.9}
+{"step": 550, "loss": 13.03044653892517, "bc": 0.07684811644256115, "rew": 2.284600040912628, "val": 23.30853374481201, "world": 1.5703140950202943, "lr": 0.00029379945784659746, "elapsed_s": 32.1}
+{"step": 600, "loss": 13.537496938705445, "bc": 0.09077895440161228, "rew": 2.1276024436950682, "val": 24.46466079711914, "world": 1.505863425731659, "lr": 0.0002919128038241318, "elapsed_s": 34.2}
+{"event": "eval", "step": 600, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 14.143698453903198}
+{"step": 650, "loss": 13.725351476669312, "bc": 0.12272707864642143, "rew": 2.153901209831238, "val": 24.758886222839354, "world": 1.4623063969612122, "lr": 0.0002897836941568633, "elapsed_s": 40.2}
+{"step": 700, "loss": 13.566188640594483, "bc": 0.09428623493760824, "rew": 2.012246856689453, "val": 24.648077144622803, "world": 1.417403554916382, "lr": 0.0002874157663929437, "elapsed_s": 42.4}
+{"step": 750, "loss": 12.70172402381897, "bc": 0.0905463008210063, "rew": 2.0621824169158938, "val": 22.882734127044678, "world": 1.3871940684318542, "lr": 0.00028481306609723654, "elapsed_s": 44.5}
+{"step": 800, "loss": 12.696736488342285, "bc": 0.07455577351152896, "rew": 2.046893348693848, "val": 22.9242307472229, "world": 1.366186888217926, "lr": 0.0002819800399395378, "elapsed_s": 46.6}
+{"event": "eval", "step": 800, "success_rate": 0.03125, "successes": 2, "total": 64, "mean_final_dist": 15.39488959312439}
+{"step": 850, "loss": 12.228203601837158, "bc": 0.07245633564889431, "rew": 2.0842330026626588, "val": 21.95255739212036, "world": 1.3735195398330688, "lr": 0.000278921528097515, "elapsed_s": 52.6}
+{"step": 900, "loss": 11.587122602462768, "bc": 0.03385774824768305, "rew": 1.8894494795799255, "val": 20.958846912384033, "world": 1.291166262626648, "lr": 0.000275642755987345, "elapsed_s": 54.8}
+{"step": 950, "loss": 11.212471351623535, "bc": 0.03213499747216701, "rew": 1.9381657147407532, "val": 20.16703411102295, "world": 1.2773643445968628, "lr": 0.00027214932533617777, "elapsed_s": 56.9}
+{"step": 1000, "loss": 11.745328178405762, "bc": 0.03186829311773181, "rew": 1.8465971302986146, "val": 21.32856590270996, "world": 1.2587845611572266, "lr": 0.00026844720461168003, "elapsed_s": 59.0}
+{"event": "eval", "step": 1000, "success_rate": 0.0625, "successes": 4, "total": 64, "mean_final_dist": 14.796610355377197}
+{"event": "checkpoint", "step": 1000, "path": "runs/e2e_navigate/ckpt_step00001000.pt"}
+{"step": 1050, "loss": 10.431124677658081, "bc": 0.029138324335217475, "rew": 1.8767912292480469, "val": 18.680955867767334, "world": 1.2311291408538818, "lr": 0.00026454271882500797, "elapsed_s": 65.1}
+{"step": 1100, "loss": 11.034567031860352, "bc": 0.021692621484398843, "rew": 1.793031485080719, "val": 19.992799110412598, "world": 1.1995916438102723, "lr": 0.00026044253872463185, "elapsed_s": 67.2}
+{"step": 1150, "loss": 10.482132968902588, "bc": 0.020062858909368514, "rew": 1.827624695301056, "val": 18.857100276947023, "world": 1.1970758605003358, "lr": 0.00025615366939947434, "elapsed_s": 69.3}
+{"step": 1200, "loss": 9.640321769714355, "bc": 0.01636028037406504, "rew": 1.7476191782951356, "val": 17.268929014205934, "world": 1.1568740224838256, "lr": 0.0002516834383108335, "elapsed_s": 71.4}
+{"event": "eval", "step": 1200, "success_rate": 0.03125, "successes": 2, "total": 64, "mean_final_dist": 14.950042247772217}
+{"step": 1250, "loss": 10.965644249916076, "bc": 0.017958472166210413, "rew": 1.764508125782013, "val": 19.898789720535277, "world": 1.1603681707382203, "lr": 0.0002470394827735377, "elapsed_s": 77.4}
+{"step": 1300, "loss": 10.458193244934082, "bc": 0.020861395578831435, "rew": 1.717067997455597, "val": 18.921735982894898, "world": 1.1792988634109498, "lr": 0.00024222973690772205, "elapsed_s": 79.6}
+{"step": 1350, "loss": 9.45944679260254, "bc": 0.023365778997540474, "rew": 1.7322435796260833, "val": 16.911676778793336, "world": 1.141209156513214, "lr": 0.00023726241808351672, "elapsed_s": 81.7}
+{"step": 1400, "loss": 9.137855610847474, "bc": 0.024063054043799638, "rew": 1.6757705640792846, "val": 16.326912612915038, "world": 1.1245099711418152, "lr": 0.00023214601288180798, "elapsed_s": 83.8}
+{"event": "eval", "step": 1400, "success_rate": 0.03125, "successes": 2, "total": 64, "mean_final_dist": 15.705866813659668}
+{"step": 1450, "loss": 9.93443039894104, "bc": 0.017550886832177637, "rew": 1.662346363067627, "val": 17.944963340759276, "world": 1.1322467601299286, "lr": 0.0002268892625950574, "elapsed_s": 89.8}
+{"step": 1500, "loss": 8.4046382188797, "bc": 0.01828569430857897, "rew": 1.6206722807884217, "val": 14.922983894348144, "world": 1.1452450823783875, "lr": 0.00022150114829294992, "elapsed_s": 91.9}
+{"step": 1550, "loss": 7.070673899650574, "bc": 0.02003966860473156, "rew": 1.5833904552459717, "val": 12.290363521575928, "world": 1.137573380470276, "lr": 0.00021599087547838727, "elapsed_s": 94.1}
+{"step": 1600, "loss": 6.117688183784485, "bc": 0.01923434855416417, "rew": 1.574263768196106, "val": 10.392977476119995, "world": 1.148331687450409, "lr": 0.00021036785836004045, "elapsed_s": 96.2}
+{"event": "eval", "step": 1600, "success_rate": 0.015625, "successes": 1, "total": 64, "mean_final_dist": 14.861750364303589}
+{"step": 1650, "loss": 5.96574697971344, "bc": 0.018771040746942164, "rew": 1.4610640275478364, "val": 10.212534408569336, "world": 1.1017669761180877, "lr": 0.0002046417037683323, "elapsed_s": 102.2}
+{"step": 1700, "loss": 4.860451753139496, "bc": 0.022087289281189443, "rew": 1.3213854789733888, "val": 8.139548292160034, "world": 1.0789762699604035, "lr": 0.00019882219474232882, "elapsed_s": 104.3}
+{"step": 1750, "loss": 5.183500757217407, "bc": 0.018337246403098105, "rew": 1.4266581892967225, "val": 8.686798553466797, "world": 1.0843514037132262, "lr": 0.00019291927381558091, "elapsed_s": 106.5}
+{"step": 1800, "loss": 4.347726879119873, "bc": 0.018951075822114943, "rew": 1.3076036036014558, "val": 7.1391283845901485, "world": 1.054098016023636, "lr": 0.00018694302602947284, "elapsed_s": 108.6}
+{"event": "eval", "step": 1800, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 14.913200378417969}
+{"step": 1850, "loss": 5.006960175037384, "bc": 0.01618704095482826, "rew": 1.273777389526367, "val": 8.500109362602235, "world": 1.0382974195480346, "lr": 0.00018090366170309802, "elapsed_s": 114.6}
+{"step": 1900, "loss": 3.392991695404053, "bc": 0.01184982662089169, "rew": 1.1385824191570282, "val": 5.413631362915039, "world": 1.0503495967388152, "lr": 0.00017481149898910002, "elapsed_s": 116.7}
+{"step": 1950, "loss": 3.831752800941467, "bc": 0.011519152661785484, "rew": 1.1310753494501113, "val": 6.301977825164795, "world": 1.0370703721046448, "lr": 0.00016867694624528223, "elapsed_s": 118.8}
+{"step": 2000, "loss": 5.119942872524262, "bc": 0.013341119969263673, "rew": 1.0975041830539702, "val": 8.903636972904206, "world": 1.0603114068508148, "lr": 0.00016251048425210265, "elapsed_s": 120.9}
+{"event": "eval", "step": 2000, "success_rate": 0.015625, "successes": 1, "total": 64, "mean_final_dist": 15.591328620910645}
+{"event": "checkpoint", "step": 2000, "path": "runs/e2e_navigate/ckpt_step00002000.pt"}
+{"step": 2050, "loss": 2.974015700817108, "bc": 0.0109035125374794, "rew": 0.9958538115024567, "val": 4.721975238323211, "world": 1.0419767570495606, "lr": 0.00015632264830643677, "elapsed_s": 127.0}
+{"step": 2100, "loss": 3.028389265537262, "bc": 0.01039157385006547, "rew": 0.8405701470375061, "val": 4.991797389984131, "world": 1.0181392121315003, "lr": 0.0001501240102221993, "elapsed_s": 129.1}
+{"step": 2150, "loss": 2.806434950828552, "bc": 0.011485893474891783, "rew": 0.8586535972356796, "val": 4.523036637306213, "world": 1.041039068698883, "lr": 0.00014392516026857734, "elapsed_s": 131.2}
+{"step": 2200, "loss": 3.0248882043361665, "bc": 0.011829501520842313, "rew": 0.8120234227180481, "val": 5.004360593557358, "world": 1.0486670422554016, "lr": 0.00013773668907673356, "elapsed_s": 133.3}
+{"event": "eval", "step": 2200, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 15.994407892227173}
+{"step": 2250, "loss": 2.4549649930000306, "bc": 0.01149540726095438, "rew": 0.7585224705934525, "val": 3.9266711831092835, "world": 1.008727741241455, "lr": 0.00013156916954589, "elapsed_s": 139.3}
+{"step": 2300, "loss": 2.512617737054825, "bc": 0.007357529029250145, "rew": 0.8201779764890671, "val": 3.9825792944431306, "world": 1.03881582736969, "lr": 0.00012543313877970742, "elapsed_s": 141.5}
+{"step": 2350, "loss": 2.1283136522769928, "bc": 0.009163189306855201, "rew": 0.7495193648338317, "val": 3.2879393601417544, "world": 1.004210855960846, "lr": 0.00011933908008382042, "elapsed_s": 143.6}
+{"step": 2400, "loss": 1.8800462973117829, "bc": 0.010220075258985162, "rew": 0.7220997577905655, "val": 2.81582448720932, "world": 1.0086409652233124, "lr": 0.00011329740505528547, "elapsed_s": 145.7}
+{"event": "eval", "step": 2400, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 15.744200468063354}
+{"step": 2450, "loss": 1.8152062058448792, "bc": 0.007717651119455695, "rew": 0.6978897708654404, "val": 2.7152776288986207, "world": 1.0090486526489257, "lr": 0.0001073184357945421, "elapsed_s": 151.8}
+{"step": 2500, "loss": 2.0147589683532714, "bc": 0.010240576202049852, "rew": 0.7205457955598831, "val": 3.086062731742859, "world": 1.0121412253379822, "lr": 0.00010141238727027761, "elapsed_s": 154.0}
+{"step": 2550, "loss": 1.6367127740383147, "bc": 0.00759978087618947, "rew": 0.635508496761322, "val": 2.423348078727722, "world": 0.9968470215797425, "lr": 9.55893498673239e-05, "elapsed_s": 156.1}
+{"step": 2600, "loss": 1.4896491003036498, "bc": 0.0074276261171326045, "rew": 0.5605775827169418, "val": 2.2073011875152586, "world": 0.9828210771083832, "lr": 8.98592721474049e-05, "elapsed_s": 158.3}
+{"event": "eval", "step": 2600, "success_rate": 0.03125, "successes": 2, "total": 64, "mean_final_dist": 16.006491661071777}
+{"step": 2650, "loss": 1.9928485602140427, "bc": 0.006105791311711073, "rew": 0.5699577632546425, "val": 3.200000010728836, "world": 1.0176383578777313, "lr": 8.423194385218525e-05, "elapsed_s": 164.3}
+{"step": 2700, "loss": 1.4799570214748383, "bc": 0.006333240866661071, "rew": 0.5832878929376603, "val": 2.1645022571086883, "world": 0.9972870051860809, "lr": 7.871697917766118e-05, "elapsed_s": 166.5}
+{"step": 2750, "loss": 1.2566786891222, "bc": 0.006546619604341686, "rew": 0.5362675899267196, "val": 1.7673851358890533, "world": 0.9830570840835571, "lr": 7.332380034846775e-05, "elapsed_s": 168.6}
+{"step": 2800, "loss": 1.2867390513420105, "bc": 0.005586965228430927, "rew": 0.46641025714576245, "val": 1.9009648716449739, "world": 0.9746452867984772, "lr": 6.806162152016621e-05, "elapsed_s": 170.7}
+{"event": "eval", "step": 2800, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 15.4787917137146}
+{"step": 2850, "loss": 1.1300924134254455, "bc": 0.0055552962701767685, "rew": 0.46730430111289023, "val": 1.585329664349556, "world": 0.9822013223171234, "lr": 6.293943303701381e-05, "elapsed_s": 176.7}
+{"step": 2900, "loss": 1.6440961074829101, "bc": 0.005294002201408148, "rew": 0.42300688922405244, "val": 2.6601772606372833, "world": 0.9721005213260651, "lr": 5.796598607211134e-05, "elapsed_s": 178.9}
+{"step": 2950, "loss": 1.2715200805664062, "bc": 0.005170844048261642, "rew": 0.438574401140213, "val": 1.8973505628108978, "world": 0.983867666721344, "lr": 5.3149777676170655e-05, "elapsed_s": 181.0}
+{"step": 3000, "loss": 1.8938124430179597, "bc": 0.005247452524490655, "rew": 0.45565576702356336, "val": 3.1265101861953735, "world": 0.9748203790187836, "lr": 4.849903626044636e-05, "elapsed_s": 183.2}
+{"event": "eval", "step": 3000, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 15.645352125167847}
+{"event": "checkpoint", "step": 3000, "path": "runs/e2e_navigate/ckpt_step00003000.pt"}
+{"step": 3050, "loss": 1.0789539062976836, "bc": 0.004854266927577555, "rew": 0.3910261906683445, "val": 1.5681424224376679, "world": 0.9451533305644989, "lr": 4.402170753863275e-05, "elapsed_s": 189.2}
+{"step": 3100, "loss": 1.5569663178920745, "bc": 0.004471318153664469, "rew": 0.3983584633469582, "val": 2.5147745603322984, "world": 0.9592847442626953, "lr": 3.97254409517457e-05, "elapsed_s": 191.4}
+{"step": 3150, "loss": 1.1183696871995925, "bc": 0.004450070592574775, "rew": 0.3380060876905918, "val": 1.7000730162858964, "world": 0.9488005793094635, "lr": 3.5617576599180804e-05, "elapsed_s": 193.5}
+{"step": 3200, "loss": 0.9306068807840348, "bc": 0.004484250247478485, "rew": 0.3926482766866684, "val": 1.2676409208774566, "world": 0.9597803080081939, "lr": 3.170513269827649e-05, "elapsed_s": 195.7}
+{"event": "eval", "step": 3200, "success_rate": 0.0625, "successes": 4, "total": 64, "mean_final_dist": 15.499646425247192}
+{"step": 3250, "loss": 0.9136849945783615, "bc": 0.004449043916538358, "rew": 0.3731843149662018, "val": 1.2510019183158874, "world": 0.9714283287525177, "lr": 2.799479359380789e-05, "elapsed_s": 201.7}
+{"step": 3300, "loss": 0.8083209097385406, "bc": 0.004199500558897853, "rew": 0.35871556907892227, "val": 1.0561304879188538, "world": 0.9669838583469391, "lr": 2.4492898337895502e-05, "elapsed_s": 203.9}
+{"step": 3350, "loss": 0.8615994203090668, "bc": 0.004394111493602395, "rew": 0.35647875517606736, "val": 1.1658075693249703, "world": 0.9606214559078217, "lr": 2.1205429859841117e-05, "elapsed_s": 206.0}
+{"step": 3400, "loss": 0.9805645906925201, "bc": 0.004389279107563197, "rew": 0.34433551982045174, "val": 1.41514721930027, "world": 0.9643394589424134, "lr": 1.8138004744393515e-05, "elapsed_s": 208.2}
+{"event": "eval", "step": 3400, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 15.460774421691895}
+{"step": 3450, "loss": 1.6427821379899978, "bc": 0.0044528929656371475, "rew": 0.31837291449308397, "val": 2.762465639710426, "world": 0.9790991425514222, "lr": 1.5295863635907667e-05, "elapsed_s": 214.2}
+{"step": 3500, "loss": 1.1361454331874847, "bc": 0.004054494528099894, "rew": 0.281539416834712, "val": 1.7934730657935143, "world": 0.9458471667766571, "lr": 1.2683862284791557e-05, "elapsed_s": 216.3}
+{"step": 3550, "loss": 2.2137139105796813, "bc": 0.00388149673352018, "rew": 0.33439991347491743, "val": 3.892244437634945, "world": 0.9651023268699646, "lr": 1.0306463251538332e-05, "elapsed_s": 218.5}
+{"step": 3600, "loss": 0.94158531665802, "bc": 0.0037986931018531324, "rew": 0.28612641170620917, "val": 1.3971914935112, "world": 0.9612768292427063, "lr": 8.16772828251634e-06, "elapsed_s": 220.6}
+{"event": "eval", "step": 3600, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 15.52156949043274}
+{"step": 3650, "loss": 0.9946364921331405, "bc": 0.003925015372224152, "rew": 0.30945438623428345, "val": 1.4824579751491547, "world": 0.9475528991222382, "lr": 6.271311370543747e-06, "elapsed_s": 226.6}
+{"step": 3700, "loss": 1.6840942776203156, "bc": 0.004147249078378081, "rew": 0.3130477750301361, "val": 2.8519927251338957, "world": 0.9742674553394317, "lr": 4.620452512103029e-06, "elapsed_s": 228.7}
+{"step": 3750, "loss": 0.6715147006511688, "bc": 0.004355073003098369, "rew": 0.27713722974061966, "val": 0.8666194126009941, "world": 0.9528130197525024, "lr": 3.2179721718613384e-06, "elapsed_s": 230.9}
+{"step": 3800, "loss": 1.0380708682537079, "bc": 0.004028083430603147, "rew": 0.2851729941368103, "val": 1.5865751045942307, "world": 0.9816874313354492, "lr": 2.066266463953897e-06, "elapsed_s": 233.0}
+{"event": "eval", "step": 3800, "success_rate": 0.046875, "successes": 3, "total": 64, "mean_final_dist": 15.381078004837036}
+{"step": 3850, "loss": 1.2233735579252243, "bc": 0.003999995244666934, "rew": 0.29293819174170493, "val": 1.9535048222541809, "world": 0.9615207481384277, "lr": 1.1673030582633024e-06, "elapsed_s": 239.1}
+{"step": 3900, "loss": 2.2561353409290312, "bc": 0.004126435560174287, "rew": 0.25554735206067564, "val": 4.054350380301475, "world": 0.9706007170677186, "lr": 5.226178186883978e-07, "elapsed_s": 241.1}
+{"step": 3950, "loss": 0.7517122453451157, "bc": 0.003828086517751217, "rew": 0.28939649581909177, "val": 1.017835015952587, "world": 0.9426840078830719, "lr": 1.3331217914665516e-07, "elapsed_s": 243.3}
+{"step": 4000, "loss": 0.923335753083229, "bc": 0.004144354364834726, "rew": 0.31136200174689294, "val": 1.3344219148159027, "world": 0.962994396686554, "lr": 5.1261792793910736e-11, "elapsed_s": 245.4}
+{"event": "eval", "step": 4000, "success_rate": 0.03125, "successes": 2, "total": 64, "mean_final_dist": 15.339094161987305}
+{"event": "checkpoint", "step": 4000, "path": "runs/e2e_navigate/ckpt_step00004000.pt"}
+{"event": "final", "path": "runs/e2e_navigate/final.pt", "elapsed_s": 249.4}

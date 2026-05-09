@@ -5,72 +5,53 @@ from typing import Dict
 import torch
 import torch.nn.functional as F
 
+from .sigreg import sigreg_epps_pulley, sigreg_lewm
+
 
 def _flatten_tokens(x: torch.Tensor) -> torch.Tensor:
     if x.ndim < 3:
-        raise ValueError(f"expected [batch, tokens, dim], got {tuple(x.shape)}")
+        raise ValueError(f"expected [B, T, D], got {tuple(x.shape)}")
     return x.reshape(-1, x.shape[-1]).float()
 
 
-def _off_diagonal(x: torch.Tensor) -> torch.Tensor:
-    rows, cols = x.shape
-    if rows != cols:
-        raise ValueError("off-diagonal extraction requires a square matrix")
-    return x.flatten()[:-1].view(rows - 1, rows + 1)[:, 1:].flatten()
-
-
-def vicreg_loss(
-    z_context: torch.Tensor,
+def collapse_regularizer(
+    z_predicted: torch.Tensor,
     z_target: torch.Tensor,
-    invariance_weight: float = 25.0,
-    variance_weight: float = 25.0,
-    covariance_weight: float = 1.0,
-    eps: float = 1e-4,
+    variant: str = "epps_pulley",
 ) -> torch.Tensor:
-    """VICReg regularizer over JEPA token latents.
+    """Anti-collapse regularizer (SIGReg) applied to predicted and target features.
 
-    The target branch is detached by the caller in normal JEPA training.
-    Computation is promoted to float32 for stable covariance estimates.
+    `variant` is "epps_pulley" (16 random directions, cheap) or "lewm"
+    (1024 directions, stronger empirical signal). Both are Cramér-Wold-correct.
     """
 
-    x = _flatten_tokens(z_context)
-    y = _flatten_tokens(z_target)
-    if x.shape != y.shape:
-        raise ValueError(f"VICReg shape mismatch: {tuple(x.shape)} != {tuple(y.shape)}")
-
-    invariance = F.mse_loss(x, y)
-
-    std_x = torch.sqrt(x.var(dim=0, unbiased=False) + eps)
-    std_y = torch.sqrt(y.var(dim=0, unbiased=False) + eps)
-    variance = torch.mean(F.relu(1.0 - std_x)) + torch.mean(F.relu(1.0 - std_y))
-
-    x = x - x.mean(dim=0)
-    y = y - y.mean(dim=0)
-    denom = max(x.shape[0] - 1, 1)
-    cov_x = (x.T @ x) / denom
-    cov_y = (y.T @ y) / denom
-    covariance = (_off_diagonal(cov_x).pow(2).sum() + _off_diagonal(cov_y).pow(2).sum()) / x.shape[1]
-
-    return (
-        invariance_weight * invariance
-        + variance_weight * variance
-        + covariance_weight * covariance
-    )
+    p = _flatten_tokens(z_predicted)
+    t = _flatten_tokens(z_target)
+    if variant == "lewm":
+        return sigreg_lewm(p) + sigreg_lewm(t)
+    if variant == "epps_pulley":
+        return sigreg_epps_pulley(p) + sigreg_epps_pulley(t)
+    raise ValueError(f"unknown SIGReg variant: {variant}")
 
 
 def jepa_loss(
     predicted_target: torch.Tensor,
     target_latent: torch.Tensor,
-    context_latent: torch.Tensor,
-    vicreg_weight: float = 1.0,
+    sigreg_weight: float = 1.0,
+    sigreg_variant: str = "epps_pulley",
 ) -> Dict[str, torch.Tensor]:
+    """JEPA prediction loss + SIGReg collapse regularizer.
+
+    predicted_target / target_latent are both [B, K_tgt, D] -- features at the
+    same target patch positions.
+    """
+
     target = target_latent.detach()
     prediction = F.smooth_l1_loss(predicted_target.float(), target.float())
-    regularizer = vicreg_loss(context_latent, target)
-    total = prediction + vicreg_weight * regularizer
+    regularizer = collapse_regularizer(predicted_target, target, variant=sigreg_variant)
+    total = prediction + sigreg_weight * regularizer
     return {
         "loss": total,
         "prediction": prediction.detach(),
-        "vicreg": regularizer.detach(),
+        "sigreg": regularizer.detach(),
     }
-

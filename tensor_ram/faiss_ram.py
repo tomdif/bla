@@ -109,10 +109,14 @@ class FaissTensorRAM:
         )
 
     def save(self, path: str) -> None:
-        if not self.use_faiss:
-            np.save(path, self.index.vectors)
+        if self.use_faiss:
+            if not path.endswith(".faiss"):
+                raise ValueError("FAISS-backed RAM must be saved with a .faiss extension")
+            faiss.write_index(self.index, path)
             return
-        faiss.write_index(self.index, path)
+        if not path.endswith(".npy"):
+            raise ValueError("NumPy-backed RAM must be saved with a .npy extension")
+        np.save(path, self.index.vectors)
 
     @classmethod
     def load(cls, path: str, d_ram: int = 4096) -> "FaissTensorRAM":

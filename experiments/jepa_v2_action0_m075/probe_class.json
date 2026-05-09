@@ -1,0 +1,39 @@
+{
+  "checkpoint": "runs/jepa_v2_action0_m075/final.pt",
+  "step": 12000,
+  "epochs": 5,
+  "best_test_accuracy": 0.212,
+  "final_test_accuracy": 0.1833,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 2.2112499793243408,
+      "train_accuracy": 0.17612,
+      "test_accuracy": 0.1782
+    },
+    {
+      "epoch": 2,
+      "train_loss": 2.1880887218475342,
+      "train_accuracy": 0.18558,
+      "test_accuracy": 0.212
+    },
+    {
+      "epoch": 3,
+      "train_loss": 2.1859460539245608,
+      "train_accuracy": 0.18824,
+      "test_accuracy": 0.1816
+    },
+    {
+      "epoch": 4,
+      "train_loss": 2.1874364373016357,
+      "train_accuracy": 0.18668,
+      "test_accuracy": 0.1946
+    },
+    {
+      "epoch": 5,
+      "train_loss": 2.186228386917114,
+      "train_accuracy": 0.18788,
+      "test_accuracy": 0.1833
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+W0509 14:37:10.594000 13114 torch/distributed/run.py:774] 
+W0509 14:37:10.594000 13114 torch/distributed/run.py:774] *****************************************
+W0509 14:37:10.594000 13114 torch/distributed/run.py:774] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0509 14:37:10.594000 13114 torch/distributed/run.py:774] *****************************************
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+{"event": "init", "world_size": 2, "n_params": 48127488, "config": {"steps": 4000, "batch_size": 512, "d": 512, "patch_size": 4, "encoder_depth": 6, "encoder_heads": 8, "predictor_depth": 3, "predictor_heads": 8, "target_ratio": 0.75, "sigreg_weight": 0.5, "lr": 0.0015, "warmup": 500, "weight_decay": 0.05, "grad_clip": 1.0, "ema_tau": 0.996, "data": "cifar10", "action_mode": "random", "image_size": 32, "output": "runs/sweep_B_random_m075_d512", "ckpt_every": 4000, "probe_every": 500, "log_every": 100, "seed": 0, "amp": true, "resume": null}}
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+{"event": "loaders_ready", "world": 2}
+{"step": 100, "loss": 344.39097259521486, "prediction": 0.6183382707834244, "sigreg": 687.5452673339844, "lr": 0.0003, "imgs_per_sec": 14614.1, "elapsed_s": 7.0}
+{"step": 200, "loss": 338.4186447143555, "prediction": 0.7100388884544373, "sigreg": 675.4172100830078, "lr": 0.0006, "imgs_per_sec": 15132.6, "elapsed_s": 13.5}
+{"step": 300, "loss": 351.2050802612305, "prediction": 0.7621643775701523, "sigreg": 700.8858319091797, "lr": 0.0009, "imgs_per_sec": 15346.2, "elapsed_s": 20.0}
+{"step": 400, "loss": 355.9838815307617, "prediction": 0.7691899520158768, "sigreg": 710.4293859863282, "lr": 0.0012, "imgs_per_sec": 15388.0, "elapsed_s": 26.6}
+{"step": 500, "loss": 358.40863220214845, "prediction": 0.7844893217086792, "sigreg": 715.2482849121094, "lr": 0.0015, "imgs_per_sec": 15476.5, "elapsed_s": 33.1}
+{"event": "probe", "step": 500, "probe_accuracy": 0.328125, "probe_eval_seen": 6400}
+{"step": 600, "loss": 353.71068481445315, "prediction": 0.7661732351779937, "sigreg": 705.8890252685546, "lr": 0.0014970407646155298, "imgs_per_sec": 15064.2, "elapsed_s": 40.8}
+{"step": 700, "loss": 351.50112060546877, "prediction": 0.660010175704956, "sigreg": 701.6822204589844, "lr": 0.0014880670983779582, "imgs_per_sec": 15171.8, "elapsed_s": 47.2}
+{"step": 800, "loss": 350.5802972412109, "prediction": 0.5829455661773681, "sigreg": 699.9947033691407, "lr": 0.0014731509498406735, "imgs_per_sec": 15227.3, "elapsed_s": 53.8}
+{"step": 900, "loss": 349.65027618408203, "prediction": 0.5472706869244576, "sigreg": 698.2060131835938, "lr": 0.0014524124150611442, "imgs_per_sec": 15294.8, "elapsed_s": 60.3}
+{"step": 1000, "loss": 348.4126495361328, "prediction": 0.5097988906502724, "sigreg": 695.8057006835937, "lr": 0.0014260184685273545, "imgs_per_sec": 15350.7, "elapsed_s": 66.7}
+{"event": "probe", "step": 1000, "probe_accuracy": 0.3028125, "probe_eval_seen": 6400}
+{"step": 1100, "loss": 348.1200421142578, "prediction": 0.49070409297943113, "sigreg": 695.2586773681641, "lr": 0.001394181618777405, "imgs_per_sec": 15156.1, "elapsed_s": 74.3}
+{"step": 1200, "loss": 347.5729495239258, "prediction": 0.49419406682252887, "sigreg": 694.157514038086, "lr": 0.0013571581974057177, "imgs_per_sec": 15214.6, "elapsed_s": 80.8}
+{"step": 1300, "loss": 347.39962127685544, "prediction": 0.47922931134700775, "sigreg": 693.8407849121094, "lr": 0.0013152462952317583, "imgs_per_sec": 15249.5, "elapsed_s": 87.3}
+{"step": 1400, "loss": 346.6303121948242, "prediction": 0.47446610748767853, "sigreg": 692.3116906738281, "lr": 0.0012687833622480325, "imgs_per_sec": 15293.6, "elapsed_s": 93.7}
+{"step": 1500, "loss": 347.039860534668, "prediction": 0.4777708354592323, "sigreg": 693.1241809082031, "lr": 0.0012181434906711622, "imgs_per_sec": 15331.6, "elapsed_s": 100.2}
+{"event": "probe", "step": 1500, "probe_accuracy": 0.29640625, "probe_eval_seen": 6400}
+{"step": 1600, "loss": 347.2008096313477, "prediction": 0.4722096145153046, "sigreg": 693.4571997070312, "lr": 0.0011637344029713228, "imgs_per_sec": 15198.5, "elapsed_s": 107.8}
+{"step": 1700, "loss": 345.9939389038086, "prediction": 0.47462142407894137, "sigreg": 691.0386334228516, "lr": 0.0011059941691306478, "imgs_per_sec": 15237.3, "elapsed_s": 114.2}
+{"step": 1800, "loss": 345.91224670410156, "prediction": 0.46735463082790374, "sigreg": 690.8897833251954, "lr": 0.0010453876795613142, "imgs_per_sec": 15261.3, "elapsed_s": 120.8}
+{"step": 1900, "loss": 344.41807159423826, "prediction": 0.46096827924251554, "sigreg": 687.9142053222656, "lr": 0.0009824029020812962, "imgs_per_sec": 15293.8, "elapsed_s": 127.2}
+{"step": 2000, "loss": 345.3900433349609, "prediction": 0.46173513293266294, "sigreg": 689.8566156005859, "lr": 0.0009175469530844129, "imgs_per_sec": 15321.9, "elapsed_s": 133.7}
+{"event": "probe", "step": 2000, "probe_accuracy": 0.29546875, "probe_eval_seen": 6400}
+{"step": 2100, "loss": 345.7126705932617, "prediction": 0.47257605731487273, "sigreg": 690.4801904296875, "lr": 0.000851342014537307, "imgs_per_sec": 15221.0, "elapsed_s": 141.3}
+{"step": 2200, "loss": 345.0396896362305, "prediction": 0.46373849242925647, "sigreg": 689.1519030761718, "lr": 0.0007843211296772862, "imgs_per_sec": 15242.0, "elapsed_s": 147.8}
+{"step": 2300, "loss": 344.8349371337891, "prediction": 0.46293286442756654, "sigreg": 688.7440112304688, "lr": 0.0007170239112616015, "imgs_per_sec": 15270.2, "elapsed_s": 154.2}
+{"step": 2400, "loss": 344.89178070068357, "prediction": 0.4573844277858734, "sigreg": 688.8687945556641, "lr": 0.0006499921969228119, "imgs_per_sec": 15296.2, "elapsed_s": 160.7}
+{"step": 2500, "loss": 344.44790802001955, "prediction": 0.4568608543276787, "sigreg": 687.9820928955078, "lr": 0.0005837656866107641, "imgs_per_sec": 15320.0, "elapsed_s": 167.1}
+{"event": "probe", "step": 2500, "probe_accuracy": 0.28890625, "probe_eval_seen": 6400}
+{"step": 2600, "loss": 344.3837759399414, "prediction": 0.4560907658934593, "sigreg": 687.8553723144531, "lr": 0.000518877597245933, "imgs_per_sec": 15237.0, "elapsed_s": 174.7}
+{"step": 2700, "loss": 344.20792510986325, "prediction": 0.4577459317445755, "sigreg": 687.5003582763671, "lr": 0.0004558503695703056, "imgs_per_sec": 15251.1, "elapsed_s": 181.3}
+{"step": 2800, "loss": 344.15479156494143, "prediction": 0.45007049053907394, "sigreg": 687.4094421386719, "lr": 0.0003951914617617164, "imgs_per_sec": 15272.4, "elapsed_s": 187.7}
+{"step": 2900, "loss": 344.2304718017578, "prediction": 0.44793172359466554, "sigreg": 687.5650799560547, "lr": 0.0003373892636789797, "imgs_per_sec": 15292.0, "elapsed_s": 194.2}
+{"step": 3000, "loss": 343.92096343994143, "prediction": 0.45273429542779925, "sigreg": 686.9364581298828, "lr": 0.00028290916463391574, "imgs_per_sec": 15309.8, "elapsed_s": 200.7}
+{"event": "probe", "step": 3000, "probe_accuracy": 0.29421875, "probe_eval_seen": 6400}
+{"step": 3100, "loss": 344.43324584960936, "prediction": 0.4482907071709633, "sigreg": 687.9699096679688, "lr": 0.00023218980635025585, "imgs_per_sec": 15239.6, "elapsed_s": 208.3}
+{"step": 3200, "loss": 344.39411895751954, "prediction": 0.44676676839590074, "sigreg": 687.8947021484375, "lr": 0.0001856395512784005, "imgs_per_sec": 15252.8, "elapsed_s": 214.8}
+{"step": 3300, "loss": 343.6351446533203, "prediction": 0.4480512973666191, "sigreg": 686.3741888427735, "lr": 0.00014363319470108137, "imgs_per_sec": 15271.4, "elapsed_s": 221.3}
+{"step": 3400, "loss": 344.2164324951172, "prediction": 0.4471507006883621, "sigreg": 687.5385650634765, "lr": 0.00010650894710212145, "imgs_per_sec": 15289.8, "elapsed_s": 227.7}
+{"step": 3500, "loss": 343.7584783935547, "prediction": 0.4457590422034264, "sigreg": 686.625439453125, "lr": 7.456571109448343e-05, "imgs_per_sec": 15307.2, "elapsed_s": 234.1}
+{"event": "probe", "step": 3500, "probe_accuracy": 0.29953125, "probe_eval_seen": 6400}
+{"step": 3600, "loss": 343.8880575561523, "prediction": 0.44673544555902484, "sigreg": 686.882646484375, "lr": 4.806067483218216e-05, "imgs_per_sec": 15244.6, "elapsed_s": 241.8}
+{"step": 3700, "loss": 344.52733123779296, "prediction": 0.44592527657747266, "sigreg": 688.1628125, "lr": 2.7207241282492716e-05, "imgs_per_sec": 15262.4, "elapsed_s": 248.2}
+{"step": 3800, "loss": 343.8376919555664, "prediction": 0.4430039894580841, "sigreg": 686.7893737792969, "lr": 1.2173310030737045e-05, "imgs_per_sec": 15279.2, "elapsed_s": 254.7}
+{"step": 3900, "loss": 343.55320831298826, "prediction": 0.44105681985616685, "sigreg": 686.2243017578126, "lr": 3.0799254515456176e-06, "imgs_per_sec": 15295.2, "elapsed_s": 261.1}
+{"step": 4000, "loss": 343.6760369873047, "prediction": 0.44304311513900757, "sigreg": 686.4659857177735, "lr": 3.0213072668705543e-10, "imgs_per_sec": 15310.7, "elapsed_s": 267.5}
+{"event": "probe", "step": 4000, "probe_accuracy": 0.2990625, "probe_eval_seen": 6400}
+{"event": "checkpoint", "step": 4000, "path": "runs/sweep_B_random_m075_d512/ckpt_step00004000.pt"}
+{"event": "final", "path": "runs/sweep_B_random_m075_d512/final.pt", "elapsed_s": 268.9}

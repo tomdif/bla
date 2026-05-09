@@ -1,0 +1,39 @@
+{
+  "checkpoint": "runs/jepa_cifar10_6gpu/final.pt",
+  "step": 8000,
+  "epochs": 5,
+  "best_test_accuracy": 0.1118,
+  "final_test_accuracy": 0.1,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 2.3650305398559572,
+      "train_accuracy": 0.09976,
+      "test_accuracy": 0.1118
+    },
+    {
+      "epoch": 2,
+      "train_loss": 2.35338078414917,
+      "train_accuracy": 0.09972,
+      "test_accuracy": 0.1
+    },
+    {
+      "epoch": 3,
+      "train_loss": 2.3523583251190185,
+      "train_accuracy": 0.09982,
+      "test_accuracy": 0.1
+    },
+    {
+      "epoch": 4,
+      "train_loss": 2.3536186865997313,
+      "train_accuracy": 0.10024,
+      "test_accuracy": 0.1013
+    },
+    {
+      "epoch": 5,
+      "train_loss": 2.352613972930908,
+      "train_accuracy": 0.104,
+      "test_accuracy": 0.1
+    }
+  ]
+}

@@ -5,10 +5,13 @@ from torch import nn
 
 
 class DiagonalSSMLayer(nn.Module):
-    """Linear-time bidirectional SSM block.
+    """Bidirectional diagonal-state SSM block (reference, unfused implementation).
 
-    This is a dependency-free Mamba-style scratchpad block for the scaffold. It
-    keeps the O(N) recurrent state update contract without requiring mamba-ssm.
+    The forward/backward scan is a Python for-loop over the sequence axis. That
+    is asymptotically O(N) but the constant is large; for blueprint-scale runs
+    swap this for a fused kernel (e.g. mamba-ssm) or a parallel-scan
+    implementation. This module is intentionally dependency-free so the scaffold
+    runs on a fresh CPU without compiled extensions.
     """
 
     def __init__(self, d_model: int, mlp_ratio: float = 2.0):
@@ -71,7 +74,7 @@ class WorkingMemory(nn.Module):
 
     def forward(self, query: torch.Tensor, facts: torch.Tensor) -> torch.Tensor:
         if facts.ndim != 3:
-            raise ValueError(f"facts must be [batch, k, d_ram], got {tuple(facts.shape)}")
+            raise ValueError(f"facts must be [B, k, d_ram], got {tuple(facts.shape)}")
         dtype = next(self.parameters()).dtype
         query = query.to(dtype=dtype)
         facts = facts.to(dtype=dtype)

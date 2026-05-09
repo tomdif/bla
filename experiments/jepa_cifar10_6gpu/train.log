@@ -1,0 +1,211 @@
+W0509 13:52:21.515000 12055 torch/distributed/run.py:774] 
+W0509 13:52:21.515000 12055 torch/distributed/run.py:774] *****************************************
+W0509 13:52:21.515000 12055 torch/distributed/run.py:774] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0509 13:52:21.515000 12055 torch/distributed/run.py:774] *****************************************
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+{"event": "init", "world_size": 6, "n_params": 63889408, "config": {"steps": 8000, "batch_size": 512, "d": 512, "patch_size": 4, "encoder_depth": 8, "encoder_heads": 8, "predictor_depth": 4, "predictor_heads": 8, "target_ratio": 0.5, "sigreg_weight": 0.1, "lr": 0.0015, "warmup": 500, "weight_decay": 0.05, "grad_clip": 1.0, "ema_tau": 0.996, "data": "cifar10", "image_size": 32, "output": "runs/jepa_cifar10_6gpu", "ckpt_every": 2000, "probe_every": 500, "log_every": 50, "seed": 0, "amp": true, "resume": null}}
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+/usr/local/lib/python3.12/dist-packages/torch/distributed/distributed_c10d.py:4807: UserWarning: No device id is provided via `init_process_group` or `barrier `. Using the current device set by the user. 
+  warnings.warn(  # warn only once
+{"event": "loaders_ready", "world": 6}
+{"step": 50, "loss": 292.73140991210937, "prediction": 0.5805293965339661, "sigreg": 2921.5087451171876, "lr": 0.00015, "imgs_per_sec": 11747.9, "elapsed_s": 13.1}
+{"step": 100, "loss": 261.22388427734376, "prediction": 0.7005789601802825, "sigreg": 2605.2330029296877, "lr": 0.0003, "imgs_per_sec": 12006.8, "elapsed_s": 25.6}
+{"step": 150, "loss": 267.62946228027346, "prediction": 0.7110719120502472, "sigreg": 2669.18384765625, "lr": 0.00045, "imgs_per_sec": 12097.2, "elapsed_s": 38.1}
+{"step": 200, "loss": 272.2034625244141, "prediction": 0.7177302253246307, "sigreg": 2714.85728515625, "lr": 0.0006, "imgs_per_sec": 12142.3, "elapsed_s": 50.6}
+{"step": 250, "loss": 275.5456842041016, "prediction": 0.7124665033817291, "sigreg": 2748.332109375, "lr": 0.00075, "imgs_per_sec": 12170.4, "elapsed_s": 63.1}
+{"step": 300, "loss": 275.7607818603516, "prediction": 0.6863547229766845, "sigreg": 2750.744208984375, "lr": 0.0009, "imgs_per_sec": 12188.9, "elapsed_s": 75.6}
+{"step": 350, "loss": 276.09160095214844, "prediction": 0.6649555170536041, "sigreg": 2754.2663916015626, "lr": 0.0010500000000000002, "imgs_per_sec": 12185.4, "elapsed_s": 88.2}
+{"step": 400, "loss": 276.1510278320313, "prediction": 0.6353372824192047, "sigreg": 2755.156884765625, "lr": 0.0012, "imgs_per_sec": 12197.7, "elapsed_s": 100.7}
+{"step": 450, "loss": 275.79418579101565, "prediction": 0.57250501871109, "sigreg": 2752.2167431640623, "lr": 0.00135, "imgs_per_sec": 12207.9, "elapsed_s": 113.2}
+{"step": 500, "loss": 275.1183435058594, "prediction": 0.5281828582286835, "sigreg": 2745.9015576171873, "lr": 0.0015, "imgs_per_sec": 12212.2, "elapsed_s": 125.8}
+{"event": "probe", "step": 500, "probe_accuracy": 0.2953125, "probe_eval_seen": 6400}
+{"step": 550, "loss": 275.2917156982422, "prediction": 0.49317502200603486, "sigreg": 2747.9853515625, "lr": 0.0014998420260782558, "imgs_per_sec": 12103.6, "elapsed_s": 139.6}
+{"step": 600, "loss": 275.45574462890625, "prediction": 0.4934672129154205, "sigreg": 2749.6227001953125, "lr": 0.0014993552124587248, "imgs_per_sec": 12117.9, "elapsed_s": 152.1}
+{"step": 650, "loss": 275.01698425292966, "prediction": 0.49485734820365906, "sigreg": 2745.22123046875, "lr": 0.001498539706876588, "imgs_per_sec": 12130.0, "elapsed_s": 164.6}
+{"step": 700, "loss": 274.77056091308594, "prediction": 0.48807201981544496, "sigreg": 2742.8248388671873, "lr": 0.0014973958670395464, "imgs_per_sec": 12140.4, "elapsed_s": 177.1}
+{"step": 750, "loss": 274.51061462402345, "prediction": 0.47840779662132266, "sigreg": 2740.32201171875, "lr": 0.001495924194673557, "imgs_per_sec": 12149.5, "elapsed_s": 189.6}
+{"step": 800, "loss": 273.75036560058595, "prediction": 0.47344975888729096, "sigreg": 2732.7691259765625, "lr": 0.0014941253353027587, "imgs_per_sec": 12152.0, "elapsed_s": 202.2}
+{"step": 850, "loss": 273.5433099365234, "prediction": 0.4666233217716217, "sigreg": 2730.7667919921873, "lr": 0.0014920000779663242, "imgs_per_sec": 12159.6, "elapsed_s": 214.7}
+{"step": 900, "loss": 274.199443359375, "prediction": 0.4642999088764191, "sigreg": 2737.351376953125, "lr": 0.001489549354872362, "imgs_per_sec": 12166.7, "elapsed_s": 227.2}
+{"step": 950, "loss": 273.81376098632813, "prediction": 0.4751948744058609, "sigreg": 2733.38556640625, "lr": 0.0014867742409890178, "imgs_per_sec": 12173.4, "elapsed_s": 239.7}
+{"step": 1000, "loss": 273.52491760253906, "prediction": 0.4976597344875336, "sigreg": 2730.272548828125, "lr": 0.0014836759535729596, "imgs_per_sec": 12179.5, "elapsed_s": 252.2}
+{"event": "probe", "step": 1000, "probe_accuracy": 0.3028125, "probe_eval_seen": 6400}
+{"step": 1050, "loss": 273.70531188964844, "prediction": 0.48998078823089597, "sigreg": 2732.15326171875, "lr": 0.001480255851635447, "imgs_per_sec": 12128.1, "elapsed_s": 266.0}
+{"step": 1100, "loss": 273.69008972167967, "prediction": 0.47584218382835386, "sigreg": 2732.142431640625, "lr": 0.001476515435346226, "imgs_per_sec": 12135.6, "elapsed_s": 278.5}
+{"step": 1150, "loss": 273.7349377441406, "prediction": 0.4909429883956909, "sigreg": 2732.4398583984375, "lr": 0.0014724563453755023, "imgs_per_sec": 12142.1, "elapsed_s": 291.0}
+{"step": 1200, "loss": 273.6468963623047, "prediction": 0.469107825756073, "sigreg": 2731.777822265625, "lr": 0.0014680803621742913, "imgs_per_sec": 12147.6, "elapsed_s": 303.5}
+{"step": 1250, "loss": 273.7715856933594, "prediction": 0.4616913634538651, "sigreg": 2733.0989013671874, "lr": 0.001463389405193453, "imgs_per_sec": 12149.0, "elapsed_s": 316.1}
+{"step": 1300, "loss": 273.18041259765624, "prediction": 0.4628459703922272, "sigreg": 2727.1756201171875, "lr": 0.0014583855320417563, "imgs_per_sec": 12154.2, "elapsed_s": 328.6}
+{"step": 1350, "loss": 273.5824090576172, "prediction": 0.4575197219848633, "sigreg": 2731.2488671875, "lr": 0.0014530709375833457, "imgs_per_sec": 12159.2, "elapsed_s": 341.1}
+{"step": 1400, "loss": 272.8116186523437, "prediction": 0.4541220963001251, "sigreg": 2723.5748876953126, "lr": 0.001447447952974999, "imgs_per_sec": 12163.6, "elapsed_s": 353.6}
+{"step": 1450, "loss": 273.2053826904297, "prediction": 0.4492071944475174, "sigreg": 2727.5616796875, "lr": 0.001441519044643607, "imgs_per_sec": 12167.4, "elapsed_s": 366.1}
+{"step": 1500, "loss": 273.0771240234375, "prediction": 0.44921563923358915, "sigreg": 2726.2790625, "lr": 0.0014352868132043164, "imgs_per_sec": 12171.6, "elapsed_s": 378.6}
+{"event": "probe", "step": 1500, "probe_accuracy": 0.29640625, "probe_eval_seen": 6400}
+{"step": 1550, "loss": 272.9618078613281, "prediction": 0.4522151929140091, "sigreg": 2725.0958544921873, "lr": 0.0014287539923198134, "imgs_per_sec": 12136.1, "elapsed_s": 392.4}
+{"step": 1600, "loss": 273.22295166015624, "prediction": 0.44661357522010803, "sigreg": 2727.76330078125, "lr": 0.0014219234475012497, "imgs_per_sec": 12140.9, "elapsed_s": 404.8}
+{"step": 1650, "loss": 272.8761810302734, "prediction": 0.44473779559135435, "sigreg": 2724.314365234375, "lr": 0.0014147981748513342, "imgs_per_sec": 12145.3, "elapsed_s": 417.3}
+{"step": 1700, "loss": 273.406484375, "prediction": 0.4477500492334366, "sigreg": 2729.587294921875, "lr": 0.0014073812997501438, "imgs_per_sec": 12146.8, "elapsed_s": 429.9}
+{"step": 1750, "loss": 273.00365966796875, "prediction": 0.4440284836292267, "sigreg": 2725.596240234375, "lr": 0.0013996760754842283, "imgs_per_sec": 12150.7, "elapsed_s": 442.4}
+{"step": 1800, "loss": 272.97454162597654, "prediction": 0.4414788353443146, "sigreg": 2725.330546875, "lr": 0.00139168588181961, "imgs_per_sec": 12153.2, "elapsed_s": 455.0}
+{"step": 1850, "loss": 273.09757629394534, "prediction": 0.4460016494989395, "sigreg": 2726.515703125, "lr": 0.0013834142235193089, "imgs_per_sec": 12156.8, "elapsed_s": 467.5}
+{"step": 1900, "loss": 272.9138623046875, "prediction": 0.4447959095239639, "sigreg": 2724.690625, "lr": 0.0013748647288060367, "imgs_per_sec": 12160.0, "elapsed_s": 480.0}
+{"step": 1950, "loss": 272.8254754638672, "prediction": 0.44158463656902314, "sigreg": 2723.83880859375, "lr": 0.0013660411477707376, "imgs_per_sec": 12163.2, "elapsed_s": 492.5}
+{"step": 2000, "loss": 272.9726806640625, "prediction": 0.4456107300519943, "sigreg": 2725.270625, "lr": 0.001356947350727676, "imgs_per_sec": 12166.4, "elapsed_s": 505.0}
+{"event": "probe", "step": 2000, "probe_accuracy": 0.28890625, "probe_eval_seen": 6400}
+{"event": "checkpoint", "step": 2000, "path": "runs/jepa_cifar10_6gpu/ckpt_step00002000.pt"}
+{"step": 2050, "loss": 272.9712481689453, "prediction": 0.4465499931573868, "sigreg": 2725.246923828125, "lr": 0.0013475873265167877, "imgs_per_sec": 12136.1, "elapsed_s": 518.9}
+{"step": 2100, "loss": 272.8776629638672, "prediction": 0.44138168573379516, "sigreg": 2724.3627294921876, "lr": 0.001337965180754043, "imgs_per_sec": 12139.9, "elapsed_s": 531.4}
+{"step": 2150, "loss": 272.89105834960935, "prediction": 0.44449369549751283, "sigreg": 2724.4655908203126, "lr": 0.001328085134030589, "imgs_per_sec": 12139.3, "elapsed_s": 544.1}
+{"step": 2200, "loss": 273.0180328369141, "prediction": 0.4437173980474472, "sigreg": 2725.7430810546875, "lr": 0.0013179515200614567, "imgs_per_sec": 12142.6, "elapsed_s": 556.6}
+{"step": 2250, "loss": 272.6619683837891, "prediction": 0.443748813867569, "sigreg": 2722.1821240234376, "lr": 0.0013075687837846525, "imgs_per_sec": 12146.0, "elapsed_s": 569.1}
+{"step": 2300, "loss": 272.84979858398435, "prediction": 0.44108120977878573, "sigreg": 2724.0871142578126, "lr": 0.0012969414794114593, "imgs_per_sec": 12149.2, "elapsed_s": 581.6}
+{"step": 2350, "loss": 272.75879455566405, "prediction": 0.44185641169548034, "sigreg": 2723.1693408203123, "lr": 0.0012860742684288118, "imgs_per_sec": 12152.1, "elapsed_s": 594.1}
+{"step": 2400, "loss": 272.52814331054685, "prediction": 0.4449201762676239, "sigreg": 2720.83216796875, "lr": 0.0012749719175546108, "imgs_per_sec": 12155.1, "elapsed_s": 606.6}
+{"step": 2450, "loss": 273.07496154785156, "prediction": 0.43960050761699676, "sigreg": 2726.353525390625, "lr": 0.0012636392966468863, "imgs_per_sec": 12157.9, "elapsed_s": 619.1}
+{"step": 2500, "loss": 272.79872436523436, "prediction": 0.4409345066547394, "sigreg": 2723.5778173828126, "lr": 0.001252081376567715, "imgs_per_sec": 12160.6, "elapsed_s": 631.5}
+{"event": "probe", "step": 2500, "probe_accuracy": 0.28890625, "probe_eval_seen": 6400}
+{"step": 2550, "loss": 272.33107604980466, "prediction": 0.4436850869655609, "sigreg": 2718.8738330078127, "lr": 0.0012403032270028366, "imgs_per_sec": 12139.7, "elapsed_s": 645.3}
+{"step": 2600, "loss": 272.38990905761716, "prediction": 0.4424255430698395, "sigreg": 2719.4747998046873, "lr": 0.0012283100142379216, "imgs_per_sec": 12139.2, "elapsed_s": 658.0}
+{"step": 2650, "loss": 272.4331640625, "prediction": 0.44059145629405977, "sigreg": 2719.925673828125, "lr": 0.0012161069988924679, "imgs_per_sec": 12142.1, "elapsed_s": 670.5}
+{"step": 2700, "loss": 272.44537963867185, "prediction": 0.4441683167219162, "sigreg": 2720.0120556640627, "lr": 0.0012036995336123196, "imgs_per_sec": 12144.9, "elapsed_s": 683.0}
+{"step": 2750, "loss": 272.8454913330078, "prediction": 0.44315264582633973, "sigreg": 2724.0233251953123, "lr": 0.0011910930607218193, "imgs_per_sec": 12147.5, "elapsed_s": 695.5}
+{"step": 2800, "loss": 272.8132098388672, "prediction": 0.4442059451341629, "sigreg": 2723.689990234375, "lr": 0.0011782931098366243, "imgs_per_sec": 12150.1, "elapsed_s": 707.9}
+{"step": 2850, "loss": 272.5417010498047, "prediction": 0.4430863320827484, "sigreg": 2720.9860888671874, "lr": 0.0011653052954382355, "imgs_per_sec": 12152.4, "elapsed_s": 720.4}
+{"step": 2900, "loss": 272.8057830810547, "prediction": 0.4472336548566818, "sigreg": 2723.5854248046876, "lr": 0.001152135314411299, "imgs_per_sec": 12154.9, "elapsed_s": 732.9}
+{"step": 2950, "loss": 272.4260955810547, "prediction": 0.443421728014946, "sigreg": 2719.826669921875, "lr": 0.001138788943544765, "imgs_per_sec": 12157.0, "elapsed_s": 745.4}
+{"step": 3000, "loss": 272.2428851318359, "prediction": 0.4452550405263901, "sigreg": 2717.9762890625, "lr": 0.001125272036997998, "imgs_per_sec": 12159.2, "elapsed_s": 757.9}
+{"event": "probe", "step": 3000, "probe_accuracy": 0.29421875, "probe_eval_seen": 6400}
+{"step": 3050, "loss": 272.2922686767578, "prediction": 0.44310715794563293, "sigreg": 2718.49158203125, "lr": 0.0011115905237329467, "imgs_per_sec": 12140.3, "elapsed_s": 771.8}
+{"step": 3100, "loss": 272.48859252929685, "prediction": 0.4437229770421982, "sigreg": 2720.4486474609375, "lr": 0.0010977504049135077, "imgs_per_sec": 12141.0, "elapsed_s": 784.4}
+{"step": 3150, "loss": 272.3156549072266, "prediction": 0.4439216709136963, "sigreg": 2718.7172705078124, "lr": 0.0010837577512732152, "imgs_per_sec": 12143.2, "elapsed_s": 796.9}
+{"step": 3200, "loss": 272.42366088867186, "prediction": 0.44249451756477354, "sigreg": 2719.8116015625, "lr": 0.0010696187004524175, "imgs_per_sec": 12145.1, "elapsed_s": 809.4}
+{"step": 3250, "loss": 271.82615478515623, "prediction": 0.44788717210292817, "sigreg": 2713.7826123046875, "lr": 0.0010553394543061044, "imgs_per_sec": 12147.0, "elapsed_s": 821.9}
+{"step": 3300, "loss": 272.0912750244141, "prediction": 0.44663867831230164, "sigreg": 2716.4462939453124, "lr": 0.0010409262761835697, "imgs_per_sec": 12148.8, "elapsed_s": 834.5}
+{"step": 3350, "loss": 272.68204528808593, "prediction": 0.4575406390428543, "sigreg": 2722.244970703125, "lr": 0.001026385488181097, "imgs_per_sec": 12150.9, "elapsed_s": 847.0}
+{"step": 3400, "loss": 272.05474243164065, "prediction": 0.4563857060670853, "sigreg": 2715.9835107421877, "lr": 0.0010117234683688825, "imgs_per_sec": 12152.9, "elapsed_s": 859.4}
+{"step": 3450, "loss": 271.8530572509766, "prediction": 0.45225013256073, "sigreg": 2714.0079931640626, "lr": 0.0009969466479934001, "imgs_per_sec": 12154.9, "elapsed_s": 871.9}
+{"step": 3500, "loss": 272.3275323486328, "prediction": 0.4489587336778641, "sigreg": 2718.7856396484376, "lr": 0.0009820615086564444, "imgs_per_sec": 12156.9, "elapsed_s": 884.4}
+{"event": "probe", "step": 3500, "probe_accuracy": 0.29953125, "probe_eval_seen": 6400}
+{"step": 3550, "loss": 271.97179260253904, "prediction": 0.4450056725740433, "sigreg": 2715.2677880859374, "lr": 0.0009670745794720876, "imgs_per_sec": 12139.9, "elapsed_s": 898.3}
+{"step": 3600, "loss": 272.44913391113283, "prediction": 0.44900062084198, "sigreg": 2720.001279296875, "lr": 0.0009519924342027923, "imgs_per_sec": 12142.0, "elapsed_s": 910.8}
+{"step": 3650, "loss": 272.0555084228516, "prediction": 0.4452965062856674, "sigreg": 2716.102041015625, "lr": 0.0009368216883759435, "imgs_per_sec": 12144.1, "elapsed_s": 923.3}
+{"step": 3700, "loss": 272.9023046875, "prediction": 0.44616869151592253, "sigreg": 2724.5613134765626, "lr": 0.0009215689963820585, "imgs_per_sec": 12146.1, "elapsed_s": 935.8}
+{"step": 3750, "loss": 271.70963684082034, "prediction": 0.4468283116817474, "sigreg": 2712.6280322265625, "lr": 0.0009062410485559518, "imgs_per_sec": 12148.0, "elapsed_s": 948.3}
+{"step": 3800, "loss": 272.0316638183594, "prediction": 0.44658177614212036, "sigreg": 2715.8507763671873, "lr": 0.0008908445682421334, "imgs_per_sec": 12149.7, "elapsed_s": 960.8}
+{"step": 3850, "loss": 271.83418212890626, "prediction": 0.44817492604255676, "sigreg": 2713.8600244140625, "lr": 0.0008753863088457278, "imgs_per_sec": 12151.6, "elapsed_s": 973.3}
+{"step": 3900, "loss": 272.3401904296875, "prediction": 0.44427420616149904, "sigreg": 2718.9591162109373, "lr": 0.000859873050870206, "imgs_per_sec": 12153.0, "elapsed_s": 985.8}
+{"step": 3950, "loss": 271.90120666503907, "prediction": 0.4455936646461487, "sigreg": 2714.556083984375, "lr": 0.0008443115989432344, "imgs_per_sec": 12154.5, "elapsed_s": 998.3}
+{"step": 4000, "loss": 272.0136279296875, "prediction": 0.44532576084136966, "sigreg": 2715.6829638671875, "lr": 0.0008287087788319386, "imgs_per_sec": 12153.9, "elapsed_s": 1011.0}
+{"event": "probe", "step": 4000, "probe_accuracy": 0.2990625, "probe_eval_seen": 6400}
+{"event": "checkpoint", "step": 4000, "path": "runs/jepa_cifar10_6gpu/ckpt_step00004000.pt"}
+{"step": 4050, "loss": 272.09656127929685, "prediction": 0.4427632057666779, "sigreg": 2716.5379345703127, "lr": 0.0008130714344488977, "imgs_per_sec": 12138.7, "elapsed_s": 1025.0}
+{"step": 4100, "loss": 271.60663940429686, "prediction": 0.44354085743427274, "sigreg": 2711.6309423828125, "lr": 0.0007974064248501774, "imgs_per_sec": 12140.4, "elapsed_s": 1037.5}
+{"step": 4150, "loss": 272.2576446533203, "prediction": 0.44185360372066496, "sigreg": 2718.1578515625, "lr": 0.0007817206212267205, "imgs_per_sec": 12142.2, "elapsed_s": 1050.0}
+{"step": 4200, "loss": 272.0366271972656, "prediction": 0.4422347217798233, "sigreg": 2715.9438671875, "lr": 0.0007660209038904172, "imgs_per_sec": 12144.0, "elapsed_s": 1062.4}
+{"step": 4250, "loss": 271.8808868408203, "prediction": 0.4419565027952194, "sigreg": 2714.3892529296877, "lr": 0.000750314159256172, "imgs_per_sec": 12145.8, "elapsed_s": 1074.9}
+{"step": 4300, "loss": 271.9321759033203, "prediction": 0.44139394283294675, "sigreg": 2714.907724609375, "lr": 0.000734607276821294, "imgs_per_sec": 12147.4, "elapsed_s": 1087.4}
+{"step": 4350, "loss": 271.54712341308596, "prediction": 0.44125538229942324, "sigreg": 2711.05861328125, "lr": 0.0007189071461435361, "imgs_per_sec": 12149.2, "elapsed_s": 1099.9}
+{"step": 4400, "loss": 272.01900085449216, "prediction": 0.44134389638900756, "sigreg": 2715.7765087890625, "lr": 0.0007032206538191083, "imgs_per_sec": 12150.8, "elapsed_s": 1112.4}
+{"step": 4450, "loss": 272.02115966796873, "prediction": 0.4420958948135376, "sigreg": 2715.7905810546877, "lr": 0.0006875546804619873, "imgs_per_sec": 12150.7, "elapsed_s": 1125.1}
+{"step": 4500, "loss": 271.9150103759766, "prediction": 0.44005760431289676, "sigreg": 2714.7494580078123, "lr": 0.0006719160976858526, "imgs_per_sec": 12152.3, "elapsed_s": 1137.6}
+{"event": "probe", "step": 4500, "probe_accuracy": 0.30375, "probe_eval_seen": 6400}
+{"step": 4550, "loss": 271.6527575683594, "prediction": 0.4416221463680267, "sigreg": 2712.11130859375, "lr": 0.0006563117650899701, "imgs_per_sec": 12140.8, "elapsed_s": 1151.3}
+{"step": 4600, "loss": 271.5782818603516, "prediction": 0.4402812200784683, "sigreg": 2711.37994140625, "lr": 0.0006407485272503443, "imgs_per_sec": 12142.4, "elapsed_s": 1163.8}
+{"step": 4650, "loss": 271.971416015625, "prediction": 0.4380769157409668, "sigreg": 2715.33333984375, "lr": 0.0006252332107174615, "imgs_per_sec": 12144.1, "elapsed_s": 1176.3}
+{"step": 4700, "loss": 271.74400634765624, "prediction": 0.4396022456884384, "sigreg": 2713.0439990234377, "lr": 0.0006097726210219389, "imgs_per_sec": 12145.6, "elapsed_s": 1188.8}
+{"step": 4750, "loss": 271.93775390625, "prediction": 0.44302705585956575, "sigreg": 2714.9472265625, "lr": 0.0005943735396893941, "imgs_per_sec": 12147.2, "elapsed_s": 1201.3}
+{"step": 4800, "loss": 272.0554229736328, "prediction": 0.43941000461578367, "sigreg": 2716.1600634765623, "lr": 0.0005790427212658442, "imgs_per_sec": 12148.7, "elapsed_s": 1213.8}
+{"step": 4850, "loss": 272.1067071533203, "prediction": 0.446049302816391, "sigreg": 2716.6064990234377, "lr": 0.0005637868903549384, "imgs_per_sec": 12150.2, "elapsed_s": 1226.2}
+{"step": 4900, "loss": 271.10526000976563, "prediction": 0.4403920960426331, "sigreg": 2706.648603515625, "lr": 0.0005486127386683232, "imgs_per_sec": 12150.1, "elapsed_s": 1238.9}
+{"step": 4950, "loss": 272.03806274414063, "prediction": 0.44121516704559327, "sigreg": 2715.9684130859373, "lr": 0.0005335269220904397, "imgs_per_sec": 12151.7, "elapsed_s": 1251.4}
+{"step": 5000, "loss": 271.7836151123047, "prediction": 0.44041658818721774, "sigreg": 2713.4319189453126, "lr": 0.0005185360577590292, "imgs_per_sec": 12153.1, "elapsed_s": 1263.9}
+{"event": "probe", "step": 5000, "probe_accuracy": 0.20421875, "probe_eval_seen": 6400}
+{"step": 5050, "loss": 271.908798828125, "prediction": 0.44354009032249453, "sigreg": 2714.6525390625, "lr": 0.0005036467211626405, "imgs_per_sec": 12142.8, "elapsed_s": 1277.6}
+{"step": 5100, "loss": 271.8747833251953, "prediction": 0.44017656743526457, "sigreg": 2714.3460107421874, "lr": 0.000488865443256402, "imgs_per_sec": 12144.3, "elapsed_s": 1290.1}
+{"step": 5150, "loss": 271.9218438720703, "prediction": 0.4412608689069748, "sigreg": 2714.8057666015625, "lr": 0.0004741987075973287, "imgs_per_sec": 12145.7, "elapsed_s": 1302.6}
+{"step": 5200, "loss": 271.7049853515625, "prediction": 0.4399281519651413, "sigreg": 2712.6505029296877, "lr": 0.00045965294750042134, "imgs_per_sec": 12147.1, "elapsed_s": 1315.1}
+{"step": 5250, "loss": 271.7498956298828, "prediction": 0.4402136707305908, "sigreg": 2713.0967578125, "lr": 0.00044523454321680024, "imgs_per_sec": 12148.6, "elapsed_s": 1327.6}
+{"step": 5300, "loss": 272.1064465332031, "prediction": 0.4407292997837067, "sigreg": 2716.65708984375, "lr": 0.0004309498191351166, "imgs_per_sec": 12150.0, "elapsed_s": 1340.1}
+{"step": 5350, "loss": 271.9763073730469, "prediction": 0.4414394652843475, "sigreg": 2715.3486181640624, "lr": 0.00041680504100746746, "imgs_per_sec": 12149.3, "elapsed_s": 1352.8}
+{"step": 5400, "loss": 271.61114501953125, "prediction": 0.4385856503248215, "sigreg": 2711.7255615234376, "lr": 0.00040280641320102875, "imgs_per_sec": 12150.5, "elapsed_s": 1365.3}
+{"step": 5450, "loss": 271.5763586425781, "prediction": 0.43779717683792113, "sigreg": 2711.3855810546875, "lr": 0.00038896007597661534, "imgs_per_sec": 12151.8, "elapsed_s": 1377.8}
+{"step": 5500, "loss": 271.54119384765625, "prediction": 0.43913462936878206, "sigreg": 2711.02052734375, "lr": 0.0003752721027953598, "imgs_per_sec": 12153.1, "elapsed_s": 1390.3}
+{"event": "probe", "step": 5500, "probe_accuracy": 0.2903125, "probe_eval_seen": 6400}
+{"step": 5550, "loss": 271.3306518554688, "prediction": 0.4397322595119476, "sigreg": 2708.90912109375, "lr": 0.00036174849765469095, "imgs_per_sec": 12143.6, "elapsed_s": 1404.0}
+{"step": 5600, "loss": 271.903525390625, "prediction": 0.444796667098999, "sigreg": 2714.5872119140627, "lr": 0.00034839519245478316, "imgs_per_sec": 12144.9, "elapsed_s": 1416.5}
+{"step": 5650, "loss": 271.5629705810547, "prediction": 0.43964156150817874, "sigreg": 2711.233212890625, "lr": 0.00033521804439662714, "imgs_per_sec": 12146.2, "elapsed_s": 1429.0}
+{"step": 5700, "loss": 271.62488037109375, "prediction": 0.439948188662529, "sigreg": 2711.8492529296873, "lr": 0.0003222228334128709, "imgs_per_sec": 12147.3, "elapsed_s": 1441.5}
+{"step": 5750, "loss": 271.89210510253906, "prediction": 0.44041229248046876, "sigreg": 2714.516884765625, "lr": 0.00030941525963254745, "imgs_per_sec": 12148.6, "elapsed_s": 1454.0}
+{"step": 5800, "loss": 271.5973754882813, "prediction": 0.4383446913957596, "sigreg": 2711.5902734375, "lr": 0.00029680094088081066, "imgs_per_sec": 12148.4, "elapsed_s": 1466.7}
+{"step": 5850, "loss": 271.5959802246094, "prediction": 0.4387877810001373, "sigreg": 2711.571865234375, "lr": 0.00028438541021477286, "imgs_per_sec": 12149.7, "elapsed_s": 1479.2}
+{"step": 5900, "loss": 271.93181396484374, "prediction": 0.4389836698770523, "sigreg": 2714.9282666015624, "lr": 0.0002721741134965207, "imgs_per_sec": 12150.9, "elapsed_s": 1491.6}
+{"step": 5950, "loss": 271.59387573242185, "prediction": 0.43997473061084746, "sigreg": 2711.5389501953123, "lr": 0.00026017240700438227, "imgs_per_sec": 12152.0, "elapsed_s": 1504.1}
+{"step": 6000, "loss": 271.7470404052734, "prediction": 0.44221560716629027, "sigreg": 2713.04818359375, "lr": 0.00024838555508348493, "imgs_per_sec": 12153.2, "elapsed_s": 1516.6}
+{"event": "probe", "step": 6000, "probe_accuracy": 0.2009375, "probe_eval_seen": 6400}
+{"event": "checkpoint", "step": 6000, "path": "runs/jepa_cifar10_6gpu/ckpt_step00006000.pt"}
+{"step": 6050, "loss": 271.47352600097656, "prediction": 0.43930673837661743, "sigreg": 2710.3421435546875, "lr": 0.00023681872783664053, "imgs_per_sec": 12143.1, "elapsed_s": 1530.5}
+{"step": 6100, "loss": 271.6209716796875, "prediction": 0.4383717858791351, "sigreg": 2711.825947265625, "lr": 0.0002254769988565665, "imgs_per_sec": 12144.4, "elapsed_s": 1543.0}
+{"step": 6150, "loss": 271.55919189453124, "prediction": 0.439933962225914, "sigreg": 2711.192548828125, "lr": 0.00021436534300044128, "imgs_per_sec": 12145.5, "elapsed_s": 1555.5}
+{"step": 6200, "loss": 271.4253582763672, "prediction": 0.4396111124753952, "sigreg": 2709.857412109375, "lr": 0.00020348863420776702, "imgs_per_sec": 12146.7, "elapsed_s": 1568.0}
+{"step": 6250, "loss": 271.40161560058596, "prediction": 0.44013667345047, "sigreg": 2709.6147314453124, "lr": 0.00019285164336249884, "imgs_per_sec": 12147.2, "elapsed_s": 1580.6}
+{"step": 6300, "loss": 271.6118408203125, "prediction": 0.43723713397979735, "sigreg": 2711.745986328125, "lr": 0.0001824590362003771, "imgs_per_sec": 12147.8, "elapsed_s": 1593.2}
+{"step": 6350, "loss": 272.11000366210936, "prediction": 0.43620939016342164, "sigreg": 2716.737861328125, "lr": 0.0001723153712623822, "imgs_per_sec": 12148.9, "elapsed_s": 1605.7}
+{"step": 6400, "loss": 271.6562213134766, "prediction": 0.4380589312314987, "sigreg": 2712.181533203125, "lr": 0.0001624250978952073, "imgs_per_sec": 12150.0, "elapsed_s": 1618.2}
+{"step": 6450, "loss": 271.509912109375, "prediction": 0.4372384852170944, "sigreg": 2710.7266845703125, "lr": 0.00015279255429962723, "imgs_per_sec": 12151.2, "elapsed_s": 1630.7}
+{"step": 6500, "loss": 271.6451727294922, "prediction": 0.43897564709186554, "sigreg": 2712.0619140625, "lr": 0.00014342196562762243, "imgs_per_sec": 12152.3, "elapsed_s": 1643.1}
+{"event": "probe", "step": 6500, "probe_accuracy": 0.29328125, "probe_eval_seen": 6400}
+{"step": 6550, "loss": 271.54656372070315, "prediction": 0.4382022988796234, "sigreg": 2711.0835205078124, "lr": 0.0001343174421290846, "imgs_per_sec": 12144.2, "elapsed_s": 1656.9}
+{"step": 6600, "loss": 271.5434979248047, "prediction": 0.4356451630592346, "sigreg": 2711.0784814453127, "lr": 0.0001254829773489276, "imgs_per_sec": 12145.4, "elapsed_s": 1669.4}
+{"step": 6650, "loss": 271.5264038085937, "prediction": 0.43920353829860687, "sigreg": 2710.871953125, "lr": 0.00011692244637538627, "imgs_per_sec": 12146.5, "elapsed_s": 1681.9}
+{"step": 6700, "loss": 271.6868878173828, "prediction": 0.4384312230348587, "sigreg": 2712.4845361328125, "lr": 0.00010863960414027339, "imgs_per_sec": 12147.6, "elapsed_s": 1694.4}
+{"step": 6750, "loss": 271.7018328857422, "prediction": 0.43631696939468384, "sigreg": 2712.65509765625, "lr": 0.00010063808377194361, "imgs_per_sec": 12147.5, "elapsed_s": 1707.0}
+{"step": 6800, "loss": 271.25548889160154, "prediction": 0.4352912539243698, "sigreg": 2708.201904296875, "lr": 9.29213950016839e-05, "imgs_per_sec": 12148.6, "elapsed_s": 1719.5}
+{"step": 6850, "loss": 271.29454650878904, "prediction": 0.4379568886756897, "sigreg": 2708.5658349609375, "lr": 8.549292262422714e-05, "imgs_per_sec": 12149.6, "elapsed_s": 1732.0}
+{"step": 6900, "loss": 271.81237426757815, "prediction": 0.43654067158699034, "sigreg": 2713.75828125, "lr": 7.83559250130717e-05, "imgs_per_sec": 12150.6, "elapsed_s": 1744.5}
+{"step": 6950, "loss": 271.3367572021484, "prediction": 0.4385029071569443, "sigreg": 2708.982470703125, "lr": 7.151353269124972e-05, "imgs_per_sec": 12151.6, "elapsed_s": 1757.0}
+{"step": 7000, "loss": 271.59377136230466, "prediction": 0.43693755149841307, "sigreg": 2711.5682666015623, "lr": 6.496874695817684e-05, "imgs_per_sec": 12152.6, "elapsed_s": 1769.5}
+{"event": "probe", "step": 7000, "probe_accuracy": 0.29953125, "probe_eval_seen": 6400}
+{"step": 7050, "loss": 271.6020654296875, "prediction": 0.43946672141551973, "sigreg": 2711.6259521484376, "lr": 5.872443857318266e-05, "imgs_per_sec": 12145.1, "elapsed_s": 1783.2}
+{"step": 7100, "loss": 271.81523559570314, "prediction": 0.43722262263298034, "sigreg": 2713.7800927734374, "lr": 5.278334649630121e-05, "imgs_per_sec": 12146.1, "elapsed_s": 1795.7}
+{"step": 7150, "loss": 271.4165106201172, "prediction": 0.43484841227531434, "sigreg": 2709.8165478515625, "lr": 4.714807668687254e-05, "imgs_per_sec": 12147.1, "elapsed_s": 1808.2}
+{"step": 7200, "loss": 271.8826495361328, "prediction": 0.43721150636672973, "sigreg": 2714.4543310546874, "lr": 4.182110096048197e-05, "imgs_per_sec": 12147.0, "elapsed_s": 1820.9}
+{"step": 7250, "loss": 271.6601202392578, "prediction": 0.43596575319767, "sigreg": 2712.2414990234374, "lr": 3.680475590474172e-05, "imgs_per_sec": 12148.1, "elapsed_s": 1833.4}
+{"step": 7300, "loss": 271.06663818359374, "prediction": 0.43618582606315615, "sigreg": 2706.3044580078126, "lr": 3.210124185438495e-05, "imgs_per_sec": 12149.0, "elapsed_s": 1845.9}
+{"step": 7350, "loss": 271.64896301269533, "prediction": 0.43795956134796143, "sigreg": 2712.1099609375, "lr": 2.771262192612664e-05, "imgs_per_sec": 12150.1, "elapsed_s": 1858.4}
+{"step": 7400, "loss": 271.19830932617185, "prediction": 0.4369653350114822, "sigreg": 2707.6133984375, "lr": 2.3640821113712435e-05, "imgs_per_sec": 12151.0, "elapsed_s": 1870.9}
+{"step": 7450, "loss": 271.6510888671875, "prediction": 0.4348516446352005, "sigreg": 2712.1623046875, "lr": 1.988762544355327e-05, "imgs_per_sec": 12152.0, "elapsed_s": 1883.3}
+{"step": 7500, "loss": 271.4262469482422, "prediction": 0.4353130567073822, "sigreg": 2709.9092529296877, "lr": 1.645468119131402e-05, "imgs_per_sec": 12152.9, "elapsed_s": 1895.8}
+{"event": "probe", "step": 7500, "probe_accuracy": 0.29578125, "probe_eval_seen": 6400}
+{"step": 7550, "loss": 271.10312622070313, "prediction": 0.43640652239322664, "sigreg": 2706.667138671875, "lr": 1.3343494159803793e-05, "imgs_per_sec": 12145.9, "elapsed_s": 1909.6}
+{"step": 7600, "loss": 271.6950701904297, "prediction": 0.4353008526563644, "sigreg": 2712.5976513671876, "lr": 1.0555429018480278e-05, "imgs_per_sec": 12146.9, "elapsed_s": 1922.1}
+{"step": 7650, "loss": 271.5111962890625, "prediction": 0.437141141295433, "sigreg": 2710.74048828125, "lr": 8.091708704860811e-06, "imgs_per_sec": 12146.8, "elapsed_s": 1934.7}
+{"step": 7700, "loss": 271.4573687744141, "prediction": 0.4357102030515671, "sigreg": 2710.21654296875, "lr": 5.953413888101722e-06, "imgs_per_sec": 12147.8, "elapsed_s": 1947.2}
+{"step": 7750, "loss": 271.26403564453125, "prediction": 0.43572444558143614, "sigreg": 2708.2830517578127, "lr": 4.141482494980836e-06, "imgs_per_sec": 12148.7, "elapsed_s": 1959.7}
+{"step": 7800, "loss": 271.53789306640624, "prediction": 0.4355261242389679, "sigreg": 2711.0236181640626, "lr": 2.656709298492238e-06, "imgs_per_sec": 12149.7, "elapsed_s": 1972.2}
+{"step": 7850, "loss": 271.0953057861328, "prediction": 0.4363371330499649, "sigreg": 2706.589638671875, "lr": 1.4997455692319638e-06, "imgs_per_sec": 12150.6, "elapsed_s": 1984.7}
+{"step": 7900, "loss": 271.46036926269534, "prediction": 0.4357638400793076, "sigreg": 2710.2459716796875, "lr": 6.710987897297627e-07, "imgs_per_sec": 12151.5, "elapsed_s": 1997.2}
+{"step": 7950, "loss": 271.41087890625, "prediction": 0.4362823176383972, "sigreg": 2709.745888671875, "lr": 1.7113243185015726e-07, "imgs_per_sec": 12152.4, "elapsed_s": 2009.7}
+{"step": 8000, "loss": 271.146123046875, "prediction": 0.43486270010471345, "sigreg": 2707.1125341796874, "lr": 6.579736172573902e-11, "imgs_per_sec": 12153.2, "elapsed_s": 2022.2}
+{"event": "probe", "step": 8000, "probe_accuracy": 0.29953125, "probe_eval_seen": 6400}
+{"event": "checkpoint", "step": 8000, "path": "runs/jepa_cifar10_6gpu/ckpt_step00008000.pt"}
+{"event": "final", "path": "runs/jepa_cifar10_6gpu/final.pt", "elapsed_s": 2023.7}

@@ -36,8 +36,13 @@ def quantize_int8(vectors: np.ndarray) -> QuantizedEmbeddings:
     return QuantizedEmbeddings(data=q, scale=scale, bits=8, original_dim=vectors.shape[1])
 
 
-def quantize_fp4(vectors: np.ndarray) -> QuantizedEmbeddings:
-    """Uniform signed 4-bit storage used as a local FP4 stand-in."""
+def quantize_int4(vectors: np.ndarray) -> QuantizedEmbeddings:
+    """Uniform signed 4-bit quantization with per-row absmax scale.
+
+    Range is [-8, 7] stored as [0, 15] with a +8 bias and packed two-per-byte.
+    This is integer quantization, not FP4 / NF4 — those use nonuniform code
+    points (cf. QLoRA / bitsandbytes).
+    """
 
     vectors = np.asarray(vectors, dtype=np.float32)
     scale = _row_scale(vectors, 7.0)
@@ -46,4 +51,3 @@ def quantize_fp4(vectors: np.ndarray) -> QuantizedEmbeddings:
         q = np.pad(q, ((0, 0), (0, 1)), constant_values=8)
     packed = ((q[:, 0::2].astype(np.uint8) << 4) | q[:, 1::2].astype(np.uint8))
     return QuantizedEmbeddings(data=packed, scale=scale, bits=4, original_dim=vectors.shape[1])
-

@@ -19,6 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=str, default="runs/ram_smoke")
     parser.add_argument("--quantize", choices=["none", "int8"], default="int8")
     parser.add_argument("--backend", choices=["numpy", "faiss"], default="numpy")
+    parser.add_argument("--seed", type=int, default=17)
     parser.add_argument("--force-large", action="store_true")
     return parser.parse_args()
 
@@ -33,7 +34,7 @@ def main() -> None:
 
     os.makedirs(args.output, exist_ok=True)
     ram = FaissTensorRAM(d_ram=args.d_ram, use_faiss=args.backend == "faiss")
-    rng = np.random.default_rng(17)
+    rng = np.random.default_rng(args.seed)
     remaining = args.num_vectors
     offset = 0
     while remaining:
@@ -48,7 +49,8 @@ def main() -> None:
         offset += n
         remaining -= n
 
-    index_path = os.path.join(args.output, "tensor_ram.faiss" if args.backend == "faiss" else "tensor_ram.npy")
+    extension = ".faiss" if args.backend == "faiss" else ".npy"
+    index_path = os.path.join(args.output, f"tensor_ram{extension}")
     ram.save(index_path)
     print(f"wrote {ram.ntotal} vectors to {index_path}")
 
