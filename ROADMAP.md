@@ -25,7 +25,7 @@ integration. Phase 10 ("hardening") is post-research engineering.
 | 3 | Hybrid memory | 3–4 weeks | $100 | |
 | 4 | Text proof-of-concept | 4–6 weeks | $500 | |
 | 5 | Compute economy (RL router) | 3–5 weeks | $300 | |
-| 6 | Scale procedural core (500M, 3 GPU) | 4–8 weeks | $15K–$50K | prep ready |
+| 6 | Scale procedural core (500M, 3 GPU) | 1–3 weeks | $500–$2K | timed: ready to launch |
 | 7 | Scale hybrid memory | 4–6 weeks | $2K | |
 | 8 | Certified cognitive throughput benchmark | 4–8 weeks | $5K | |
 | 9 | World model (System 1 at scale) | 8–16 weeks | $50K–$200K | |
@@ -318,10 +318,27 @@ where memory matters, options are: (a) scale to 1B B.L.A. and re-run
 (more time, marginal cost); (b) revisit the curriculum (might be too
 narrow); (c) admit the thesis isn't supported at this scale.
 
-**Estimate.** 4-8 weeks (revised down from 8-12 wk thanks to smaller
-target). **$15K-$50K of compute** on 3×B200 (revised down from
-$30K-$100K thanks to fewer GPU-hours). Still requires real budget;
-single-session-of-work scope this isn't.
+**Estimate (timed 2026-05-10 on 3×B200 FSDP, actual 500M config):**
+
+  * Throughput: **67K tokens/sec** at steady state
+  * Step time: **0.66 sec/step** at batch=16, seq=1024
+  * Loss trajectory: 9.90 (step 25) → 4.40 (step 200) — strong gradient signal
+
+Single-run wallclock + cost (3 × $4/hr ≈ $12/hr):
+
+| Schedule | Wallclock | Cost |
+| --- | --- | --- |
+| 30K steps | 5.5 hrs | ~$66 |
+| 50K steps | 9.2 hrs | ~$110 |
+| 100K steps | 18 hrs | ~$220 |
+
+**Full Phase 6 program** (curriculum sweeps + 5-10 iterations + eval
+cycles + GPT-2 1.5B comparison): **1-3 weeks calendar time, $500-$2K
+compute.** Originally estimated $15-50K based on production-LLM
+schedules (billions of tokens, dozens of iterations); the
+procedural-only curriculum is much cheaper because the model isn't
+trying to absorb the whole web. Real budget commitment but not the
+multi-month / multi-team scope the original number implied.
 
 ---
 
@@ -521,7 +538,13 @@ phase prep or execution. Recent updates:
   (mamba-ssm needs CUDA dev image we don't have, and the asymmetric-
   scaling thesis tests cleaner with a standard transformer); 3-GPU
   pod constraint accepted at ~2× wallclock; SSM kernel work absorbed
-  into Phase 9. Compute revised from $30-100K to $15-50K.
+  into Phase 9.
+- **2026-05-10 (Phase 6 timing measured)** — actual 500M config on
+  3×B200 FSDP: 67K tokens/sec, 0.66 s/step, loss 11→4.4 in 200 steps.
+  Single-run cost is $66-$220 (30K-100K steps); full Phase 6 program
+  is $500-$2K. Original $15-50K estimate revised down ~30× because
+  the procedural-only curriculum doesn't need production-LLM scale.
+  Calendar time revised 4-8 wk → 1-3 wk.
 - **2026-05-10 (Phase 4b)** — split into 4a (CPU-tractable RAG with
   GPT-2) and 4b (BERT-MLM as non-AR baseline). Full SEDD reproduction
   parked for Phase 6+ scale.
