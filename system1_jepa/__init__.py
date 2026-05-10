@@ -2,7 +2,12 @@ from .data import CIFAR10Loader, ImageBatchSpec, SyntheticImageLoader, make_imag
 from .losses import collapse_regularizer, jepa_loss
 from .masking import PatchMask, gather_tokens, sample_patch_mask
 from .model import BLAJEPAModel, JEPAConfig
-from .navigate_env import NavigateEnv, NavigateSpec
+from .navigate_env import (
+    MultiTargetNavigateEnv,
+    MultiTargetNavigateSpec,
+    NavigateEnv,
+    NavigateSpec,
+)
 from .planning import CEMConfig, cem_plan
 from .predictor import ActionConditionedPredictor
 from .sigreg import sigreg_epps_pulley, sigreg_lewm
@@ -31,6 +36,8 @@ __all__ = [
     "ImageBatchSpec",
     "JEPAConfig",
     "MovingPatchSpec",
+    "MultiTargetNavigateEnv",
+    "MultiTargetNavigateSpec",
     "NavigateEnv",
     "NavigateSpec",
     "PatchMask",

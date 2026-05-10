@@ -5,7 +5,7 @@ from torch import nn
 
 
 class DiagonalSSMLayer(nn.Module):
-    """Bidirectional diagonal-state SSM block (reference, unfused implementation).
+    """Diagonal-state SSM block — bidirectional by default, causal optional.
 
     The forward/backward scan is a Python for-loop over the sequence axis. That
     is asymptotically O(N) but the constant is large; for blueprint-scale runs
@@ -14,8 +14,9 @@ class DiagonalSSMLayer(nn.Module):
     runs on a fresh CPU without compiled extensions.
     """
 
-    def __init__(self, d_model: int, mlp_ratio: float = 2.0):
+    def __init__(self, d_model: int, mlp_ratio: float = 2.0, causal: bool = False):
         super().__init__()
+        self.causal = causal
         self.a_logit = nn.Parameter(torch.zeros(d_model))
         self.in_proj = nn.Linear(d_model, d_model)
         self.gate_proj = nn.Linear(d_model, d_model)
@@ -45,21 +46,32 @@ class DiagonalSSMLayer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.norm(x)
-        y = self._scan(y, reverse=False) + self._scan(y, reverse=True)
+        if self.causal:
+            y = self._scan(y, reverse=False)
+        else:
+            y = self._scan(y, reverse=False) + self._scan(y, reverse=True)
         x = x + self.out_proj(y)
         return x + self.mlp(self.norm(x))
 
 
 class BidirectionalSSMScratchpad(nn.Module):
-    def __init__(self, d_model: int = 4096, layers: int = 64):
+    def __init__(self, d_model: int = 4096, layers: int = 64, causal: bool = False):
         super().__init__()
-        self.layers = nn.ModuleList([DiagonalSSMLayer(d_model) for _ in range(layers)])
+        self.layers = nn.ModuleList([DiagonalSSMLayer(d_model, causal=causal) for _ in range(layers)])
         self.norm = nn.LayerNorm(d_model)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         for layer in self.layers:
             x = layer(x)
         return self.norm(x)
+
+
+class CausalSSMScratchpad(BidirectionalSSMScratchpad):
+    """Causal variant — at time t, the output depends only on inputs at times ≤ t.
+    Use this for policy / online-decision contexts where future leak is forbidden."""
+
+    def __init__(self, d_model: int = 4096, layers: int = 64):
+        super().__init__(d_model=d_model, layers=layers, causal=True)
 
 
 class WorkingMemory(nn.Module):
