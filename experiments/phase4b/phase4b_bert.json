@@ -1,0 +1,2772 @@
+{
+  "summary": {
+    "model": "bert-base-uncased",
+    "model_params": 109514298,
+    "n_questions": 144,
+    "parametric_accuracy": 0.4236111111111111,
+    "rag_accuracy": 0.9791666666666666,
+    "parametric_hallucination": 0.5763888888888888,
+    "rag_hallucination": 0.02083333333333337,
+    "rag_vs_parametric_ratio": 0.03614457831325308,
+    "by_predicate": {
+      "atomic_number": {
+        "n": 42,
+        "parametric_acc": 0.0,
+        "rag_acc": 1.0
+      },
+      "country_capital_is": {
+        "n": 83,
+        "parametric_acc": 0.6626506024096386,
+        "rag_acc": 0.963855421686747
+      },
+      "orbits": {
+        "n": 19,
+        "parametric_acc": 0.3157894736842105,
+        "rag_acc": 1.0
+      }
+    },
+    "gate_ratio": 0.5,
+    "gate_passed": true,
+    "elapsed_s": 2.3
+  },
+  "parametric": [
+    {
+      "predicate": "country_capital_is",
+      "subject": "France",
+      "ground_truth": "Paris",
+      "source": "wikidata:Q142#capital",
+      "answer": "paris",
+      "filled": "the capital of france is paris.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Germany",
+      "ground_truth": "Berlin",
+      "source": "wikidata:Q183#capital",
+      "answer": "bonn",
+      "filled": "the capital of germany is bonn.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Italy",
+      "ground_truth": "Rome",
+      "source": "wikidata:Q38#capital",
+      "answer": "rome",
+      "filled": "the capital of italy is rome.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Spain",
+      "ground_truth": "Madrid",
+      "source": "wikidata:Q29#capital",
+      "answer": "madrid",
+      "filled": "the capital of spain is madrid.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Portugal",
+      "ground_truth": "Lisbon",
+      "source": "wikidata:Q45#capital",
+      "answer": "lisbon",
+      "filled": "the capital of portugal is lisbon.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Kingdom",
+      "ground_truth": "London",
+      "source": "wikidata:Q145#capital",
+      "answer": "london",
+      "filled": "the capital of united kingdom is london.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ireland",
+      "ground_truth": "Dublin",
+      "source": "wikidata:Q27#capital",
+      "answer": "dublin",
+      "filled": "the capital of ireland is dublin.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Netherlands",
+      "ground_truth": "Amsterdam",
+      "source": "wikidata:Q55#capital",
+      "answer": "amsterdam",
+      "filled": "the capital of netherlands is amsterdam.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belgium",
+      "ground_truth": "Brussels",
+      "source": "wikidata:Q31#capital",
+      "answer": "brussels",
+      "filled": "the capital of belgium is brussels.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Switzerland",
+      "ground_truth": "Bern",
+      "source": "wikidata:Q39#capital",
+      "answer": "geneva",
+      "filled": "the capital of switzerland is geneva.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Austria",
+      "ground_truth": "Vienna",
+      "source": "wikidata:Q40#capital",
+      "answer": "vienna",
+      "filled": "the capital of austria is vienna.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sweden",
+      "ground_truth": "Stockholm",
+      "source": "wikidata:Q34#capital",
+      "answer": "stockholm",
+      "filled": "the capital of sweden is stockholm.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Norway",
+      "ground_truth": "Oslo",
+      "source": "wikidata:Q20#capital",
+      "answer": "oslo",
+      "filled": "the capital of norway is oslo.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Finland",
+      "ground_truth": "Helsinki",
+      "source": "wikidata:Q33#capital",
+      "answer": "helsinki",
+      "filled": "the capital of finland is helsinki.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Denmark",
+      "ground_truth": "Copenhagen",
+      "source": "wikidata:Q35#capital",
+      "answer": "copenhagen",
+      "filled": "the capital of denmark is copenhagen.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iceland",
+      "ground_truth": "Reykjavik",
+      "source": "wikidata:Q189#capital",
+      "answer": "reykjavik",
+      "filled": "the capital of iceland is reykjavik.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Poland",
+      "ground_truth": "Warsaw",
+      "source": "wikidata:Q36#capital",
+      "answer": "warsaw",
+      "filled": "the capital of poland is warsaw.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Czech Republic",
+      "ground_truth": "Prague",
+      "source": "wikidata:Q213#capital",
+      "answer": "prague",
+      "filled": "the capital of czech republic is prague.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovakia",
+      "ground_truth": "Bratislava",
+      "source": "wikidata:Q214#capital",
+      "answer": "bratislava",
+      "filled": "the capital of slovakia is bratislava.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Hungary",
+      "ground_truth": "Budapest",
+      "source": "wikidata:Q28#capital",
+      "answer": "budapest",
+      "filled": "the capital of hungary is budapest.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Romania",
+      "ground_truth": "Bucharest",
+      "source": "wikidata:Q218#capital",
+      "answer": "bucharest",
+      "filled": "the capital of romania is bucharest.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bulgaria",
+      "ground_truth": "Sofia",
+      "source": "wikidata:Q219#capital",
+      "answer": "sofia",
+      "filled": "the capital of bulgaria is sofia.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Greece",
+      "ground_truth": "Athens",
+      "source": "wikidata:Q41#capital",
+      "answer": "athens",
+      "filled": "the capital of greece is athens.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Croatia",
+      "ground_truth": "Zagreb",
+      "source": "wikidata:Q224#capital",
+      "answer": "zagreb",
+      "filled": "the capital of croatia is zagreb.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Serbia",
+      "ground_truth": "Belgrade",
+      "source": "wikidata:Q403#capital",
+      "answer": "belgrade",
+      "filled": "the capital of serbia is belgrade.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovenia",
+      "ground_truth": "Ljubljana",
+      "source": "wikidata:Q215#capital",
+      "answer": "ljubljana",
+      "filled": "the capital of slovenia is ljubljana.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Russia",
+      "ground_truth": "Moscow",
+      "source": "wikidata:Q159#capital",
+      "answer": "moscow",
+      "filled": "the capital of russia is moscow.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ukraine",
+      "ground_truth": "Kyiv",
+      "source": "wikidata:Q212#capital",
+      "answer": "kiev",
+      "filled": "the capital of ukraine is kiev.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belarus",
+      "ground_truth": "Minsk",
+      "source": "wikidata:Q184#capital",
+      "answer": "minsk",
+      "filled": "the capital of belarus is minsk.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Estonia",
+      "ground_truth": "Tallinn",
+      "source": "wikidata:Q191#capital",
+      "answer": "tallinn",
+      "filled": "the capital of estonia is tallinn.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Latvia",
+      "ground_truth": "Riga",
+      "source": "wikidata:Q211#capital",
+      "answer": "riga",
+      "filled": "the capital of latvia is riga.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lithuania",
+      "ground_truth": "Vilnius",
+      "source": "wikidata:Q37#capital",
+      "answer": "vilnius",
+      "filled": "the capital of lithuania is vilnius.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Turkey",
+      "ground_truth": "Ankara",
+      "source": "wikidata:Q43#capital",
+      "answer": "istanbul",
+      "filled": "the capital of turkey is istanbul.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Egypt",
+      "ground_truth": "Cairo",
+      "source": "wikidata:Q79#capital",
+      "answer": "cairo",
+      "filled": "the capital of egypt is cairo.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Morocco",
+      "ground_truth": "Rabat",
+      "source": "wikidata:Q1028#capital",
+      "answer": "in casablanca",
+      "filled": "the capital of morocco is in casablanca.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Africa",
+      "ground_truth": "Pretoria",
+      "source": "wikidata:Q258#capital",
+      "answer": "johannesburg",
+      "filled": "the capital of south africa is johannesburg.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nigeria",
+      "ground_truth": "Abuja",
+      "source": "wikidata:Q1033#capital",
+      "answer": "at lagos",
+      "filled": "the capital of nigeria is at lagos.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kenya",
+      "ground_truth": "Nairobi",
+      "source": "wikidata:Q114#capital",
+      "answer": "nairobi",
+      "filled": "the capital of kenya is nairobi.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ethiopia",
+      "ground_truth": "Addis Ababa",
+      "source": "wikidata:Q115#capital",
+      "answer": "regional city",
+      "filled": "the capital of ethiopia is the regional capital city.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ghana",
+      "ground_truth": "Accra",
+      "source": "wikidata:Q117#capital",
+      "answer": "in",
+      "filled": "the capital of ghana is in ghana.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "China",
+      "ground_truth": "Beijing",
+      "source": "wikidata:Q148#capital",
+      "answer": "beijing",
+      "filled": "the capital of china is beijing.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Japan",
+      "ground_truth": "Tokyo",
+      "source": "wikidata:Q17#capital",
+      "answer": "tokyo",
+      "filled": "the capital of japan is tokyo.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Korea",
+      "ground_truth": "Seoul",
+      "source": "wikidata:Q884#capital",
+      "answer": "seoul",
+      "filled": "the capital of south korea is seoul.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "North Korea",
+      "ground_truth": "Pyongyang",
+      "source": "wikidata:Q423#capital",
+      "answer": "located in seoul city",
+      "filled": "the capital of north korea is located in seoul city.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mongolia",
+      "ground_truth": "Ulaanbaatar",
+      "source": "wikidata:Q711#capital",
+      "answer": "city",
+      "filled": "the capital of mongolia is the capital city of mongolia.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "India",
+      "ground_truth": "New Delhi",
+      "source": "wikidata:Q668#capital",
+      "answer": "mumbai city",
+      "filled": "the capital of india is mumbai city.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Pakistan",
+      "ground_truth": "Islamabad",
+      "source": "wikidata:Q843#capital",
+      "answer": "islamabad",
+      "filled": "the capital of pakistan is islamabad.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bangladesh",
+      "ground_truth": "Dhaka",
+      "source": "wikidata:Q902#capital",
+      "answer": "dhaka",
+      "filled": "the capital of bangladesh is dhaka.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sri Lanka",
+      "ground_truth": "Colombo",
+      "source": "wikidata:Q854#capital",
+      "answer": "colombo",
+      "filled": "the capital of sri lanka is colombo.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nepal",
+      "ground_truth": "Kathmandu",
+      "source": "wikidata:Q837#capital",
+      "answer": "kathmandu",
+      "filled": "the capital of nepal is kathmandu.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Thailand",
+      "ground_truth": "Bangkok",
+      "source": "wikidata:Q869#capital",
+      "answer": "bangkok",
+      "filled": "the capital of thailand is bangkok.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Vietnam",
+      "ground_truth": "Hanoi",
+      "source": "wikidata:Q881#capital",
+      "answer": "hanoi",
+      "filled": "the capital of vietnam is hanoi.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Indonesia",
+      "ground_truth": "Jakarta",
+      "source": "wikidata:Q252#capital",
+      "answer": "jakarta",
+      "filled": "the capital of indonesia is jakarta.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Philippines",
+      "ground_truth": "Manila",
+      "source": "wikidata:Q928#capital",
+      "answer": "manila",
+      "filled": "the capital of philippines is manila.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Malaysia",
+      "ground_truth": "Kuala Lumpur",
+      "source": "wikidata:Q833#capital",
+      "answer": "kuala lumpur",
+      "filled": "the capital of malaysia is kuala lumpur.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Singapore",
+      "ground_truth": "Singapore",
+      "source": "wikidata:Q334#capital",
+      "answer": "",
+      "filled": "the capital of singapore is singapore.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Saudi Arabia",
+      "ground_truth": "Riyadh",
+      "source": "wikidata:Q851#capital",
+      "answer": "at al ain",
+      "filled": "the capital of saudi arabia is at al ain.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iran",
+      "ground_truth": "Tehran",
+      "source": "wikidata:Q794#capital",
+      "answer": "tehran",
+      "filled": "the capital of iran is tehran.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iraq",
+      "ground_truth": "Baghdad",
+      "source": "wikidata:Q796#capital",
+      "answer": "baghdad",
+      "filled": "the capital of iraq is baghdad.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Israel",
+      "ground_truth": "Jerusalem",
+      "source": "wikidata:Q801#capital",
+      "answer": "haifa",
+      "filled": "the capital of israel is haifa.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lebanon",
+      "ground_truth": "Beirut",
+      "source": "wikidata:Q822#capital",
+      "answer": "beirut",
+      "filled": "the capital of lebanon is beirut.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Syria",
+      "ground_truth": "Damascus",
+      "source": "wikidata:Q858#capital",
+      "answer": "aleppo",
+      "filled": "the capital of syria is aleppo.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Jordan",
+      "ground_truth": "Amman",
+      "source": "wikidata:Q810#capital",
+      "answer": "amman",
+      "filled": "the capital of jordan is amman.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Arab Emirates",
+      "ground_truth": "Abu Dhabi",
+      "source": "wikidata:Q878#capital",
+      "answer": "in dubai",
+      "filled": "the capital of united arab emirates is in dubai.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Qatar",
+      "ground_truth": "Doha",
+      "source": "wikidata:Q846#capital",
+      "answer": "doha",
+      "filled": "the capital of qatar is doha.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kuwait",
+      "ground_truth": "Kuwait City",
+      "source": "wikidata:Q817#capital",
+      "answer": "al",
+      "filled": "the capital of kuwait is al kuwait.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United States",
+      "ground_truth": "Washington",
+      "source": "wikidata:Q30#capital",
+      "answer": "atlanta",
+      "filled": "the capital of united states is atlanta.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Canada",
+      "ground_truth": "Ottawa",
+      "source": "wikidata:Q16#capital",
+      "answer": "montreal",
+      "filled": "the capital of canada is montreal.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mexico",
+      "ground_truth": "Mexico City",
+      "source": "wikidata:Q96#capital",
+      "answer": "ciudad juarez",
+      "filled": "the capital of mexico is ciudad juarez.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Cuba",
+      "ground_truth": "Havana",
+      "source": "wikidata:Q241#capital",
+      "answer": "havana",
+      "filled": "the capital of cuba is havana.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Brazil",
+      "ground_truth": "Brasilia",
+      "source": "wikidata:Q155#capital",
+      "answer": "sao paulo",
+      "filled": "the capital of brazil is sao paulo.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Argentina",
+      "ground_truth": "Buenos Aires",
+      "source": "wikidata:Q414#capital",
+      "answer": "in cordoba",
+      "filled": "the capital of argentina is in cordoba.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Chile",
+      "ground_truth": "Santiago",
+      "source": "wikidata:Q298#capital",
+      "answer": "santiago",
+      "filled": "the capital of chile is santiago.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Peru",
+      "ground_truth": "Lima",
+      "source": "wikidata:Q419#capital",
+      "answer": "lima",
+      "filled": "the capital of peru is lima.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Colombia",
+      "ground_truth": "Bogota",
+      "source": "wikidata:Q739#capital",
+      "answer": "bogota",
+      "filled": "the capital of colombia is bogota.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Venezuela",
+      "ground_truth": "Caracas",
+      "source": "wikidata:Q717#capital",
+      "answer": "caracas",
+      "filled": "the capital of venezuela is caracas.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ecuador",
+      "ground_truth": "Quito",
+      "source": "wikidata:Q736#capital",
+      "answer": "puerto plata",
+      "filled": "the capital of ecuador is puerto plata.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bolivia",
+      "ground_truth": "La Paz",
+      "source": "wikidata:Q750#capital",
+      "answer": "in lima",
+      "filled": "the capital of bolivia is in lima.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Paraguay",
+      "ground_truth": "Asuncion",
+      "source": "wikidata:Q733#capital",
+      "answer": "in san pedro",
+      "filled": "the capital of paraguay is in san pedro.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Uruguay",
+      "ground_truth": "Montevideo",
+      "source": "wikidata:Q77#capital",
+      "answer": "montevideo",
+      "filled": "the capital of uruguay is montevideo.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Australia",
+      "ground_truth": "Canberra",
+      "source": "wikidata:Q408#capital",
+      "answer": "canberra",
+      "filled": "the capital of australia is canberra.",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "New Zealand",
+      "ground_truth": "Wellington",
+      "source": "wikidata:Q664#capital",
+      "answer": "auckland",
+      "filled": "the capital of new zealand is auckland.",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Fiji",
+      "ground_truth": "Suva",
+      "source": "wikidata:Q712#capital",
+      "answer": "at male",
+      "filled": "the capital of fiji is at male.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mercury",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q308#orbits",
+      "answer": "saturn",
+      "filled": "mercury orbits saturn.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Venus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q313#orbits",
+      "answer": "earth",
+      "filled": "venus orbits earth.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Earth",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q2#orbits",
+      "answer": "jupiter",
+      "filled": "earth orbits jupiter.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mars",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q111#orbits",
+      "answer": "jupiter",
+      "filled": "mars orbits jupiter.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Jupiter",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q319#orbits",
+      "answer": "saturn",
+      "filled": "jupiter orbits saturn.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Saturn",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q193#orbits",
+      "answer": "jupiter",
+      "filled": "saturn orbits jupiter.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Uranus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q324#orbits",
+      "answer": "jupiter",
+      "filled": "uranus orbits jupiter.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Neptune",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q332#orbits",
+      "answer": "jupiter",
+      "filled": "neptune orbits jupiter.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Pluto",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q339#orbits",
+      "answer": "jupiter",
+      "filled": "pluto orbits jupiter.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Moon",
+      "ground_truth": "Earth",
+      "source": "wikidata:Q405#orbits",
+      "answer": "mars",
+      "filled": "moon orbits mars.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Phobos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "jupiter",
+      "filled": "phobos orbits jupiter.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Deimos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3303#orbits",
+      "answer": "mars",
+      "filled": "deimos orbits mars.",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Io",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3123#orbits",
+      "answer": "jupiter",
+      "filled": "io orbits jupiter.",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Europa",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": "jupiter",
+      "filled": "europa orbits jupiter.",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Ganymede",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "jupiter",
+      "filled": "ganymede orbits jupiter.",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Callisto",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": "jupiter",
+      "filled": "callisto orbits jupiter.",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Titan",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "saturn",
+      "filled": "titan orbits saturn.",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Enceladus",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "mt",
+      "filled": "enceladus orbits mt.",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Triton",
+      "ground_truth": "Neptune",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "mars",
+      "filled": "triton orbits mars.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Hydrogen",
+      "ground_truth": "1",
+      "source": "periodic_table#Hydrogen",
+      "answer": "three",
+      "filled": "hydrogen has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Helium",
+      "ground_truth": "2",
+      "source": "periodic_table#Helium",
+      "answer": "one",
+      "filled": "helium has atomic number one.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lithium",
+      "ground_truth": "3",
+      "source": "periodic_table#Lithium",
+      "answer": "three",
+      "filled": "lithium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Beryllium",
+      "ground_truth": "4",
+      "source": "periodic_table#Beryllium",
+      "answer": "three",
+      "filled": "beryllium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Boron",
+      "ground_truth": "5",
+      "source": "periodic_table#Boron",
+      "answer": "three",
+      "filled": "boron has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Carbon",
+      "ground_truth": "6",
+      "source": "periodic_table#Carbon",
+      "answer": "three",
+      "filled": "carbon has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nitrogen",
+      "ground_truth": "7",
+      "source": "periodic_table#Nitrogen",
+      "answer": "three",
+      "filled": "nitrogen has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Oxygen",
+      "ground_truth": "8",
+      "source": "periodic_table#Oxygen",
+      "answer": "three",
+      "filled": "oxygen has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Fluorine",
+      "ground_truth": "9",
+      "source": "periodic_table#Fluorine",
+      "answer": "three",
+      "filled": "fluorine has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Neon",
+      "ground_truth": "10",
+      "source": "periodic_table#Neon",
+      "answer": "one",
+      "filled": "neon has atomic number one.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sodium",
+      "ground_truth": "11",
+      "source": "periodic_table#Sodium",
+      "answer": "three",
+      "filled": "sodium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Magnesium",
+      "ground_truth": "12",
+      "source": "periodic_table#Magnesium",
+      "answer": "c",
+      "filled": "magnesium has atomic number c.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Aluminum",
+      "ground_truth": "13",
+      "source": "periodic_table#Aluminum",
+      "answer": "two",
+      "filled": "aluminum has atomic number two.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silicon",
+      "ground_truth": "14",
+      "source": "periodic_table#Silicon",
+      "answer": "three",
+      "filled": "silicon has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Phosphorus",
+      "ground_truth": "15",
+      "source": "periodic_table#Phosphorus",
+      "answer": "one",
+      "filled": "phosphorus has atomic number one.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sulfur",
+      "ground_truth": "16",
+      "source": "periodic_table#Sulfur",
+      "answer": "three",
+      "filled": "sulfur has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chlorine",
+      "ground_truth": "17",
+      "source": "periodic_table#Chlorine",
+      "answer": "three",
+      "filled": "chlorine has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Argon",
+      "ground_truth": "18",
+      "source": "periodic_table#Argon",
+      "answer": "two",
+      "filled": "argon has atomic number two.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Potassium",
+      "ground_truth": "19",
+      "source": "periodic_table#Potassium",
+      "answer": "8",
+      "filled": "potassium has atomic number 8.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Calcium",
+      "ground_truth": "20",
+      "source": "periodic_table#Calcium",
+      "answer": "c",
+      "filled": "calcium has atomic number c.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Scandium",
+      "ground_truth": "21",
+      "source": "periodic_table#Scandium",
+      "answer": "three",
+      "filled": "scandium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Titanium",
+      "ground_truth": "22",
+      "source": "periodic_table#Titanium",
+      "answer": "three",
+      "filled": "titanium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Vanadium",
+      "ground_truth": "23",
+      "source": "periodic_table#Vanadium",
+      "answer": "three",
+      "filled": "vanadium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chromium",
+      "ground_truth": "24",
+      "source": "periodic_table#Chromium",
+      "answer": "three",
+      "filled": "chromium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Manganese",
+      "ground_truth": "25",
+      "source": "periodic_table#Manganese",
+      "answer": "three",
+      "filled": "manganese has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Iron",
+      "ground_truth": "26",
+      "source": "periodic_table#Iron",
+      "answer": "three",
+      "filled": "iron has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Cobalt",
+      "ground_truth": "27",
+      "source": "periodic_table#Cobalt",
+      "answer": "three",
+      "filled": "cobalt has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nickel",
+      "ground_truth": "28",
+      "source": "periodic_table#Nickel",
+      "answer": "three",
+      "filled": "nickel has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Copper",
+      "ground_truth": "29",
+      "source": "periodic_table#Copper",
+      "answer": "three",
+      "filled": "copper has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Zinc",
+      "ground_truth": "30",
+      "source": "periodic_table#Zinc",
+      "answer": "three",
+      "filled": "zinc has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gallium",
+      "ground_truth": "31",
+      "source": "periodic_table#Gallium",
+      "answer": "c",
+      "filled": "gallium has atomic number c.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Germanium",
+      "ground_truth": "32",
+      "source": "periodic_table#Germanium",
+      "answer": "c",
+      "filled": "germanium has atomic number c.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Arsenic",
+      "ground_truth": "33",
+      "source": "periodic_table#Arsenic",
+      "answer": "c",
+      "filled": "arsenic has atomic number c.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Selenium",
+      "ground_truth": "34",
+      "source": "periodic_table#Selenium",
+      "answer": "three",
+      "filled": "selenium has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Bromine",
+      "ground_truth": "35",
+      "source": "periodic_table#Bromine",
+      "answer": "three",
+      "filled": "bromine has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Krypton",
+      "ground_truth": "36",
+      "source": "periodic_table#Krypton",
+      "answer": "two",
+      "filled": "krypton has atomic number two.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silver",
+      "ground_truth": "47",
+      "source": "periodic_table#Silver",
+      "answer": "three",
+      "filled": "silver has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gold",
+      "ground_truth": "79",
+      "source": "periodic_table#Gold",
+      "answer": "three",
+      "filled": "gold has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Mercury (element)",
+      "ground_truth": "80",
+      "source": "periodic_table#Mercury (element)",
+      "answer": "( element ) zero",
+      "filled": "mercury ( element ) has atomic number zero.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lead",
+      "ground_truth": "82",
+      "source": "periodic_table#Lead",
+      "answer": "three",
+      "filled": "lead has atomic number three.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Uranium",
+      "ground_truth": "92",
+      "source": "periodic_table#Uranium",
+      "answer": "zero",
+      "filled": "uranium has atomic number zero.",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Plutonium",
+      "ground_truth": "94",
+      "source": "periodic_table#Plutonium",
+      "answer": "one",
+      "filled": "plutonium has atomic number one.",
+      "correct": false
+    }
+  ],
+  "rag": [
+    {
+      "predicate": "country_capital_is",
+      "subject": "France",
+      "ground_truth": "Paris",
+      "source": "wikidata:Q142#capital",
+      "answer": "paris lyon",
+      "filled": "the capital of france is paris. the capital of france is lyon.",
+      "correct": true,
+      "context": "The capital of France is Paris. The capital of France is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Germany",
+      "ground_truth": "Berlin",
+      "source": "wikidata:Q183#capital",
+      "answer": "berlin bonn",
+      "filled": "the capital of germany is berlin. the capital of germany is bonn.",
+      "correct": true,
+      "context": "The capital of Germany is Berlin. The capital of Germany is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Italy",
+      "ground_truth": "Rome",
+      "source": "wikidata:Q38#capital",
+      "answer": "rome turin",
+      "filled": "the capital of italy is rome. the capital of italy is turin.",
+      "correct": true,
+      "context": "The capital of Italy is Rome. The capital of Italy is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Spain",
+      "ground_truth": "Madrid",
+      "source": "wikidata:Q29#capital",
+      "answer": "madrid barcelona",
+      "filled": "the capital of spain is madrid. the capital of spain is barcelona.",
+      "correct": true,
+      "context": "The capital of Spain is Madrid. The capital of Spain is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Portugal",
+      "ground_truth": "Lisbon",
+      "source": "wikidata:Q45#capital",
+      "answer": "lisbon lisbon",
+      "filled": "the capital of portugal is lisbon. the capital of portugal is lisbon.",
+      "correct": true,
+      "context": "The capital of Portugal is Lisbon. The capital of Portugal is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Kingdom",
+      "ground_truth": "London",
+      "source": "wikidata:Q145#capital",
+      "answer": "london birmingham",
+      "filled": "the capital of united kingdom is london. the capital of united kingdom is birmingham.",
+      "correct": true,
+      "context": "The capital of United Kingdom is London. The capital of United Kingdom is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ireland",
+      "ground_truth": "Dublin",
+      "source": "wikidata:Q27#capital",
+      "answer": "dublin dublin",
+      "filled": "the capital of ireland is dublin. the capital of ireland is dublin.",
+      "correct": true,
+      "context": "The capital of Ireland is Dublin. The capital of Ireland is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Netherlands",
+      "ground_truth": "Amsterdam",
+      "source": "wikidata:Q55#capital",
+      "answer": "amsterdam utrecht",
+      "filled": "the capital of netherlands is amsterdam. the capital of netherlands is utrecht.",
+      "correct": true,
+      "context": "The capital of Netherlands is Amsterdam. The capital of Netherlands is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belgium",
+      "ground_truth": "Brussels",
+      "source": "wikidata:Q31#capital",
+      "answer": "brussels brussels",
+      "filled": "the capital of belgium is brussels. the capital of belgium is brussels.",
+      "correct": true,
+      "context": "The capital of Belgium is Brussels. The capital of Belgium is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Switzerland",
+      "ground_truth": "Bern",
+      "source": "wikidata:Q39#capital",
+      "answer": "bern geneva",
+      "filled": "the capital of switzerland is bern. the capital of switzerland is geneva.",
+      "correct": true,
+      "context": "The capital of Switzerland is Bern. The capital of Switzerland is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Austria",
+      "ground_truth": "Vienna",
+      "source": "wikidata:Q40#capital",
+      "answer": "vienna salzburg",
+      "filled": "the capital of austria is vienna. the capital of austria is salzburg.",
+      "correct": true,
+      "context": "The capital of Austria is Vienna. The capital of Austria is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sweden",
+      "ground_truth": "Stockholm",
+      "source": "wikidata:Q34#capital",
+      "answer": "stockholm gothenburg",
+      "filled": "the capital of sweden is stockholm. the capital of sweden is gothenburg.",
+      "correct": true,
+      "context": "The capital of Sweden is Stockholm. The capital of Sweden is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Norway",
+      "ground_truth": "Oslo",
+      "source": "wikidata:Q20#capital",
+      "answer": "oslo bergen",
+      "filled": "the capital of norway is oslo. the capital of norway is bergen.",
+      "correct": true,
+      "context": "The capital of Norway is Oslo. The capital of Norway is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Finland",
+      "ground_truth": "Helsinki",
+      "source": "wikidata:Q33#capital",
+      "answer": "helsinki helsinki",
+      "filled": "the capital of finland is helsinki. the capital of finland is helsinki.",
+      "correct": true,
+      "context": "The capital of Finland is Helsinki. The capital of Finland is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Denmark",
+      "ground_truth": "Copenhagen",
+      "source": "wikidata:Q35#capital",
+      "answer": "copenhagen copenhagen",
+      "filled": "the capital of denmark is copenhagen. the capital of denmark is copenhagen.",
+      "correct": true,
+      "context": "The capital of Denmark is Copenhagen. The capital of Denmark is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iceland",
+      "ground_truth": "Reykjavik",
+      "source": "wikidata:Q189#capital",
+      "answer": "reykjavik reykjavik",
+      "filled": "the capital of iceland is reykjavik. the capital of iceland is reykjavik.",
+      "correct": true,
+      "context": "The capital of Iceland is Reykjavik. The capital of Iceland is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Poland",
+      "ground_truth": "Warsaw",
+      "source": "wikidata:Q36#capital",
+      "answer": "warsaw poznan",
+      "filled": "the capital of poland is warsaw. the capital of poland is poznan.",
+      "correct": true,
+      "context": "The capital of Poland is Warsaw. The capital of Poland is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Czech Republic",
+      "ground_truth": "Prague",
+      "source": "wikidata:Q213#capital",
+      "answer": "prague brno",
+      "filled": "the capital of czech republic is prague. the capital of czech republic is brno.",
+      "correct": true,
+      "context": "The capital of Czech Republic is Prague. The capital of Czech Republic is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovakia",
+      "ground_truth": "Bratislava",
+      "source": "wikidata:Q214#capital",
+      "answer": "bratislava bratislava",
+      "filled": "the capital of slovakia is bratislava. the capital of slovakia is bratislava.",
+      "correct": true,
+      "context": "The capital of Slovakia is Bratislava. The capital of Slovakia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Hungary",
+      "ground_truth": "Budapest",
+      "source": "wikidata:Q28#capital",
+      "answer": "budapest budapest",
+      "filled": "the capital of hungary is budapest. the capital of hungary is budapest.",
+      "correct": true,
+      "context": "The capital of Hungary is Budapest. The capital of Hungary is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Romania",
+      "ground_truth": "Bucharest",
+      "source": "wikidata:Q218#capital",
+      "answer": "bucharest bucharest",
+      "filled": "the capital of romania is bucharest. the capital of romania is bucharest.",
+      "correct": true,
+      "context": "The capital of Romania is Bucharest. The capital of Romania is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bulgaria",
+      "ground_truth": "Sofia",
+      "source": "wikidata:Q219#capital",
+      "answer": "sofia sofia",
+      "filled": "the capital of bulgaria is sofia. the capital of bulgaria is sofia.",
+      "correct": true,
+      "context": "The capital of Bulgaria is Sofia. The capital of Bulgaria is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Greece",
+      "ground_truth": "Athens",
+      "source": "wikidata:Q41#capital",
+      "answer": "athens thessaloniki",
+      "filled": "the capital of greece is athens. the capital of greece is thessaloniki.",
+      "correct": true,
+      "context": "The capital of Greece is Athens. The capital of Greece is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Croatia",
+      "ground_truth": "Zagreb",
+      "source": "wikidata:Q224#capital",
+      "answer": "zagreb zagreb",
+      "filled": "the capital of croatia is zagreb. the capital of croatia is zagreb.",
+      "correct": true,
+      "context": "The capital of Croatia is Zagreb. The capital of Croatia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Serbia",
+      "ground_truth": "Belgrade",
+      "source": "wikidata:Q403#capital",
+      "answer": "belgrade belgrade",
+      "filled": "the capital of serbia is belgrade. the capital of serbia is belgrade.",
+      "correct": true,
+      "context": "The capital of Serbia is Belgrade. The capital of Serbia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovenia",
+      "ground_truth": "Ljubljana",
+      "source": "wikidata:Q215#capital",
+      "answer": "ljubljana ljubljana",
+      "filled": "the capital of slovenia is ljubljana. the capital of slovenia is ljubljana.",
+      "correct": true,
+      "context": "The capital of Slovenia is Ljubljana. The capital of Slovenia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Russia",
+      "ground_truth": "Moscow",
+      "source": "wikidata:Q159#capital",
+      "answer": "moscow moscow",
+      "filled": "the capital of russia is moscow. the capital of russia is moscow.",
+      "correct": true,
+      "context": "The capital of Russia is Moscow. The capital of Russia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ukraine",
+      "ground_truth": "Kyiv",
+      "source": "wikidata:Q212#capital",
+      "answer": "kyiv kiev",
+      "filled": "the capital of ukraine is kyiv. the capital of ukraine is kiev.",
+      "correct": true,
+      "context": "The capital of Ukraine is Kyiv. The capital of Ukraine is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belarus",
+      "ground_truth": "Minsk",
+      "source": "wikidata:Q184#capital",
+      "answer": "minsk minsk",
+      "filled": "the capital of belarus is minsk. the capital of belarus is minsk.",
+      "correct": true,
+      "context": "The capital of Belarus is Minsk. The capital of Belarus is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Estonia",
+      "ground_truth": "Tallinn",
+      "source": "wikidata:Q191#capital",
+      "answer": "tallinn tallinn",
+      "filled": "the capital of estonia is tallinn. the capital of estonia is tallinn.",
+      "correct": true,
+      "context": "The capital of Estonia is Tallinn. The capital of Estonia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Latvia",
+      "ground_truth": "Riga",
+      "source": "wikidata:Q211#capital",
+      "answer": "riga riga",
+      "filled": "the capital of latvia is riga. the capital of latvia is riga.",
+      "correct": true,
+      "context": "The capital of Latvia is Riga. The capital of Latvia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lithuania",
+      "ground_truth": "Vilnius",
+      "source": "wikidata:Q37#capital",
+      "answer": "vilnius vilnius",
+      "filled": "the capital of lithuania is vilnius. the capital of lithuania is vilnius.",
+      "correct": true,
+      "context": "The capital of Lithuania is Vilnius. The capital of Lithuania is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Turkey",
+      "ground_truth": "Ankara",
+      "source": "wikidata:Q43#capital",
+      "answer": "ankara istanbul",
+      "filled": "the capital of turkey is ankara. the capital of turkey is istanbul.",
+      "correct": true,
+      "context": "The capital of Turkey is Ankara. The capital of Turkey is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Egypt",
+      "ground_truth": "Cairo",
+      "source": "wikidata:Q79#capital",
+      "answer": "cairo alexandria",
+      "filled": "the capital of egypt is cairo. the capital of egypt is alexandria.",
+      "correct": true,
+      "context": "The capital of Egypt is Cairo. The capital of Egypt is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Morocco",
+      "ground_truth": "Rabat",
+      "source": "wikidata:Q1028#capital",
+      "answer": "rabat in casablanca",
+      "filled": "the capital of morocco is rabat. the capital of morocco is in casablanca.",
+      "correct": true,
+      "context": "The capital of Morocco is Rabat. The capital of Morocco is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Africa",
+      "ground_truth": "Pretoria",
+      "source": "wikidata:Q258#capital",
+      "answer": "pretoria johannesburg",
+      "filled": "the capital of south africa is pretoria. the capital of south africa is johannesburg.",
+      "correct": true,
+      "context": "The capital of South Africa is Pretoria. The capital of South Africa is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nigeria",
+      "ground_truth": "Abuja",
+      "source": "wikidata:Q1033#capital",
+      "answer": "abuja at lagos",
+      "filled": "the capital of nigeria is abuja. the capital of nigeria is at lagos.",
+      "correct": true,
+      "context": "The capital of Nigeria is Abuja. The capital of Nigeria is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kenya",
+      "ground_truth": "Nairobi",
+      "source": "wikidata:Q114#capital",
+      "answer": "nairobi nairobi",
+      "filled": "the capital of kenya is nairobi. the capital of kenya is nairobi.",
+      "correct": true,
+      "context": "The capital of Kenya is Nairobi. The capital of Kenya is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ethiopia",
+      "ground_truth": "Addis Ababa",
+      "source": "wikidata:Q115#capital",
+      "answer": "addis ababa ras el bano",
+      "filled": "the capital of ethiopia is addis ababa. the capital of ethiopia is ras el bano.",
+      "correct": true,
+      "context": "The capital of Ethiopia is Addis Ababa. The capital of Ethiopia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ghana",
+      "ground_truth": "Accra",
+      "source": "wikidata:Q117#capital",
+      "answer": "accra fort george",
+      "filled": "the capital of ghana is accra. the capital of ghana is fort george.",
+      "correct": true,
+      "context": "The capital of Ghana is Accra. The capital of Ghana is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "China",
+      "ground_truth": "Beijing",
+      "source": "wikidata:Q148#capital",
+      "answer": "beijing shanghai",
+      "filled": "the capital of china is beijing. the capital of china is shanghai.",
+      "correct": true,
+      "context": "The capital of China is Beijing. The capital of China is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Japan",
+      "ground_truth": "Tokyo",
+      "source": "wikidata:Q17#capital",
+      "answer": "tokyo osaka",
+      "filled": "the capital of japan is tokyo. the capital of japan is osaka.",
+      "correct": true,
+      "context": "The capital of Japan is Tokyo. The capital of Japan is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Korea",
+      "ground_truth": "Seoul",
+      "source": "wikidata:Q884#capital",
+      "answer": "seoul seoul",
+      "filled": "the capital of south korea is seoul. the capital of south korea is seoul.",
+      "correct": true,
+      "context": "The capital of South Korea is Seoul. The capital of South Korea is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "North Korea",
+      "ground_truth": "Pyongyang",
+      "source": "wikidata:Q423#capital",
+      "answer": "pyongyang seoul city",
+      "filled": "the capital of north korea is pyongyang. the capital of north korea is the seoul capital city.",
+      "correct": true,
+      "context": "The capital of North Korea is Pyongyang. The capital of North Korea is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mongolia",
+      "ground_truth": "Ulaanbaatar",
+      "source": "wikidata:Q711#capital",
+      "answer": "ulaanbaatar city",
+      "filled": "the capital of mongolia is ulaanbaatar. the capital of mongolia is the capital city of mongolia.",
+      "correct": true,
+      "context": "The capital of Mongolia is Ulaanbaatar. The capital of Mongolia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "India",
+      "ground_truth": "New Delhi",
+      "source": "wikidata:Q668#capital",
+      "answer": "new delhi mumbai city",
+      "filled": "the capital of india is new delhi. the capital of india is mumbai city.",
+      "correct": true,
+      "context": "The capital of India is New Delhi. The capital of India is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Pakistan",
+      "ground_truth": "Islamabad",
+      "source": "wikidata:Q843#capital",
+      "answer": "islamabad karachi",
+      "filled": "the capital of pakistan is islamabad. the capital of pakistan is karachi.",
+      "correct": true,
+      "context": "The capital of Pakistan is Islamabad. The capital of Pakistan is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bangladesh",
+      "ground_truth": "Dhaka",
+      "source": "wikidata:Q902#capital",
+      "answer": "dhaka dhaka",
+      "filled": "the capital of bangladesh is dhaka. the capital of bangladesh is dhaka.",
+      "correct": true,
+      "context": "The capital of Bangladesh is Dhaka. The capital of Bangladesh is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sri Lanka",
+      "ground_truth": "Colombo",
+      "source": "wikidata:Q854#capital",
+      "answer": "colombo colombo",
+      "filled": "the capital of sri lanka is colombo. the capital of sri lanka is colombo.",
+      "correct": true,
+      "context": "The capital of Sri Lanka is Colombo. The capital of Sri Lanka is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nepal",
+      "ground_truth": "Kathmandu",
+      "source": "wikidata:Q837#capital",
+      "answer": "kathmandu kathmandu",
+      "filled": "the capital of nepal is kathmandu. the capital of nepal is kathmandu.",
+      "correct": true,
+      "context": "The capital of Nepal is Kathmandu. The capital of Nepal is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Thailand",
+      "ground_truth": "Bangkok",
+      "source": "wikidata:Q869#capital",
+      "answer": "bangkok bangkok",
+      "filled": "the capital of thailand is bangkok. the capital of thailand is bangkok.",
+      "correct": true,
+      "context": "The capital of Thailand is Bangkok. The capital of Thailand is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Vietnam",
+      "ground_truth": "Hanoi",
+      "source": "wikidata:Q881#capital",
+      "answer": "hanoi hanoi",
+      "filled": "the capital of vietnam is hanoi. the capital of vietnam is hanoi.",
+      "correct": true,
+      "context": "The capital of Vietnam is Hanoi. The capital of Vietnam is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Indonesia",
+      "ground_truth": "Jakarta",
+      "source": "wikidata:Q252#capital",
+      "answer": "jakarta jakarta",
+      "filled": "the capital of indonesia is jakarta. the capital of indonesia is jakarta.",
+      "correct": true,
+      "context": "The capital of Indonesia is Jakarta. The capital of Indonesia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Philippines",
+      "ground_truth": "Manila",
+      "source": "wikidata:Q928#capital",
+      "answer": "manila cebu",
+      "filled": "the capital of philippines is manila. the capital of philippines is cebu.",
+      "correct": true,
+      "context": "The capital of Philippines is Manila. The capital of Philippines is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Malaysia",
+      "ground_truth": "Kuala Lumpur",
+      "source": "wikidata:Q833#capital",
+      "answer": "kuala lumpur kuala lumpur",
+      "filled": "the capital of malaysia is kuala lumpur. the capital of malaysia is kuala lumpur.",
+      "correct": true,
+      "context": "The capital of Malaysia is Kuala Lumpur. The capital of Malaysia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Singapore",
+      "ground_truth": "Singapore",
+      "source": "wikidata:Q334#capital",
+      "answer": "",
+      "filled": "the capital of singapore is singapore. the capital of singapore is singapore.",
+      "correct": false,
+      "context": "The capital of Singapore is Singapore. The capital of Singapore is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Saudi Arabia",
+      "ground_truth": "Riyadh",
+      "source": "wikidata:Q851#capital",
+      "answer": "riyadh al - ain",
+      "filled": "the capital of saudi arabia is riyadh. the capital of saudi arabia is al - ain.",
+      "correct": true,
+      "context": "The capital of Saudi Arabia is Riyadh. The capital of Saudi Arabia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iran",
+      "ground_truth": "Tehran",
+      "source": "wikidata:Q794#capital",
+      "answer": "tehran tehran",
+      "filled": "the capital of iran is tehran. the capital of iran is tehran.",
+      "correct": true,
+      "context": "The capital of Iran is Tehran. The capital of Iran is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iraq",
+      "ground_truth": "Baghdad",
+      "source": "wikidata:Q796#capital",
+      "answer": "baghdad baghdad",
+      "filled": "the capital of iraq is baghdad. the capital of iraq is baghdad.",
+      "correct": true,
+      "context": "The capital of Iraq is Baghdad. The capital of Iraq is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Israel",
+      "ground_truth": "Jerusalem",
+      "source": "wikidata:Q801#capital",
+      "answer": "jerusalem haifa",
+      "filled": "the capital of israel is jerusalem. the capital of israel is haifa.",
+      "correct": true,
+      "context": "The capital of Israel is Jerusalem. The capital of Israel is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lebanon",
+      "ground_truth": "Beirut",
+      "source": "wikidata:Q822#capital",
+      "answer": "beirut beirut",
+      "filled": "the capital of lebanon is beirut. the capital of lebanon is beirut.",
+      "correct": true,
+      "context": "The capital of Lebanon is Beirut. The capital of Lebanon is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Syria",
+      "ground_truth": "Damascus",
+      "source": "wikidata:Q858#capital",
+      "answer": "damascus aleppo",
+      "filled": "the capital of syria is damascus. the capital of syria is aleppo.",
+      "correct": true,
+      "context": "The capital of Syria is Damascus. The capital of Syria is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Jordan",
+      "ground_truth": "Amman",
+      "source": "wikidata:Q810#capital",
+      "answer": "amman amman",
+      "filled": "the capital of jordan is amman. the capital of jordan is amman.",
+      "correct": true,
+      "context": "The capital of Jordan is Amman. The capital of Jordan is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Arab Emirates",
+      "ground_truth": "Abu Dhabi",
+      "source": "wikidata:Q878#capital",
+      "answer": "abu dhabi in dubai",
+      "filled": "the capital of united arab emirates is abu dhabi. the capital of united arab emirates is in dubai.",
+      "correct": true,
+      "context": "The capital of United Arab Emirates is Abu Dhabi. The capital of United Arab Emirates is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Qatar",
+      "ground_truth": "Doha",
+      "source": "wikidata:Q846#capital",
+      "answer": "doha doha",
+      "filled": "the capital of qatar is doha. the capital of qatar is doha.",
+      "correct": true,
+      "context": "The capital of Qatar is Doha. The capital of Qatar is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kuwait",
+      "ground_truth": "Kuwait City",
+      "source": "wikidata:Q817#capital",
+      "answer": "city al",
+      "filled": "the capital of kuwait is kuwait city. the capital of kuwait is al kuwait.",
+      "correct": false,
+      "context": "The capital of Kuwait is Kuwait City. The capital of Kuwait is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United States",
+      "ground_truth": "Washington",
+      "source": "wikidata:Q30#capital",
+      "answer": "washington atlanta",
+      "filled": "the capital of united states is washington. the capital of united states is atlanta.",
+      "correct": true,
+      "context": "The capital of United States is Washington. The capital of United States is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Canada",
+      "ground_truth": "Ottawa",
+      "source": "wikidata:Q16#capital",
+      "answer": "ottawa montreal",
+      "filled": "the capital of canada is ottawa. the capital of canada is montreal.",
+      "correct": true,
+      "context": "The capital of Canada is Ottawa. The capital of Canada is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mexico",
+      "ground_truth": "Mexico City",
+      "source": "wikidata:Q96#capital",
+      "answer": "city ciudad juarez",
+      "filled": "the capital of mexico is mexico city. the capital of mexico is ciudad juarez.",
+      "correct": false,
+      "context": "The capital of Mexico is Mexico City. The capital of Mexico is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Cuba",
+      "ground_truth": "Havana",
+      "source": "wikidata:Q241#capital",
+      "answer": "havana havana",
+      "filled": "the capital of cuba is havana. the capital of cuba is havana.",
+      "correct": true,
+      "context": "The capital of Cuba is Havana. The capital of Cuba is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Brazil",
+      "ground_truth": "Brasilia",
+      "source": "wikidata:Q155#capital",
+      "answer": "brasilia sao paulo",
+      "filled": "the capital of brazil is brasilia. the capital of brazil is sao paulo.",
+      "correct": true,
+      "context": "The capital of Brazil is Brasilia. The capital of Brazil is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Argentina",
+      "ground_truth": "Buenos Aires",
+      "source": "wikidata:Q414#capital",
+      "answer": "buenos aires buenos aires",
+      "filled": "the capital of argentina is buenos aires. the capital of argentina is buenos aires.",
+      "correct": true,
+      "context": "The capital of Argentina is Buenos Aires. The capital of Argentina is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Chile",
+      "ground_truth": "Santiago",
+      "source": "wikidata:Q298#capital",
+      "answer": "santiago santiago",
+      "filled": "the capital of chile is santiago. the capital of chile is santiago.",
+      "correct": true,
+      "context": "The capital of Chile is Santiago. The capital of Chile is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Peru",
+      "ground_truth": "Lima",
+      "source": "wikidata:Q419#capital",
+      "answer": "lima lima",
+      "filled": "the capital of peru is lima. the capital of peru is lima.",
+      "correct": true,
+      "context": "The capital of Peru is Lima. The capital of Peru is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Colombia",
+      "ground_truth": "Bogota",
+      "source": "wikidata:Q739#capital",
+      "answer": "bogota bogota",
+      "filled": "the capital of colombia is bogota. the capital of colombia is bogota.",
+      "correct": true,
+      "context": "The capital of Colombia is Bogota. The capital of Colombia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Venezuela",
+      "ground_truth": "Caracas",
+      "source": "wikidata:Q717#capital",
+      "answer": "caracas caracas",
+      "filled": "the capital of venezuela is caracas. the capital of venezuela is caracas.",
+      "correct": true,
+      "context": "The capital of Venezuela is Caracas. The capital of Venezuela is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ecuador",
+      "ground_truth": "Quito",
+      "source": "wikidata:Q736#capital",
+      "answer": "quito santiago city",
+      "filled": "the capital of ecuador is quito. the capital of ecuador is santiago city.",
+      "correct": true,
+      "context": "The capital of Ecuador is Quito. The capital of Ecuador is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bolivia",
+      "ground_truth": "La Paz",
+      "source": "wikidata:Q750#capital",
+      "answer": "la paz in lima",
+      "filled": "the capital of bolivia is la paz. the capital of bolivia is in lima.",
+      "correct": true,
+      "context": "The capital of Bolivia is La Paz. The capital of Bolivia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Paraguay",
+      "ground_truth": "Asuncion",
+      "source": "wikidata:Q733#capital",
+      "answer": "asuncion in quito",
+      "filled": "the capital of paraguay is asuncion. the capital of paraguay is in quito.",
+      "correct": true,
+      "context": "The capital of Paraguay is Asuncion. The capital of Paraguay is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Uruguay",
+      "ground_truth": "Montevideo",
+      "source": "wikidata:Q77#capital",
+      "answer": "montevideo montevideo",
+      "filled": "the capital of uruguay is montevideo. the capital of uruguay is montevideo.",
+      "correct": true,
+      "context": "The capital of Uruguay is Montevideo. The capital of Uruguay is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Australia",
+      "ground_truth": "Canberra",
+      "source": "wikidata:Q408#capital",
+      "answer": "canberra melbourne",
+      "filled": "the capital of australia is canberra. the capital of australia is melbourne.",
+      "correct": true,
+      "context": "The capital of Australia is Canberra. The capital of Australia is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "New Zealand",
+      "ground_truth": "Wellington",
+      "source": "wikidata:Q664#capital",
+      "answer": "wellington auckland",
+      "filled": "the capital of new zealand is wellington. the capital of new zealand is auckland.",
+      "correct": true,
+      "context": "The capital of New Zealand is Wellington. The capital of New Zealand is [MASK]."
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Fiji",
+      "ground_truth": "Suva",
+      "source": "wikidata:Q712#capital",
+      "answer": "suva suva",
+      "filled": "the capital of fiji is suva. the capital of fiji is suva.",
+      "correct": true,
+      "context": "The capital of Fiji is Suva. The capital of Fiji is [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mercury",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q308#orbits",
+      "answer": "sun moon",
+      "filled": "mercury orbits sun. mercury orbits moon.",
+      "correct": true,
+      "context": "Mercury orbits Sun. Mercury orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Venus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q313#orbits",
+      "answer": "sun moon",
+      "filled": "venus orbits sun. venus orbits moon.",
+      "correct": true,
+      "context": "Venus orbits Sun. Venus orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Earth",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q2#orbits",
+      "answer": "sun moon",
+      "filled": "earth orbits sun. earth orbits moon.",
+      "correct": true,
+      "context": "Earth orbits Sun. Earth orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mars",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q111#orbits",
+      "answer": "sun moon",
+      "filled": "mars orbits sun. mars orbits moon.",
+      "correct": true,
+      "context": "Mars orbits Sun. Mars orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Jupiter",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q319#orbits",
+      "answer": "sun moon",
+      "filled": "jupiter orbits sun. jupiter orbits moon.",
+      "correct": true,
+      "context": "Jupiter orbits Sun. Jupiter orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Saturn",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q193#orbits",
+      "answer": "sun moon",
+      "filled": "saturn orbits sun. saturn orbits moon.",
+      "correct": true,
+      "context": "Saturn orbits Sun. Saturn orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Uranus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q324#orbits",
+      "answer": "sun moon",
+      "filled": "uranus orbits sun. uranus orbits moon.",
+      "correct": true,
+      "context": "Uranus orbits Sun. Uranus orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Neptune",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q332#orbits",
+      "answer": "sun moon",
+      "filled": "neptune orbits sun. neptune orbits moon.",
+      "correct": true,
+      "context": "Neptune orbits Sun. Neptune orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Pluto",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q339#orbits",
+      "answer": "sun moon",
+      "filled": "pluto orbits sun. pluto orbits moon.",
+      "correct": true,
+      "context": "Pluto orbits Sun. Pluto orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Moon",
+      "ground_truth": "Earth",
+      "source": "wikidata:Q405#orbits",
+      "answer": "earth earth",
+      "filled": "moon orbits earth. moon orbits earth.",
+      "correct": true,
+      "context": "Moon orbits Earth. Moon orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Phobos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "mars venus",
+      "filled": "phobos orbits mars. phobos orbits venus.",
+      "correct": true,
+      "context": "Phobos orbits Mars. Phobos orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Deimos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3303#orbits",
+      "answer": "mars venus",
+      "filled": "deimos orbits mars. deimos orbits venus.",
+      "correct": true,
+      "context": "Deimos orbits Mars. Deimos orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Io",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3123#orbits",
+      "answer": "jupiter saturn",
+      "filled": "io orbits jupiter. io orbits saturn.",
+      "correct": true,
+      "context": "Io orbits Jupiter. Io orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Europa",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": "jupiter saturn",
+      "filled": "europa orbits jupiter. europa orbits saturn.",
+      "correct": true,
+      "context": "Europa orbits Jupiter. Europa orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Ganymede",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "jupiter saturn",
+      "filled": "ganymede orbits jupiter. ganymede orbits saturn.",
+      "correct": true,
+      "context": "Ganymede orbits Jupiter. Ganymede orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Callisto",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": "jupiter saturn",
+      "filled": "callisto orbits jupiter. callisto orbits saturn.",
+      "correct": true,
+      "context": "Callisto orbits Jupiter. Callisto orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Titan",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "saturn jupiter",
+      "filled": "titan orbits saturn. titan orbits jupiter.",
+      "correct": true,
+      "context": "Titan orbits Saturn. Titan orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Enceladus",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "saturn jupiter",
+      "filled": "enceladus orbits saturn. enceladus orbits jupiter.",
+      "correct": true,
+      "context": "Enceladus orbits Saturn. Enceladus orbits [MASK]."
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Triton",
+      "ground_truth": "Neptune",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "neptune neptune",
+      "filled": "triton orbits neptune. triton orbits neptune.",
+      "correct": true,
+      "context": "Triton orbits Neptune. Triton orbits [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Hydrogen",
+      "ground_truth": "1",
+      "source": "periodic_table#Hydrogen",
+      "answer": "1 2",
+      "filled": "hydrogen has atomic number 1. hydrogen has atomic number 2.",
+      "correct": true,
+      "context": "Hydrogen has atomic number 1. Hydrogen has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Helium",
+      "ground_truth": "2",
+      "source": "periodic_table#Helium",
+      "answer": "2 3",
+      "filled": "helium has atomic number 2. helium has atomic number 3.",
+      "correct": true,
+      "context": "Helium has atomic number 2. Helium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lithium",
+      "ground_truth": "3",
+      "source": "periodic_table#Lithium",
+      "answer": "3 4",
+      "filled": "lithium has atomic number 3. lithium has atomic number 4.",
+      "correct": true,
+      "context": "Lithium has atomic number 3. Lithium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Beryllium",
+      "ground_truth": "4",
+      "source": "periodic_table#Beryllium",
+      "answer": "4 5",
+      "filled": "beryllium has atomic number 4. beryllium has atomic number 5.",
+      "correct": true,
+      "context": "Beryllium has atomic number 4. Beryllium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Boron",
+      "ground_truth": "5",
+      "source": "periodic_table#Boron",
+      "answer": "5 6",
+      "filled": "boron has atomic number 5. boron has atomic number 6.",
+      "correct": true,
+      "context": "Boron has atomic number 5. Boron has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Carbon",
+      "ground_truth": "6",
+      "source": "periodic_table#Carbon",
+      "answer": "6 7",
+      "filled": "carbon has atomic number 6. carbon has atomic number 7.",
+      "correct": true,
+      "context": "Carbon has atomic number 6. Carbon has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nitrogen",
+      "ground_truth": "7",
+      "source": "periodic_table#Nitrogen",
+      "answer": "7 8",
+      "filled": "nitrogen has atomic number 7. nitrogen has atomic number 8.",
+      "correct": true,
+      "context": "Nitrogen has atomic number 7. Nitrogen has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Oxygen",
+      "ground_truth": "8",
+      "source": "periodic_table#Oxygen",
+      "answer": "8 9",
+      "filled": "oxygen has atomic number 8. oxygen has atomic number 9.",
+      "correct": true,
+      "context": "Oxygen has atomic number 8. Oxygen has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Fluorine",
+      "ground_truth": "9",
+      "source": "periodic_table#Fluorine",
+      "answer": "9 10",
+      "filled": "fluorine has atomic number 9. fluorine has atomic number 10.",
+      "correct": true,
+      "context": "Fluorine has atomic number 9. Fluorine has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Neon",
+      "ground_truth": "10",
+      "source": "periodic_table#Neon",
+      "answer": "10 10",
+      "filled": "neon has atomic number 10. neon has atomic number 10.",
+      "correct": true,
+      "context": "Neon has atomic number 10. Neon has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sodium",
+      "ground_truth": "11",
+      "source": "periodic_table#Sodium",
+      "answer": "11 12",
+      "filled": "sodium has atomic number 11. sodium has atomic number 12.",
+      "correct": true,
+      "context": "Sodium has atomic number 11. Sodium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Magnesium",
+      "ground_truth": "12",
+      "source": "periodic_table#Magnesium",
+      "answer": "12 14",
+      "filled": "magnesium has atomic number 12. magnesium has atomic number 14.",
+      "correct": true,
+      "context": "Magnesium has atomic number 12. Magnesium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Aluminum",
+      "ground_truth": "13",
+      "source": "periodic_table#Aluminum",
+      "answer": "13 14",
+      "filled": "aluminum has atomic number 13. aluminum has atomic number 14.",
+      "correct": true,
+      "context": "Aluminum has atomic number 13. Aluminum has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silicon",
+      "ground_truth": "14",
+      "source": "periodic_table#Silicon",
+      "answer": "14 16",
+      "filled": "silicon has atomic number 14. silicon has atomic number 16.",
+      "correct": true,
+      "context": "Silicon has atomic number 14. Silicon has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Phosphorus",
+      "ground_truth": "15",
+      "source": "periodic_table#Phosphorus",
+      "answer": "15 16",
+      "filled": "phosphorus has atomic number 15. phosphorus has atomic number 16.",
+      "correct": true,
+      "context": "Phosphorus has atomic number 15. Phosphorus has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sulfur",
+      "ground_truth": "16",
+      "source": "periodic_table#Sulfur",
+      "answer": "16 14",
+      "filled": "sulfur has atomic number 16. sulfur has atomic number 14.",
+      "correct": true,
+      "context": "Sulfur has atomic number 16. Sulfur has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chlorine",
+      "ground_truth": "17",
+      "source": "periodic_table#Chlorine",
+      "answer": "17 18",
+      "filled": "chlorine has atomic number 17. chlorine has atomic number 18.",
+      "correct": true,
+      "context": "Chlorine has atomic number 17. Chlorine has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Argon",
+      "ground_truth": "18",
+      "source": "periodic_table#Argon",
+      "answer": "18 18",
+      "filled": "argon has atomic number 18. argon has atomic number 18.",
+      "correct": true,
+      "context": "Argon has atomic number 18. Argon has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Potassium",
+      "ground_truth": "19",
+      "source": "periodic_table#Potassium",
+      "answer": "19 20",
+      "filled": "potassium has atomic number 19. potassium has atomic number 20.",
+      "correct": true,
+      "context": "Potassium has atomic number 19. Potassium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Calcium",
+      "ground_truth": "20",
+      "source": "periodic_table#Calcium",
+      "answer": "20 10",
+      "filled": "calcium has atomic number 20. calcium has atomic number 10.",
+      "correct": true,
+      "context": "Calcium has atomic number 20. Calcium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Scandium",
+      "ground_truth": "21",
+      "source": "periodic_table#Scandium",
+      "answer": "21 22",
+      "filled": "scandium has atomic number 21. scandium has atomic number 22.",
+      "correct": true,
+      "context": "Scandium has atomic number 21. Scandium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Titanium",
+      "ground_truth": "22",
+      "source": "periodic_table#Titanium",
+      "answer": "22 24",
+      "filled": "titanium has atomic number 22. titanium has atomic number 24.",
+      "correct": true,
+      "context": "Titanium has atomic number 22. Titanium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Vanadium",
+      "ground_truth": "23",
+      "source": "periodic_table#Vanadium",
+      "answer": "23 24",
+      "filled": "vanadium has atomic number 23. vanadium has atomic number 24.",
+      "correct": true,
+      "context": "Vanadium has atomic number 23. Vanadium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chromium",
+      "ground_truth": "24",
+      "source": "periodic_table#Chromium",
+      "answer": "24 32",
+      "filled": "chromium has atomic number 24. chromium has atomic number 32.",
+      "correct": true,
+      "context": "Chromium has atomic number 24. Chromium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Manganese",
+      "ground_truth": "25",
+      "source": "periodic_table#Manganese",
+      "answer": "25 28",
+      "filled": "manganese has atomic number 25. manganese has atomic number 28.",
+      "correct": true,
+      "context": "Manganese has atomic number 25. Manganese has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Iron",
+      "ground_truth": "26",
+      "source": "periodic_table#Iron",
+      "answer": "26 27",
+      "filled": "iron has atomic number 26. iron has atomic number 27.",
+      "correct": true,
+      "context": "Iron has atomic number 26. Iron has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Cobalt",
+      "ground_truth": "27",
+      "source": "periodic_table#Cobalt",
+      "answer": "27 28",
+      "filled": "cobalt has atomic number 27. cobalt has atomic number 28.",
+      "correct": true,
+      "context": "Cobalt has atomic number 27. Cobalt has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nickel",
+      "ground_truth": "28",
+      "source": "periodic_table#Nickel",
+      "answer": "28 36",
+      "filled": "nickel has atomic number 28. nickel has atomic number 36.",
+      "correct": true,
+      "context": "Nickel has atomic number 28. Nickel has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Copper",
+      "ground_truth": "29",
+      "source": "periodic_table#Copper",
+      "answer": "29 36",
+      "filled": "copper has atomic number 29. copper has atomic number 36.",
+      "correct": true,
+      "context": "Copper has atomic number 29. Copper has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Zinc",
+      "ground_truth": "30",
+      "source": "periodic_table#Zinc",
+      "answer": "30 40",
+      "filled": "zinc has atomic number 30. zinc has atomic number 40.",
+      "correct": true,
+      "context": "Zinc has atomic number 30. Zinc has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gallium",
+      "ground_truth": "31",
+      "source": "periodic_table#Gallium",
+      "answer": "31 36",
+      "filled": "gallium has atomic number 31. gallium has atomic number 36.",
+      "correct": true,
+      "context": "Gallium has atomic number 31. Gallium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Germanium",
+      "ground_truth": "32",
+      "source": "periodic_table#Germanium",
+      "answer": "32 36",
+      "filled": "germanium has atomic number 32. germanium has atomic number 36.",
+      "correct": true,
+      "context": "Germanium has atomic number 32. Germanium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Arsenic",
+      "ground_truth": "33",
+      "source": "periodic_table#Arsenic",
+      "answer": "33 36",
+      "filled": "arsenic has atomic number 33. arsenic has atomic number 36.",
+      "correct": true,
+      "context": "Arsenic has atomic number 33. Arsenic has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Selenium",
+      "ground_truth": "34",
+      "source": "periodic_table#Selenium",
+      "answer": "34 36",
+      "filled": "selenium has atomic number 34. selenium has atomic number 36.",
+      "correct": true,
+      "context": "Selenium has atomic number 34. Selenium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Bromine",
+      "ground_truth": "35",
+      "source": "periodic_table#Bromine",
+      "answer": "35 38",
+      "filled": "bromine has atomic number 35. bromine has atomic number 38.",
+      "correct": true,
+      "context": "Bromine has atomic number 35. Bromine has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Krypton",
+      "ground_truth": "36",
+      "source": "periodic_table#Krypton",
+      "answer": "36 38",
+      "filled": "krypton has atomic number 36. krypton has atomic number 38.",
+      "correct": true,
+      "context": "Krypton has atomic number 36. Krypton has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silver",
+      "ground_truth": "47",
+      "source": "periodic_table#Silver",
+      "answer": "47 48",
+      "filled": "silver has atomic number 47. silver has atomic number 48.",
+      "correct": true,
+      "context": "Silver has atomic number 47. Silver has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gold",
+      "ground_truth": "79",
+      "source": "periodic_table#Gold",
+      "answer": "79 84",
+      "filled": "gold has atomic number 79. gold has atomic number 84.",
+      "correct": true,
+      "context": "Gold has atomic number 79. Gold has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Mercury (element)",
+      "ground_truth": "80",
+      "source": "periodic_table#Mercury (element)",
+      "answer": "( element ) 80 ( element ) 90",
+      "filled": "mercury ( element ) has atomic number 80. mercury ( element ) has atomic number 90.",
+      "correct": true,
+      "context": "Mercury (element) has atomic number 80. Mercury (element) has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lead",
+      "ground_truth": "82",
+      "source": "periodic_table#Lead",
+      "answer": "82 82",
+      "filled": "lead has atomic number 82. lead has atomic number 82.",
+      "correct": true,
+      "context": "Lead has atomic number 82. Lead has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Uranium",
+      "ground_truth": "92",
+      "source": "periodic_table#Uranium",
+      "answer": "92 93",
+      "filled": "uranium has atomic number 92. uranium has atomic number 93.",
+      "correct": true,
+      "context": "Uranium has atomic number 92. Uranium has atomic number [MASK]."
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Plutonium",
+      "ground_truth": "94",
+      "source": "periodic_table#Plutonium",
+      "answer": "94 95",
+      "filled": "plutonium has atomic number 94. plutonium has atomic number 95.",
+      "correct": true,
+      "context": "Plutonium has atomic number 94. Plutonium has atomic number [MASK]."
+    }
+  ]
+}

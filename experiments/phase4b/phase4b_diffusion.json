@@ -1,0 +1,2484 @@
+{
+  "summary": {
+    "model_params": 17687808,
+    "train_steps": 4000,
+    "train_elapsed_s": 147.3,
+    "n_questions": 144,
+    "parametric_accuracy": 0.10416666666666667,
+    "rag_accuracy": 0.0,
+    "parametric_hallucination": 0.8958333333333334,
+    "rag_hallucination": 1.0,
+    "rag_vs_parametric_ratio": 1.1162790697674418,
+    "by_predicate": {
+      "orbits": {
+        "n": 19,
+        "parametric_acc": 0.47368421052631576,
+        "rag_acc": 0.0
+      },
+      "atomic_number": {
+        "n": 42,
+        "parametric_acc": 0.11904761904761904,
+        "rag_acc": 0.0
+      },
+      "country_capital_is": {
+        "n": 83,
+        "parametric_acc": 0.012048192771084338,
+        "rag_acc": 0.0
+      }
+    },
+    "gate_ratio": 0.5,
+    "gate_passed": false
+  },
+  "parametric_results": [
+    {
+      "predicate": "country_capital_is",
+      "subject": "France",
+      "ground_truth": "Paris",
+      "source": "wikidata:Q142#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Germany",
+      "ground_truth": "Berlin",
+      "source": "wikidata:Q183#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Italy",
+      "ground_truth": "Rome",
+      "source": "wikidata:Q38#capital",
+      "answer": "class",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Spain",
+      "ground_truth": "Madrid",
+      "source": "wikidata:Q29#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Portugal",
+      "ground_truth": "Lisbon",
+      "source": "wikidata:Q45#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Kingdom",
+      "ground_truth": "London",
+      "source": "wikidata:Q145#capital",
+      "answer": "Washington",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ireland",
+      "ground_truth": "Dublin",
+      "source": "wikidata:Q27#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Netherlands",
+      "ground_truth": "Amsterdam",
+      "source": "wikidata:Q55#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belgium",
+      "ground_truth": "Brussels",
+      "source": "wikidata:Q31#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Switzerland",
+      "ground_truth": "Bern",
+      "source": "wikidata:Q39#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Austria",
+      "ground_truth": "Vienna",
+      "source": "wikidata:Q40#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sweden",
+      "ground_truth": "Stockholm",
+      "source": "wikidata:Q34#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Norway",
+      "ground_truth": "Oslo",
+      "source": "wikidata:Q20#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Finland",
+      "ground_truth": "Helsinki",
+      "source": "wikidata:Q33#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Denmark",
+      "ground_truth": "Copenhagen",
+      "source": "wikidata:Q35#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iceland",
+      "ground_truth": "Reykjavik",
+      "source": "wikidata:Q189#capital",
+      "answer": "R Bangkok January score",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Poland",
+      "ground_truth": "Warsaw",
+      "source": "wikidata:Q36#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Czech Republic",
+      "ground_truth": "Prague",
+      "source": "wikidata:Q213#capital",
+      "answer": "area",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovakia",
+      "ground_truth": "Bratislava",
+      "source": "wikidata:Q214#capital",
+      "answer": "New Bangkok January score",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Hungary",
+      "ground_truth": "Budapest",
+      "source": "wikidata:Q28#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Romania",
+      "ground_truth": "Bucharest",
+      "source": "wikidata:Q218#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bulgaria",
+      "ground_truth": "Sofia",
+      "source": "wikidata:Q219#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Greece",
+      "ground_truth": "Athens",
+      "source": "wikidata:Q41#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Croatia",
+      "ground_truth": "Zagreb",
+      "source": "wikidata:Q224#capital",
+      "answer": "lisers Lumpur",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Serbia",
+      "ground_truth": "Belgrade",
+      "source": "wikidata:Q403#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovenia",
+      "ground_truth": "Ljubljana",
+      "source": "wikidata:Q215#capital",
+      "answer": "R Blackie , December CO",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Russia",
+      "ground_truth": "Moscow",
+      "source": "wikidata:Q159#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ukraine",
+      "ground_truth": "Kyiv",
+      "source": "wikidata:Q212#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belarus",
+      "ground_truth": "Minsk",
+      "source": "wikidata:Q184#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Estonia",
+      "ground_truth": "Tallinn",
+      "source": "wikidata:Q191#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Latvia",
+      "ground_truth": "Riga",
+      "source": "wikidata:Q211#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lithuania",
+      "ground_truth": "Vilnius",
+      "source": "wikidata:Q37#capital",
+      "answer": "H Westonon",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Turkey",
+      "ground_truth": "Ankara",
+      "source": "wikidata:Q43#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Egypt",
+      "ground_truth": "Cairo",
+      "source": "wikidata:Q79#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Morocco",
+      "ground_truth": "Rabat",
+      "source": "wikidata:Q1028#capital",
+      "answer": "Tall building",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Africa",
+      "ground_truth": "Pretoria",
+      "source": "wikidata:Q258#capital",
+      "answer": "named points",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nigeria",
+      "ground_truth": "Abuja",
+      "source": "wikidata:Q1033#capital",
+      "answer": "Tall building",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kenya",
+      "ground_truth": "Nairobi",
+      "source": "wikidata:Q114#capital",
+      "answer": "llled Lumpur",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ethiopia",
+      "ground_truth": "Addis Ababa",
+      "source": "wikidata:Q115#capital",
+      "answer": "isopic of 2006",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ghana",
+      "ground_truth": "Accra",
+      "source": "wikidata:Q117#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "China",
+      "ground_truth": "Beijing",
+      "source": "wikidata:Q148#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Japan",
+      "ground_truth": "Tokyo",
+      "source": "wikidata:Q17#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Korea",
+      "ground_truth": "Seoul",
+      "source": "wikidata:Q884#capital",
+      "answer": "area",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "North Korea",
+      "ground_truth": "Pyongyang",
+      "source": "wikidata:Q423#capital",
+      "answer": "area",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mongolia",
+      "ground_truth": "Ulaanbaatar",
+      "source": "wikidata:Q711#capital",
+      "answer": "the AT of the competition",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "India",
+      "ground_truth": "New Delhi",
+      "source": "wikidata:Q668#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Pakistan",
+      "ground_truth": "Islamabad",
+      "source": "wikidata:Q843#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bangladesh",
+      "ground_truth": "Dhaka",
+      "source": "wikidata:Q902#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sri Lanka",
+      "ground_truth": "Colombo",
+      "source": "wikidata:Q854#capital",
+      "answer": "Weston time",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nepal",
+      "ground_truth": "Kathmandu",
+      "source": "wikidata:Q837#capital",
+      "answer": "l Ru",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Thailand",
+      "ground_truth": "Bangkok",
+      "source": "wikidata:Q869#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Vietnam",
+      "ground_truth": "Hanoi",
+      "source": "wikidata:Q881#capital",
+      "answer": "leadingisers Lumpur",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Indonesia",
+      "ground_truth": "Jakarta",
+      "source": "wikidata:Q252#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Philippines",
+      "ground_truth": "Manila",
+      "source": "wikidata:Q928#capital",
+      "answer": "Nigel",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Malaysia",
+      "ground_truth": "Kuala Lumpur",
+      "source": "wikidata:Q833#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Singapore",
+      "ground_truth": "Singapore",
+      "source": "wikidata:Q334#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Saudi Arabia",
+      "ground_truth": "Riyadh",
+      "source": "wikidata:Q851#capital",
+      "answer": "the",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iran",
+      "ground_truth": "Tehran",
+      "source": "wikidata:Q794#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iraq",
+      "ground_truth": "Baghdad",
+      "source": "wikidata:Q796#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Israel",
+      "ground_truth": "Jerusalem",
+      "source": "wikidata:Q801#capital",
+      "answer": "attempted",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lebanon",
+      "ground_truth": "Beirut",
+      "source": "wikidata:Q822#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Syria",
+      "ground_truth": "Damascus",
+      "source": "wikidata:Q858#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Jordan",
+      "ground_truth": "Amman",
+      "source": "wikidata:Q810#capital",
+      "answer": "Tallstein",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Arab Emirates",
+      "ground_truth": "Abu Dhabi",
+      "source": "wikidata:Q878#capital",
+      "answer": "of 2006",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Qatar",
+      "ground_truth": "Doha",
+      "source": "wikidata:Q846#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kuwait",
+      "ground_truth": "Kuwait City",
+      "source": "wikidata:Q817#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United States",
+      "ground_truth": "Washington",
+      "source": "wikidata:Q30#capital",
+      "answer": "Washington",
+      "correct": true
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Canada",
+      "ground_truth": "Ottawa",
+      "source": "wikidata:Q16#capital",
+      "answer": "s",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mexico",
+      "ground_truth": "Mexico City",
+      "source": "wikidata:Q96#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Cuba",
+      "ground_truth": "Havana",
+      "source": "wikidata:Q241#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Brazil",
+      "ground_truth": "Brasilia",
+      "source": "wikidata:Q155#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Argentina",
+      "ground_truth": "Buenos Aires",
+      "source": "wikidata:Q414#capital",
+      "answer": "isito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Chile",
+      "ground_truth": "Santiago",
+      "source": "wikidata:Q298#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Peru",
+      "ground_truth": "Lima",
+      "source": "wikidata:Q419#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Colombia",
+      "ground_truth": "Bogota",
+      "source": "wikidata:Q739#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Venezuela",
+      "ground_truth": "Caracas",
+      "source": "wikidata:Q717#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ecuador",
+      "ground_truth": "Quito",
+      "source": "wikidata:Q736#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bolivia",
+      "ground_truth": "La Paz",
+      "source": "wikidata:Q750#capital",
+      "answer": "lisers Lumpur",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Paraguay",
+      "ground_truth": "Asuncion",
+      "source": "wikidata:Q733#capital",
+      "answer": "Mexico in py",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Uruguay",
+      "ground_truth": "Montevideo",
+      "source": "wikidata:Q77#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Australia",
+      "ground_truth": "Canberra",
+      "source": "wikidata:Q408#capital",
+      "answer": "bar",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "New Zealand",
+      "ground_truth": "Wellington",
+      "source": "wikidata:Q664#capital",
+      "answer": "area",
+      "correct": false
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Fiji",
+      "ground_truth": "Suva",
+      "source": "wikidata:Q712#capital",
+      "answer": "Tallito",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mercury",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q308#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Venus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q313#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Earth",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q2#orbits",
+      "answer": "Sun",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mars",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q111#orbits",
+      "answer": "Sun",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Jupiter",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q319#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Saturn",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q193#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Uranus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q324#orbits",
+      "answer": "Sun",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Neptune",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q332#orbits",
+      "answer": "Bombay",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Pluto",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q339#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Moon",
+      "ground_truth": "Earth",
+      "source": "wikidata:Q405#orbits",
+      "answer": "Earth",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Phobos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Deimos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3303#orbits",
+      "answer": "Mars",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Io",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3123#orbits",
+      "answer": "Jupiter",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Europa",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": "Jupiter",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Ganymede",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "Jupiter",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Callisto",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": "Jupiter",
+      "correct": true
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Titan",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Enceladus",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Triton",
+      "ground_truth": "Neptune",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "Jupiter",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Hydrogen",
+      "ground_truth": "1",
+      "source": "periodic_table#Hydrogen",
+      "answer": "19",
+      "correct": true
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Helium",
+      "ground_truth": "2",
+      "source": "periodic_table#Helium",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lithium",
+      "ground_truth": "3",
+      "source": "periodic_table#Lithium",
+      "answer": "36",
+      "correct": true
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Beryllium",
+      "ground_truth": "4",
+      "source": "periodic_table#Beryllium",
+      "answer": "also",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Boron",
+      "ground_truth": "5",
+      "source": "periodic_table#Boron",
+      "answer": "on",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Carbon",
+      "ground_truth": "6",
+      "source": "periodic_table#Carbon",
+      "answer": "which",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nitrogen",
+      "ground_truth": "7",
+      "source": "periodic_table#Nitrogen",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Oxygen",
+      "ground_truth": "8",
+      "source": "periodic_table#Oxygen",
+      "answer": "on",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Fluorine",
+      "ground_truth": "9",
+      "source": "periodic_table#Fluorine",
+      "answer": "also",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Neon",
+      "ground_truth": "10",
+      "source": "periodic_table#Neon",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sodium",
+      "ground_truth": "11",
+      "source": "periodic_table#Sodium",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Magnesium",
+      "ground_truth": "12",
+      "source": "periodic_table#Magnesium",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Aluminum",
+      "ground_truth": "13",
+      "source": "periodic_table#Aluminum",
+      "answer": "which",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silicon",
+      "ground_truth": "14",
+      "source": "periodic_table#Silicon",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Phosphorus",
+      "ground_truth": "15",
+      "source": "periodic_table#Phosphorus",
+      "answer": "Carey",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sulfur",
+      "ground_truth": "16",
+      "source": "periodic_table#Sulfur",
+      "answer": "25",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chlorine",
+      "ground_truth": "17",
+      "source": "periodic_table#Chlorine",
+      "answer": "25",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Argon",
+      "ground_truth": "18",
+      "source": "periodic_table#Argon",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Potassium",
+      "ground_truth": "19",
+      "source": "periodic_table#Potassium",
+      "answer": "which",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Calcium",
+      "ground_truth": "20",
+      "source": "periodic_table#Calcium",
+      "answer": "which",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Scandium",
+      "ground_truth": "21",
+      "source": "periodic_table#Scandium",
+      "answer": "36",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Titanium",
+      "ground_truth": "22",
+      "source": "periodic_table#Titanium",
+      "answer": "on",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Vanadium",
+      "ground_truth": "23",
+      "source": "periodic_table#Vanadium",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chromium",
+      "ground_truth": "24",
+      "source": "periodic_table#Chromium",
+      "answer": "33",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Manganese",
+      "ground_truth": "25",
+      "source": "periodic_table#Manganese",
+      "answer": "25",
+      "correct": true
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Iron",
+      "ground_truth": "26",
+      "source": "periodic_table#Iron",
+      "answer": "has",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Cobalt",
+      "ground_truth": "27",
+      "source": "periodic_table#Cobalt",
+      "answer": "25",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nickel",
+      "ground_truth": "28",
+      "source": "periodic_table#Nickel",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Copper",
+      "ground_truth": "29",
+      "source": "periodic_table#Copper",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Zinc",
+      "ground_truth": "30",
+      "source": "periodic_table#Zinc",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gallium",
+      "ground_truth": "31",
+      "source": "periodic_table#Gallium",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Germanium",
+      "ground_truth": "32",
+      "source": "periodic_table#Germanium",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Arsenic",
+      "ground_truth": "33",
+      "source": "periodic_table#Arsenic",
+      "answer": "33",
+      "correct": true
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Selenium",
+      "ground_truth": "34",
+      "source": "periodic_table#Selenium",
+      "answer": "19",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Bromine",
+      "ground_truth": "35",
+      "source": "periodic_table#Bromine",
+      "answer": "on",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Krypton",
+      "ground_truth": "36",
+      "source": "periodic_table#Krypton",
+      "answer": "36",
+      "correct": true
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silver",
+      "ground_truth": "47",
+      "source": "periodic_table#Silver",
+      "answer": "has",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gold",
+      "ground_truth": "79",
+      "source": "periodic_table#Gold",
+      "answer": "has",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Mercury (element)",
+      "ground_truth": "80",
+      "source": "periodic_table#Mercury (element)",
+      "answer": "debate",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lead",
+      "ground_truth": "82",
+      "source": "periodic_table#Lead",
+      "answer": "has",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Uranium",
+      "ground_truth": "92",
+      "source": "periodic_table#Uranium",
+      "answer": "33",
+      "correct": false
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Plutonium",
+      "ground_truth": "94",
+      "source": "periodic_table#Plutonium",
+      "answer": "19",
+      "correct": false
+    }
+  ],
+  "rag_results": [
+    {
+      "predicate": "country_capital_is",
+      "subject": "France",
+      "ground_truth": "Paris",
+      "source": "wikidata:Q142#capital",
+      "answer": "countries",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Germany",
+      "ground_truth": "Berlin",
+      "source": "wikidata:Q183#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Italy",
+      "ground_truth": "Rome",
+      "source": "wikidata:Q38#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Spain",
+      "ground_truth": "Madrid",
+      "source": "wikidata:Q29#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Portugal",
+      "ground_truth": "Lisbon",
+      "source": "wikidata:Q45#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Kingdom",
+      "ground_truth": "London",
+      "source": "wikidata:Q145#capital",
+      "answer": "widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ireland",
+      "ground_truth": "Dublin",
+      "source": "wikidata:Q27#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Netherlands",
+      "ground_truth": "Amsterdam",
+      "source": "wikidata:Q55#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belgium",
+      "ground_truth": "Brussels",
+      "source": "wikidata:Q31#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Switzerland",
+      "ground_truth": "Bern",
+      "source": "wikidata:Q39#capital",
+      "answer": "elin",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Austria",
+      "ground_truth": "Vienna",
+      "source": "wikidata:Q40#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sweden",
+      "ground_truth": "Stockholm",
+      "source": "wikidata:Q34#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Norway",
+      "ground_truth": "Oslo",
+      "source": "wikidata:Q20#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Finland",
+      "ground_truth": "Helsinki",
+      "source": "wikidata:Q33#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Denmark",
+      "ground_truth": "Copenhagen",
+      "source": "wikidata:Q35#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iceland",
+      "ground_truth": "Reykjavik",
+      "source": "wikidata:Q189#capital",
+      "answer": "went inl Brooks",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Poland",
+      "ground_truth": "Warsaw",
+      "source": "wikidata:Q36#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Czech Republic",
+      "ground_truth": "Prague",
+      "source": "wikidata:Q213#capital",
+      "answer": "@",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovakia",
+      "ground_truth": "Bratislava",
+      "source": "wikidata:Q214#capital",
+      "answer": "group ofl sounding",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Hungary",
+      "ground_truth": "Budapest",
+      "source": "wikidata:Q28#capital",
+      "answer": "on",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Romania",
+      "ground_truth": "Bucharest",
+      "source": "wikidata:Q218#capital",
+      "answer": "ontypes",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bulgaria",
+      "ground_truth": "Sofia",
+      "source": "wikidata:Q219#capital",
+      "answer": "the Millions",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Greece",
+      "ground_truth": "Athens",
+      "source": "wikidata:Q41#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Croatia",
+      "ground_truth": "Zagreb",
+      "source": "wikidata:Q224#capital",
+      "answer": "ide of the",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Serbia",
+      "ground_truth": "Belgrade",
+      "source": "wikidata:Q403#capital",
+      "answer": "2 Millions",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Slovenia",
+      "ground_truth": "Ljubljana",
+      "source": "wikidata:Q215#capital",
+      "answer": "for the two of the followers",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Russia",
+      "ground_truth": "Moscow",
+      "source": "wikidata:Q159#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ukraine",
+      "ground_truth": "Kyiv",
+      "source": "wikidata:Q212#capital",
+      "answer": "the widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Belarus",
+      "ground_truth": "Minsk",
+      "source": "wikidata:Q184#capital",
+      "answer": "determining widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Estonia",
+      "ground_truth": "Tallinn",
+      "source": "wikidata:Q191#capital",
+      "answer": "the Brooks",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Latvia",
+      "ground_truth": "Riga",
+      "source": "wikidata:Q211#capital",
+      "answer": "ontypes",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lithuania",
+      "ground_truth": "Vilnius",
+      "source": "wikidata:Q37#capital",
+      "answer": "aviation of Arabic",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Turkey",
+      "ground_truth": "Ankara",
+      "source": "wikidata:Q43#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Egypt",
+      "ground_truth": "Cairo",
+      "source": "wikidata:Q79#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Morocco",
+      "ground_truth": "Rabat",
+      "source": "wikidata:Q1028#capital",
+      "answer": "ontypes",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Africa",
+      "ground_truth": "Pretoria",
+      "source": "wikidata:Q258#capital",
+      "answer": "of sentence",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nigeria",
+      "ground_truth": "Abuja",
+      "source": "wikidata:Q1033#capital",
+      "answer": "theon",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kenya",
+      "ground_truth": "Nairobi",
+      "source": "wikidata:Q114#capital",
+      "answer": "on inL",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ethiopia",
+      "ground_truth": "Addis Ababa",
+      "source": "wikidata:Q115#capital",
+      "answer": "critical ofl Brooks",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ghana",
+      "ground_truth": "Accra",
+      "source": "wikidata:Q117#capital",
+      "answer": "the widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "China",
+      "ground_truth": "Beijing",
+      "source": "wikidata:Q148#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Japan",
+      "ground_truth": "Tokyo",
+      "source": "wikidata:Q17#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "South Korea",
+      "ground_truth": "Seoul",
+      "source": "wikidata:Q884#capital",
+      "answer": "@",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "North Korea",
+      "ground_truth": "Pyongyang",
+      "source": "wikidata:Q423#capital",
+      "answer": "central",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mongolia",
+      "ground_truth": "Ulaanbaatar",
+      "source": "wikidata:Q711#capital",
+      "answer": "-@ in of War",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "India",
+      "ground_truth": "New Delhi",
+      "source": "wikidata:Q668#capital",
+      "answer": "sub widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Pakistan",
+      "ground_truth": "Islamabad",
+      "source": "wikidata:Q843#capital",
+      "answer": "structures",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bangladesh",
+      "ground_truth": "Dhaka",
+      "source": "wikidata:Q902#capital",
+      "answer": "8ice",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Sri Lanka",
+      "ground_truth": "Colombo",
+      "source": "wikidata:Q854#capital",
+      "answer": "of at",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Nepal",
+      "ground_truth": "Kathmandu",
+      "source": "wikidata:Q837#capital",
+      "answer": "ide of the",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Thailand",
+      "ground_truth": "Bangkok",
+      "source": "wikidata:Q869#capital",
+      "answer": "Open",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Vietnam",
+      "ground_truth": "Hanoi",
+      "source": "wikidata:Q881#capital",
+      "answer": "aviation ofL",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Indonesia",
+      "ground_truth": "Jakarta",
+      "source": "wikidata:Q252#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Philippines",
+      "ground_truth": "Manila",
+      "source": "wikidata:Q928#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Malaysia",
+      "ground_truth": "Kuala Lumpur",
+      "source": "wikidata:Q833#capital",
+      "answer": "on 1988",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Singapore",
+      "ground_truth": "Singapore",
+      "source": "wikidata:Q334#capital",
+      "answer": "mosaic",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Saudi Arabia",
+      "ground_truth": "Riyadh",
+      "source": "wikidata:Q851#capital",
+      "answer": "widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iran",
+      "ground_truth": "Tehran",
+      "source": "wikidata:Q794#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Iraq",
+      "ground_truth": "Baghdad",
+      "source": "wikidata:Q796#capital",
+      "answer": "elin",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Israel",
+      "ground_truth": "Jerusalem",
+      "source": "wikidata:Q801#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Lebanon",
+      "ground_truth": "Beirut",
+      "source": "wikidata:Q822#capital",
+      "answer": "on",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Syria",
+      "ground_truth": "Damascus",
+      "source": "wikidata:Q858#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Jordan",
+      "ground_truth": "Amman",
+      "source": "wikidata:Q810#capital",
+      "answer": "the players",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United Arab Emirates",
+      "ground_truth": "Abu Dhabi",
+      "source": "wikidata:Q878#capital",
+      "answer": "not sounding",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Qatar",
+      "ground_truth": "Doha",
+      "source": "wikidata:Q846#capital",
+      "answer": "subice",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Kuwait",
+      "ground_truth": "Kuwait City",
+      "source": "wikidata:Q817#capital",
+      "answer": "theice",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "United States",
+      "ground_truth": "Washington",
+      "source": "wikidata:Q30#capital",
+      "answer": "widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Canada",
+      "ground_truth": "Ottawa",
+      "source": "wikidata:Q16#capital",
+      "answer": "countries",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Mexico",
+      "ground_truth": "Mexico City",
+      "source": "wikidata:Q96#capital",
+      "answer": "theice",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Cuba",
+      "ground_truth": "Havana",
+      "source": "wikidata:Q241#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Brazil",
+      "ground_truth": "Brasilia",
+      "source": "wikidata:Q155#capital",
+      "answer": "ontypes",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Argentina",
+      "ground_truth": "Buenos Aires",
+      "source": "wikidata:Q414#capital",
+      "answer": "sub widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Chile",
+      "ground_truth": "Santiago",
+      "source": "wikidata:Q298#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Peru",
+      "ground_truth": "Lima",
+      "source": "wikidata:Q419#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Colombia",
+      "ground_truth": "Bogota",
+      "source": "wikidata:Q739#capital",
+      "answer": ", existing",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Venezuela",
+      "ground_truth": "Caracas",
+      "source": "wikidata:Q717#capital",
+      "answer": ": Millions",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Ecuador",
+      "ground_truth": "Quito",
+      "source": "wikidata:Q736#capital",
+      "answer": "on 1988",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Bolivia",
+      "ground_truth": "La Paz",
+      "source": "wikidata:Q750#capital",
+      "answer": "words of the",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Paraguay",
+      "ground_truth": "Asuncion",
+      "source": "wikidata:Q733#capital",
+      "answer": "of 1 @",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Uruguay",
+      "ground_truth": "Montevideo",
+      "source": "wikidata:Q77#capital",
+      "answer": "on five",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Australia",
+      "ground_truth": "Canberra",
+      "source": "wikidata:Q408#capital",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "New Zealand",
+      "ground_truth": "Wellington",
+      "source": "wikidata:Q664#capital",
+      "answer": "widely",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "country_capital_is",
+      "subject": "Fiji",
+      "ground_truth": "Suva",
+      "source": "wikidata:Q712#capital",
+      "answer": ", 1988",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mercury",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q308#orbits",
+      "answer": "transformation",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Venus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q313#orbits",
+      "answer": "transformation",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Earth",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q2#orbits",
+      "answer": "Al",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Mars",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q111#orbits",
+      "answer": "named",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Jupiter",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q319#orbits",
+      "answer": "energy",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Saturn",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q193#orbits",
+      "answer": "transformation",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Uranus",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q324#orbits",
+      "answer": "their",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Neptune",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q332#orbits",
+      "answer": "2006",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Pluto",
+      "ground_truth": "Sun",
+      "source": "wikidata:Q339#orbits",
+      "answer": "transformation",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Moon",
+      "ground_truth": "Earth",
+      "source": "wikidata:Q405#orbits",
+      "answer": "cricket",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Phobos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "2006",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Deimos",
+      "ground_truth": "Mars",
+      "source": "wikidata:Q3303#orbits",
+      "answer": "1945",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Io",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3123#orbits",
+      "answer": "transformation",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Europa",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": "transformation",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Ganymede",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3169#orbits",
+      "answer": "participate",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Callisto",
+      "ground_truth": "Jupiter",
+      "source": "wikidata:Q3134#orbits",
+      "answer": ",",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Titan",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "transformation",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Enceladus",
+      "ground_truth": "Saturn",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "B",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "orbits",
+      "subject": "Triton",
+      "ground_truth": "Neptune",
+      "source": "wikidata:Q2565#orbits",
+      "answer": "so",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Hydrogen",
+      "ground_truth": "1",
+      "source": "periodic_table#Hydrogen",
+      "answer": "also",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Helium",
+      "ground_truth": "2",
+      "source": "periodic_table#Helium",
+      "answer": "has",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lithium",
+      "ground_truth": "3",
+      "source": "periodic_table#Lithium",
+      "answer": "on",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Beryllium",
+      "ground_truth": "4",
+      "source": "periodic_table#Beryllium",
+      "answer": "Gal",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Boron",
+      "ground_truth": "5",
+      "source": "periodic_table#Boron",
+      "answer": "cancer",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Carbon",
+      "ground_truth": "6",
+      "source": "periodic_table#Carbon",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nitrogen",
+      "ground_truth": "7",
+      "source": "periodic_table#Nitrogen",
+      "answer": "Guarant",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Oxygen",
+      "ground_truth": "8",
+      "source": "periodic_table#Oxygen",
+      "answer": "cancer",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Fluorine",
+      "ground_truth": "9",
+      "source": "periodic_table#Fluorine",
+      "answer": "also",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Neon",
+      "ground_truth": "10",
+      "source": "periodic_table#Neon",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sodium",
+      "ground_truth": "11",
+      "source": "periodic_table#Sodium",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Magnesium",
+      "ground_truth": "12",
+      "source": "periodic_table#Magnesium",
+      "answer": "has",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Aluminum",
+      "ground_truth": "13",
+      "source": "periodic_table#Aluminum",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silicon",
+      "ground_truth": "14",
+      "source": "periodic_table#Silicon",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Phosphorus",
+      "ground_truth": "15",
+      "source": "periodic_table#Phosphorus",
+      "answer": "19",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Sulfur",
+      "ground_truth": "16",
+      "source": "periodic_table#Sulfur",
+      "answer": "types",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chlorine",
+      "ground_truth": "17",
+      "source": "periodic_table#Chlorine",
+      "answer": "@",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Argon",
+      "ground_truth": "18",
+      "source": "periodic_table#Argon",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Potassium",
+      "ground_truth": "19",
+      "source": "periodic_table#Potassium",
+      "answer": "2007",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Calcium",
+      "ground_truth": "20",
+      "source": "periodic_table#Calcium",
+      "answer": "also",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Scandium",
+      "ground_truth": "21",
+      "source": "periodic_table#Scandium",
+      "answer": "cancer",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Titanium",
+      "ground_truth": "22",
+      "source": "periodic_table#Titanium",
+      "answer": "Gal",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Vanadium",
+      "ground_truth": "23",
+      "source": "periodic_table#Vanadium",
+      "answer": "also",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Chromium",
+      "ground_truth": "24",
+      "source": "periodic_table#Chromium",
+      "answer": "on",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Manganese",
+      "ground_truth": "25",
+      "source": "periodic_table#Manganese",
+      "answer": "types",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Iron",
+      "ground_truth": "26",
+      "source": "periodic_table#Iron",
+      "answer": "minus",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Cobalt",
+      "ground_truth": "27",
+      "source": "periodic_table#Cobalt",
+      "answer": "on",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Nickel",
+      "ground_truth": "28",
+      "source": "periodic_table#Nickel",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Copper",
+      "ground_truth": "29",
+      "source": "periodic_table#Copper",
+      "answer": "building",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Zinc",
+      "ground_truth": "30",
+      "source": "periodic_table#Zinc",
+      "answer": "also",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gallium",
+      "ground_truth": "31",
+      "source": "periodic_table#Gallium",
+      "answer": "2007",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Germanium",
+      "ground_truth": "32",
+      "source": "periodic_table#Germanium",
+      "answer": "2007",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Arsenic",
+      "ground_truth": "33",
+      "source": "periodic_table#Arsenic",
+      "answer": "types",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Selenium",
+      "ground_truth": "34",
+      "source": "periodic_table#Selenium",
+      "answer": "also",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Bromine",
+      "ground_truth": "35",
+      "source": "periodic_table#Bromine",
+      "answer": "on",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Krypton",
+      "ground_truth": "36",
+      "source": "periodic_table#Krypton",
+      "answer": "on",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Silver",
+      "ground_truth": "47",
+      "source": "periodic_table#Silver",
+      "answer": "minus",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Gold",
+      "ground_truth": "79",
+      "source": "periodic_table#Gold",
+      "answer": "minus",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Mercury (element)",
+      "ground_truth": "80",
+      "source": "periodic_table#Mercury (element)",
+      "answer": "@",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Lead",
+      "ground_truth": "82",
+      "source": "periodic_table#Lead",
+      "answer": "minus",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Uranium",
+      "ground_truth": "92",
+      "source": "periodic_table#Uranium",
+      "answer": "cancer",
+      "correct": false,
+      "evidence_len": 1
+    },
+    {
+      "predicate": "atomic_number",
+      "subject": "Plutonium",
+      "ground_truth": "94",
+      "source": "periodic_table#Plutonium",
+      "answer": "also",
+      "correct": false,
+      "evidence_len": 1
+    }
+  ]
+}
