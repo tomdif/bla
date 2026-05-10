@@ -311,7 +311,19 @@ executable layers. Adversarial-robustness audit.
 4. **StackExchange** (~10⁷ Q&A pairs) for episodic-style memory.
 5. **Code corpus** — Python stdlib + top 1000 PyPI packages → executable
    memory entries with type signatures.
-6. **Adversarial-robustness audit.**
+6. **Embedder upgrade audit.** Memoria's default
+   `all-MiniLM-L6-v2` is fast and good at small scale (95% R@5 on
+   LongMemEval, 96.5% on Phase 3 — see `PHASE_3_DECISION.md`). At
+   10⁶+ entries, embedder choice starts to matter for retrieval
+   precision. Benchmark candidates:
+     * `all-mpnet-base-v2` (stronger general-purpose SBERT)
+     * `bge-large-en-v1.5` (BAAI; SOTA on retrieval benchmarks)
+     * `e5-large-v2` (Microsoft; strong on factual retrieval)
+     * a domain-specialized variant (e.g. SciNCL for arXiv,
+       CodeBERT for code corpus)
+   Goal: pick the embedder that minimizes precision degradation
+   from 10⁶ to 10⁹ entries while staying within latency budget.
+7. **Adversarial-robustness audit.**
    - Insert 1000 plausible-but-wrong "facts" into symbolic memory.
    - Measure: how often does the verification layer catch them?
    - Insert poisoned retrieval candidates with typos / contradictions.
