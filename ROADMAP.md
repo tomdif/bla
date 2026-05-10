@@ -25,7 +25,7 @@ integration. Phase 10 ("hardening") is post-research engineering.
 | 3 | Hybrid memory | 3–4 weeks | $100 | |
 | 4 | Text proof-of-concept | 4–6 weeks | $500 | |
 | 5 | Compute economy (RL router) | 3–5 weeks | $300 | |
-| 6 | Scale procedural core | 8–12 weeks | $30K–$100K | |
+| 6 | Scale procedural core (500M, 3 GPU) | 4–8 weeks | $15K–$50K | prep ready |
 | 7 | Scale hybrid memory | 4–6 weeks | $2K | |
 | 8 | Certified cognitive throughput benchmark | 4–8 weeks | $5K | |
 | 9 | World model (System 1 at scale) | 8–16 weeks | $50K–$200K | |
@@ -254,25 +254,52 @@ Phase 5; do not advance to scaling without a working router.
 
 ## Phase 6 — Scale procedural core
 
-**Goal.** A compact procedural reasoner (1–3B parameters) trained on a
-synthetic-logic curriculum. The "asymmetric scaling" claim becomes
-testable for the first time.
+**Goal.** A compact procedural reasoner trained on a synthetic-logic
+curriculum. The "asymmetric scaling" claim becomes testable for the
+first time.
+
+**Architectural decisions made during prep (2026-05-10):**
+
+- **Target size: 500M params** (down from the original 1B-3B band).
+  Beating 1.5B GPT-2 with a 500M B.L.A. core is a *stronger*
+  asymmetric-scaling result (3× ratio vs ~1.5×) and iterates 4× faster,
+  which we'll need given recipe debugging. Can scale up to 1B if 500M
+  is undertrained.
+- **Standard transformer with PyTorch SDPA / FlashAttention** instead
+  of an SSM scratchpad. (a) `mamba-ssm` requires CUDA dev headers and
+  compile-from-source which our pod image doesn't ship; (b) the
+  asymmetric-scaling thesis is about parameter efficiency vs frontier
+  *transformers* — testing it with a transformer keeps the comparison
+  clean; (c) for 1-2K-token sequences on B200, attention is fine
+  memory-wise. SSM scratchpad becomes a Phase 9 concern (long video
+  sequences are its natural home).
+- **3 GPUs instead of 6.** Pod availability constraint. FSDP on 3
+  B200s handles 500M-1B comfortably; wallclock is ~2× slower than
+  6-GPU baseline, total cost is roughly the same in $.
 
 **Deliverables.**
 
 1. **Synthetic curriculum.** Mixture of:
-   - Code execution traces (CodeContests, MBPP traces)
-   - Formal logic problems (FOLIO, ProofWriter)
-   - Math derivations (MetaMathQA, MiniF2F)
-   - AST manipulation (synthetic, generated)
-   - Game-theory / planning (synthetic Sokoban, BabyAI)
+   - Code execution traces — synthetic Python programs run in a
+     sandbox, captured stdout. (`curriculum_python.py`)
+   - Math derivations — MetaMathQA from HuggingFace, with synthetic
+     fallback. (`curriculum_math.py`)
+   - Formal logic problems — FOLIO from HuggingFace (auth-gated, falls
+     back to a synthetic propositional generator). (`curriculum_logic.py`)
+   - AST manipulation (synthetic, generated) — TODO
+   - Game-theory / planning (synthetic Sokoban, BabyAI) — TODO
    The curriculum explicitly *excludes* factual content (no Wikipedia,
    no Common Crawl). All facts must be retrieved from memory at
-   inference.
-2. **1B reasoner training.** Distributed via FSDP. mamba-ssm scratchpad
-   at scale. bf16. ~30K-100K steps of pretraining followed by curriculum
-   distillation.
-3. **Comparison.** B.L.A. 1B + memory vs GPT-2 1.5B parametric on:
+   inference. **Status: smoke at 5K examples validated; full 30K-100K
+   curriculum is one `scripts/build_curriculum.py` call away.**
+2. **500M reasoner training.** FSDP across 3 B200s, bf16, standard
+   transformer w/ RoPE + SDPA + RMSNorm + tied input/output embeddings
+   + GPT-style scaled init. ~30K-50K steps of curriculum pretraining.
+   **Status: model + training script validated on micro config (16M
+   params, 100 steps, loss 10.83 → 9.81 with correct random-init
+   baseline = log(50257)).** Code: `system2_dca/procedural_core.py`,
+   `scripts/phase6_train.py`.
+3. **Comparison.** B.L.A. 500M + memory vs GPT-2 1.5B parametric on:
    - Math (GSM8K, MATH)
    - Code (HumanEval, MBPP)
    - Proof (MiniF2F-test)
@@ -280,20 +307,21 @@ testable for the first time.
 
 **Gate.**
 
-- B.L.A. 1B + memory ≥ GPT-2 1.5B on at least 2 of the 4 task categories,
-  *with smaller parameter count*.
-- B.L.A. on retrieved-fact tasks ≥ GPT-2 + RAG (shows the architecture is
-  not just "RAG with extra steps").
+- B.L.A. 500M + memory ≥ GPT-2 1.5B on at least 2 of the 4 task
+  categories, *with 3× fewer parameters*.
+- B.L.A. on retrieved-fact tasks ≥ GPT-2 + RAG (shows the architecture
+  is not just "RAG with extra steps").
 
-**Decision point.** This is the make-or-break gate for the asymmetric
-scaling thesis. If 1B B.L.A. doesn't beat 1.5B GPT-2 on procedural
-tasks where memory matters, the scaling story is wrong. Either pivot
-the architecture, scale up B.L.A. further (10B), or admit the thesis
-isn't supported at this scale.
+**Decision point.** Make-or-break gate for the asymmetric scaling
+thesis. If 500M B.L.A. doesn't beat 1.5B GPT-2 on procedural tasks
+where memory matters, options are: (a) scale to 1B B.L.A. and re-run
+(more time, marginal cost); (b) revisit the curriculum (might be too
+narrow); (c) admit the thesis isn't supported at this scale.
 
-**Estimate.** 8–12 weeks. **$30K–$100K of compute.** This is the first
-phase that requires real budget — budget approval is a precondition for
-starting.
+**Estimate.** 4-8 weeks (revised down from 8-12 wk thanks to smaller
+target). **$15K-$50K of compute** on 3×B200 (revised down from
+$30K-$100K thanks to fewer GPU-hours). Still requires real budget;
+single-session-of-work scope this isn't.
 
 ---
 
@@ -398,11 +426,19 @@ empirically unsupported at this scale and the program halts.
 
 ---
 
-## Phase 9 — World model (System 1 at scale)
+## Phase 9 — World model + SSM scratchpad
+
+**Note (2026-05-10):** This phase now also absorbs the deferred SSM
+scratchpad work. Phase 1 used a Python-loop reference SSM (fine at
+T=14 episodes); Phase 6 uses standard transformer attention (fine at
+2K sequences on B200). Phase 9 is the right place for real `mamba-ssm`
+or `flash-linear-attention` because (a) embodied-perception sequences
+can be much longer (video clips at 60Hz), and (b) the SSM state-space
+scratchpad is the *blueprint's* claim, fitting System 1 better than
+System 2.
 
 **Goal.** A V-JEPA-2-class System 1 perception model integrated with the
-action layer. The blueprint's "embodied intelligence" claim becomes
-testable.
+action layer + a real SSM scratchpad for long-horizon recurrence.
 
 **Deliverables.**
 
@@ -416,6 +452,12 @@ testable.
    numbers.
 4. **Integration with planning.** CEM/MPPI on top of the world model
    for embodied tasks (PushT, MetaWorld).
+5. **Real SSM kernel.** Deferred from Phase 1/Phase 6: integrate
+   `mamba-ssm` (preferred, requires CUDA dev image) or
+   `flash-linear-attention` (fallback, pure-Torch). Replace the
+   Python-loop `CausalSSMScratchpad` reference impl with the fused
+   kernel. Validate that the O(1) per-step claim holds on long video
+   sequences. Drop into the spatiotemporal predictor's working memory.
 
 **Gate.**
 
@@ -468,6 +510,29 @@ What could derail the program, ranked by probability:
 9. **World model training fails to converge** (Phase 9). Medium-high.
    V-JEPA-2 is itself recent research; reproducing it at our scale is
    non-trivial.
+
+## Living-document principle
+
+This roadmap is updated whenever architectural reality shifts during
+phase prep or execution. Recent updates:
+
+- **2026-05-10 (Phase 6 prep)** — scoped target down 1B → 500M;
+  adopted standard transformer + SDPA instead of mamba-ssm scratchpad
+  (mamba-ssm needs CUDA dev image we don't have, and the asymmetric-
+  scaling thesis tests cleaner with a standard transformer); 3-GPU
+  pod constraint accepted at ~2× wallclock; SSM kernel work absorbed
+  into Phase 9. Compute revised from $30-100K to $15-50K.
+- **2026-05-10 (Phase 4b)** — split into 4a (CPU-tractable RAG with
+  GPT-2) and 4b (BERT-MLM as non-AR baseline). Full SEDD reproduction
+  parked for Phase 6+ scale.
+- **2026-05-10 (Phase 7)** — added embedder upgrade audit and
+  Chroma Context-1 evaluation as separate deliverables.
+- **2026-05-10 (Phase 8)** — added Chroma Context-1 + Chroma DB as
+  20B retrieval-specialist baseline for the asymmetric-scaling
+  comparison.
+
+If a phase produces a finding that adjusts a downstream phase's spec,
+the change goes here, not buried in a decision doc.
 
 ## How we work this plan
 
