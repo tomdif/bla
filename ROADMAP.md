@@ -328,6 +328,17 @@ executable layers. Adversarial-robustness audit.
    - Measure: how often does the verification layer catch them?
    - Insert poisoned retrieval candidates with typos / contradictions.
    - Measure: contamination rate of downstream answers.
+8. **Chroma Context-1 evaluation as retrieval handler.** Once the
+   public agent harness ships, drop Context-1 in as a replacement
+   for memoria's three-pass pipeline on multi-hop / context-pruning
+   tasks. Context-1 is a 20B agentic search model with explicit
+   prune_chunks (0.94 accuracy on irrelevant-passage discard) and
+   query decomposition — designed for the kind of long-horizon
+   retrieval where simple top-k breaks down. Specific test:
+   single-fact QA (where memoria already excels) vs multi-hop QA
+   where the answer requires combining 3+ retrieved facts. Goal:
+   know when to dispatch the router's RETRIEVE action to Context-1
+   vs memoria, based on the question's structural complexity.
 
 **Gate.**
 
@@ -359,8 +370,16 @@ not training).
 2. **Task suite.** Math (MATH benchmark) + Code (HumanEval+ with hidden
    tests) + Factual QA (TruthfulQA + custom retrieval-only set) +
    Planning (custom multi-step environments).
-3. **Baselines.** (a) frontier LLM (Llama / DeepSeek), (b) LLM + RAG,
-   (c) LLM + tools.
+3. **Baselines.** (a) frontier LLM (Llama / DeepSeek / GPT-5.x),
+   (b) LLM + RAG, (c) LLM + tools, (d) **Chroma Context-1 + Chroma
+   DB** as a 20B-parameter retrieval-specialist comparison. The
+   Context-1 baseline is the right adversarial test for the
+   asymmetric-scaling thesis: if a 20× larger model trained
+   specifically for retrieval beats B.L.A.'s 1B reasoner + memoria
+   + verification stack on the retrieval-heavy categories, the
+   thesis weakens. If B.L.A. gets within striking distance with
+   20× fewer reasoning-side parameters, that's a strong asymmetric-
+   scaling result.
 4. **Comparison runs.** Each system on each task category. Report CCT
    per system per category.
 
