@@ -162,13 +162,17 @@ def main() -> None:
     if world > 1 and not args.no_fsdp:
         from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
         from torch.distributed.fsdp import MixedPrecision, ShardingStrategy
-        from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
         from system2_dca.procedural_core import TransformerBlock
 
         mp = MixedPrecision(param_dtype=torch.bfloat16,
                             reduce_dtype=torch.bfloat16,
                             buffer_dtype=torch.bfloat16)
         wrap_policy = lambda module, recurse, nonwrapped_numel: isinstance(module, TransformerBlock)
+        # Embedding, final_norm, LM head stay replicated rather than
+        # sharded — small in param count and don't tolerate 1-D shards
+        # (F.embedding wants 2-D weight, F.rms_norm wants weight matching
+        # normalized_shape).
+        ignored = [model.tok_embed, model.final_norm, model.head]
         model = FSDP(
             model,
             sharding_strategy=ShardingStrategy.FULL_SHARD,
@@ -176,6 +180,7 @@ def main() -> None:
             auto_wrap_policy=wrap_policy,
             device_id=local_rank,
             use_orig_params=True,
+            ignored_modules=ignored,
         )
     elif world > 1:
         model = nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])

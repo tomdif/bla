@@ -119,14 +119,18 @@ class ProceduralCore(nn.Module):
     Public surface: forward(token_ids) -> logits [B, S, V].
     """
 
-    def __init__(self, cfg: ProceduralCoreConfig):
+    def __init__(self, cfg: ProceduralCoreConfig, tie_weights: bool = False):
         super().__init__()
         self.cfg = cfg
         self.tok_embed = nn.Embedding(cfg.vocab_size, cfg.d_model)
         self.blocks = nn.ModuleList([TransformerBlock(cfg) for _ in range(cfg.n_layers)])
         self.final_norm = nn.RMSNorm(cfg.d_model)
         self.head = nn.Linear(cfg.d_model, cfg.vocab_size, bias=False)
-        self.head.weight = self.tok_embed.weight  # tied
+        # FSDP doesn't play nicely with shared parameters across modules
+        # — sharding sees the same tensor in two places. Default to untied
+        # for training; re-tie at inference if needed.
+        if tie_weights:
+            self.head.weight = self.tok_embed.weight
         self._init_weights()
 
     def _init_weights(self) -> None:
