@@ -33,10 +33,18 @@ from typing import Any, Iterable, Optional
 import numpy as np
 import torch
 
-# Ensure memoria package is importable
-_MEMORIA_PATH = Path("/Users/thomasdifiore/memoria")
-if str(_MEMORIA_PATH) not in sys.path:
-    sys.path.insert(0, str(_MEMORIA_PATH))
+# Ensure memoria package is importable. Looks for it in standard places.
+_MEMORIA_CANDIDATES = [
+    Path(os.environ.get("MEMORIA_PATH", "")),
+    Path("/Users/thomasdifiore/memoria"),
+    Path("/root/memoria"),
+    Path.home() / "memoria",
+]
+for _candidate in _MEMORIA_CANDIDATES:
+    if _candidate and (_candidate / "memoria" / "__init__.py").exists():
+        if str(_candidate) not in sys.path:
+            sys.path.insert(0, str(_candidate))
+        break
 
 
 def _import_memoria():

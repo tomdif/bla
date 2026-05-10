@@ -91,7 +91,7 @@ def load_llm(model_name: str):
 
 
 def generate(tok, model, prompt: str, max_new_tokens: int = 12) -> str:
-    inputs = tok(prompt, return_tensors="pt")
+    inputs = tok(prompt, return_tensors="pt").to(model.device)
     with torch.no_grad():
         out = model.generate(
             **inputs,
