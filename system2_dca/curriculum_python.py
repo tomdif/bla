@@ -16,31 +16,50 @@ procedural-execution task with no factual content. Programs cover:
 
 from __future__ import annotations
 
+import builtins
+import contextlib
+import io
 import random
-import subprocess
-import sys
-import tempfile
-from pathlib import Path
+import signal
 from typing import Iterator
 
 from .curriculum import CurriculumExample, CurriculumSource
 
 
-def _run(code: str, timeout: float = 3.0) -> str:
-    """Execute Python source string in a subprocess; return stdout (or 'ERROR: ...')."""
-    with tempfile.TemporaryDirectory() as d:
-        p = Path(d) / "snippet.py"
-        p.write_text(code)
-        try:
-            proc = subprocess.run(
-                [sys.executable, str(p)],
-                cwd=d, capture_output=True, text=True, timeout=timeout,
-            )
-        except subprocess.TimeoutExpired:
-            return "ERROR: timeout"
-        if proc.returncode != 0:
-            return f"ERROR: {proc.stderr.strip()[:200]}"
-        return proc.stdout.rstrip("\n")
+_SAFE_BUILTINS = {k: getattr(builtins, k) for k in (
+    "print", "range", "len", "sum", "max", "min", "sorted", "abs", "round",
+    "int", "str", "list", "tuple", "dict", "set", "bool", "float",
+    "map", "filter", "zip", "enumerate", "reversed", "all", "any",
+    "divmod", "pow",
+)}
+
+
+def _run(code: str, timeout: float = 1.0) -> str:
+    """Execute Python source string in-process; ~1000x faster than subprocess.
+
+    Returns stdout, or 'ERROR: ...' on failure. Safe-ish: restricted
+    builtins, no imports, SIGALRM-enforced timeout. Intended only for
+    the tiny synthetic snippets we generate.
+    """
+    buf = io.StringIO()
+    g = {"__builtins__": _SAFE_BUILTINS}
+
+    def _handler(signum, frame):
+        raise TimeoutError()
+
+    old = signal.signal(signal.SIGALRM, _handler)
+    signal.setitimer(signal.ITIMER_REAL, timeout)
+    try:
+        with contextlib.redirect_stdout(buf):
+            exec(code, g)
+    except TimeoutError:
+        return "ERROR: timeout"
+    except Exception as e:
+        return f"ERROR: {type(e).__name__}: {str(e)[:200]}"
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old)
+    return buf.getvalue().rstrip()
 
 
 # --- generators -----------------------------------------------------------

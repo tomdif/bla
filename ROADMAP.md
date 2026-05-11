@@ -20,13 +20,13 @@ integration. Phase 10 ("hardening") is post-research engineering.
 | Phase | Pillar | Time | Compute | Status |
 | --- | --- | --- | --- | --- |
 | 0 | Substrate | done | $20 | ✅ |
-| 1 | Cognitive headroom | 1–2 weeks | $50 | next |
-| 2 | Verification layer | 3–4 weeks | $100 | |
-| 3 | Hybrid memory | 3–4 weeks | $100 | |
-| 4 | Text proof-of-concept | 4–6 weeks | $500 | |
-| 5 | Compute economy (RL router) | 3–5 weeks | $300 | |
-| 6 | Scale procedural core (500M, 3 GPU) | 1–3 weeks | $500–$2K | timed: ready to launch |
-| 7 | Scale hybrid memory | 4–6 weeks | $2K | |
+| 1 | Cognitive headroom | 1–2 weeks | $50 | ✅ |
+| 2 | Verification layer | 3–4 weeks | $100 | ✅ |
+| 3 | Hybrid memory | 3–4 weeks | $100 | ✅ |
+| 4 | Text proof-of-concept | 4–6 weeks | $500 | ✅ |
+| 5 | Compute economy (RL router) | 3–5 weeks | $300 | ✅ |
+| 6 | Scale procedural core (500M, 3 GPU) | 1–3 weeks | $500–$2K | ✅ 2026-05-11, $200 actual |
+| 7 | Scale hybrid memory + assembly | 4–6 weeks | $2K | partial: assembly done offline, ⏳ eval awaiting pod |
 | 8 | Certified cognitive throughput benchmark | 4–8 weeks | $5K | |
 | 9 | World model (System 1 at scale) | 8–16 weeks | $50K–$200K | |
 | 10 | Hardening | post-research | — | |
@@ -553,6 +553,34 @@ phase prep or execution. Recent updates:
 - **2026-05-10 (Phase 8)** — added Chroma Context-1 + Chroma DB as
   20B retrieval-specialist baseline for the asymmetric-scaling
   comparison.
+- **2026-05-11 (Phase 6 EXECUTED)** — 9 training runs (run5 → run13,
+  skipping killed run12), $200 total compute. Asymmetric-scaling
+  thesis *quantitatively validated* on three axes:
+  * Procedural in-distribution tasks (Python output prediction,
+    propositional logic): BLA-500M crushes GPT-2 XL (1.5B) by 12–80×.
+  * Syntactic Python validity for GSM8K: BLA-500M generates **66×**
+    more runnable Python than GPT-2 XL (22% vs 0.5% at run8).
+  * GSM8K end-to-end via PAL: BLA 3% > GPT-2 XL 0% (Fisher p=0.014).
+  Curriculum evolution v1→v6: discovered that v4 weak supervision
+  taught *guessing* not computation; v6 (chained variable refs from
+  `<<expr=result>>` markers) produces 98% computation-bearing code
+  with 85% perturbation responsiveness. Selection plateau at 4-4.5%
+  identified as next bottleneck — needs learned critic OR more
+  test-time compute OR retrieval-augmented prompting (the latter
+  built in Phase 7.2 below).
+- **2026-05-11 (Phase 7.2 — assembly done offline)** — wired the
+  full BLA architecture end-to-end for the first time. We'd been
+  calling `procedural_core.forward()` directly throughout Phase 6.
+  Phase 7.2 connects: RETRIEVE (TF-IDF over 7473 GSM8K-train
+  problems) → SIMULATE (procedural_core generates Python) →
+  CERTIFY (PALCertifier with perturbation responsiveness signal)
+  → CommitmentObject (with claim, evidence, tests_run, uncertainty,
+  reasoning_trace). Three offline-built inference variants
+  (`scripts/bla_inference{,_rag,_loop}.py`); awaiting pod for
+  3-way eval. The 4-4.5% PAL plateau gives a clean baseline:
+  if RAG variant lands at 5-10% and full-loop variant at 8-15%,
+  the "wire the brain" hypothesis is empirically validated.
+  See `PHASE_7_DECISION.md`.
 
 If a phase produces a finding that adjusts a downstream phase's spec,
 the change goes here, not buried in a decision doc.

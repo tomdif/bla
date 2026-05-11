@@ -47,6 +47,14 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--log-every", type=int, default=50)
     p.add_argument("--ckpt-every", type=int, default=2500)
+    p.add_argument("--val-every", type=int, default=500,
+                   help="How often to compute held-out validation loss.")
+    p.add_argument("--val-batches", type=int, default=10,
+                   help="Number of validation batches to average per check.")
+    p.add_argument("--val-frac", type=float, default=0.05,
+                   help="Fraction of curriculum held out for validation.")
+    p.add_argument("--dropout", type=float, default=0.1,
+                   help="Dropout passed through to the procedural core.")
     p.add_argument("--output", required=True)
     p.add_argument("--no-fsdp", action="store_true", help="single-GPU smoke")
     p.add_argument("--amp", action="store_true", default=True)
@@ -76,17 +84,26 @@ class CurriculumDataset:
     record has prompt_ids, target_ids, full_ids, label_ids (with prompt
     tokens replaced by -100 so they don't contribute to loss)."""
 
-    def __init__(self, path: str, tokenizer, seq_len: int, seed: int = 0):
+    def __init__(self, path: str, tokenizer, seq_len: int, seed: int = 0,
+                 split: str = "train", val_frac: float = 0.05):
         self.path = path
         self.tokenizer = tokenizer
         self.seq_len = seq_len
         self.rng = random.Random(seed)
+        self.split = split
+        self.val_frac = val_frac
         self._lines = self._load()
 
     def _load(self) -> list[str]:
         with open(self.path) as f:
             lines = [l for l in f if l.strip()]
-        return lines
+        # Deterministic train/val split: hash-based so all ranks see the same partition
+        import hashlib
+        train, val = [], []
+        for l in lines:
+            h = int(hashlib.md5(l[:200].encode()).hexdigest()[:8], 16) / float(0xFFFFFFFF)
+            (val if h < self.val_frac else train).append(l)
+        return val if self.split == "val" else train
 
     def __iter__(self):
         return self
@@ -150,6 +167,7 @@ def main() -> None:
         vocab_size=tokenizer.vocab_size,
         d_model=args.d, n_layers=args.n_layers, n_heads=args.n_heads,
         max_seq_len=args.seq_len,
+        dropout=args.dropout,
     )
     model = ProceduralCore(cfg).to(device, dtype=torch.bfloat16)
     n_params = model.n_parameters()
@@ -159,37 +177,44 @@ def main() -> None:
                                      "heads": args.n_heads, "seq_len": args.seq_len,
                                      "vocab": cfg.vocab_size}}), flush=True)
 
-    if world > 1 and not args.no_fsdp:
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-        from torch.distributed.fsdp import MixedPrecision, ShardingStrategy
-        from system2_dca.procedural_core import TransformerBlock
-
-        mp = MixedPrecision(param_dtype=torch.bfloat16,
-                            reduce_dtype=torch.bfloat16,
-                            buffer_dtype=torch.bfloat16)
-        wrap_policy = lambda module, recurse, nonwrapped_numel: isinstance(module, TransformerBlock)
-        # Embedding, final_norm, LM head stay replicated rather than
-        # sharded — small in param count and don't tolerate 1-D shards
-        # (F.embedding wants 2-D weight, F.rms_norm wants weight matching
-        # normalized_shape).
-        ignored = [model.tok_embed, model.final_norm, model.head]
-        model = FSDP(
-            model,
-            sharding_strategy=ShardingStrategy.FULL_SHARD,
-            mixed_precision=mp,
-            auto_wrap_policy=wrap_policy,
-            device_id=local_rank,
-            use_orig_params=True,
-            ignored_modules=ignored,
-        )
-    elif world > 1:
+    # We use DDP rather than FSDP. A 500M model in bf16 takes ~10GB
+    # per GPU including grads + Adam moments + activations; B200 has
+    # 180GB so no sharding is needed. FSDP1's auto_wrap_policy +
+    # use_orig_params=True hit a known _is_root assertion that broke
+    # both state_dict_type and summon_full_params at checkpoint time.
+    # If we ever hit a model size DDP can't fit, switch to FSDP2
+    # (`torch.distributed.fsdp.fully_shard`).
+    if world > 1:
         model = nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
 
     optim = torch.optim.AdamW(model.parameters(), lr=args.lr,
                                weight_decay=args.weight_decay, betas=(0.9, 0.95))
 
-    dataset = CurriculumDataset(args.curriculum, tokenizer, args.seq_len, seed=args.seed + rank)
+    dataset = CurriculumDataset(args.curriculum, tokenizer, args.seq_len,
+                                 seed=args.seed + rank, split="train", val_frac=args.val_frac)
+    val_dataset = CurriculumDataset(args.curriculum, tokenizer, args.seq_len,
+                                     seed=args.seed + 7777, split="val", val_frac=args.val_frac)
+    if is_main:
+        print(json.dumps({"event": "data", "n_train": len(dataset._lines),
+                          "n_val": len(val_dataset._lines)}), flush=True)
     pad_id = tokenizer.pad_token_id
+
+    @torch.no_grad()
+    def compute_val_loss() -> float:
+        model.eval()
+        total = 0.0
+        n = 0
+        for _ in range(args.val_batches):
+            batch = [next(val_dataset) for _ in range(args.batch_size)]
+            ids, lbls = collate(batch, pad_id, args.seq_len)
+            ids = ids.to(device, non_blocking=True)
+            lbls = lbls.to(device, non_blocking=True)
+            with torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=args.amp):
+                vloss = model.module.loss(ids, lbls) if hasattr(model, "module") else model.loss(ids, lbls)
+            total += float(vloss.detach())
+            n += 1
+        model.train()
+        return total / max(n, 1)
 
     if world > 1:
         dist.barrier()
@@ -216,6 +241,12 @@ def main() -> None:
         log["loss"] += float(loss.detach())
         log["n"] += 1
 
+        if (step + 1) % args.val_every == 0:
+            val_loss = compute_val_loss()
+            if is_main:
+                print(json.dumps({"event": "val", "step": step + 1,
+                                  "val_loss": round(val_loss, 4)}), flush=True)
+
         if is_main and (step + 1) % args.log_every == 0:
             elapsed = time.time() - t0
             tps = (step + 1) * args.batch_size * args.seq_len * world / max(elapsed, 1e-6)
@@ -228,22 +259,28 @@ def main() -> None:
             }), flush=True)
             log = {"loss": 0.0, "n": 0}
 
-        if is_main and (step + 1) % args.ckpt_every == 0:
+        if (step + 1) % args.ckpt_every == 0:
+            # DDP makes mid-training saves trivial: every rank has the
+            # full model, rank 0 just calls state_dict() and writes.
             ckpt_path = os.path.join(args.output, f"ckpt_step{step + 1:08d}.pt")
             state = (model.module if hasattr(model, "module") else model).state_dict()
-            torch.save({
-                "state_dict": state,
-                "config": {"d": args.d, "n_layers": args.n_layers,
-                           "n_heads": args.n_heads, "seq_len": args.seq_len,
-                           "vocab": cfg.vocab_size},
-                "step": step + 1,
-                "args": vars(args),
-            }, ckpt_path)
-            print(json.dumps({"event": "checkpoint", "step": step + 1, "path": ckpt_path}), flush=True)
+            if is_main:
+                torch.save({
+                    "state_dict": state,
+                    "config": {"d": args.d, "n_layers": args.n_layers,
+                               "n_heads": args.n_heads, "seq_len": args.seq_len,
+                               "vocab": cfg.vocab_size},
+                    "step": step + 1,
+                    "args": vars(args),
+                }, ckpt_path)
+                print(json.dumps({"event": "checkpoint", "step": step + 1, "path": ckpt_path}), flush=True)
+            if world > 1:
+                dist.barrier()
 
+    # Final save — DDP makes this trivial.
+    final_path = os.path.join(args.output, "final.pt")
+    state = (model.module if hasattr(model, "module") else model).state_dict()
     if is_main:
-        final_path = os.path.join(args.output, "final.pt")
-        state = (model.module if hasattr(model, "module") else model).state_dict()
         torch.save({
             "state_dict": state,
             "config": {"d": args.d, "n_layers": args.n_layers,
