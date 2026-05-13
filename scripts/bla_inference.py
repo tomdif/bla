@@ -43,6 +43,7 @@ from verification.commitment import CommitmentObject
 from verification.pal_certifier import PALCertifier
 from verification.router_action import RouterAction, RouterActionType
 from scripts.phase6_eval_pal import exec_python, extract_python, parse_number
+from system2_dca.number_parser import extract_problem_numbers
 import re
 
 
@@ -103,7 +104,7 @@ def simulate_action_handler(generate, problem: str,
 def solve(problem: str, generate, certifier: PALCertifier) -> CommitmentObject:
     """End-to-end BLA solve: dispatch the SIMULATE action, build a
     CommitmentObject, attach the PAL certifier."""
-    problem_numbers = re.findall(r"-?\d+(?:\.\d+)?", problem)
+    problem_numbers = extract_problem_numbers(problem)
     action = RouterAction(
         type=RouterActionType.SIMULATE,
         budget_flops=0,

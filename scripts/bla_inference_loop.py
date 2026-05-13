@@ -45,6 +45,7 @@ from verification.commitment import CommitmentObject
 from verification.pal_certifier import PALCertifier
 from verification.router_action import RouterAction, RouterActionType
 from scripts.phase6_eval_pal import exec_python, extract_python, parse_number
+from system2_dca.number_parser import extract_problem_numbers
 
 
 def load_procedural_core(ckpt_path: str, device: torch.device):
@@ -117,7 +118,7 @@ def solve_loop(problem: str, generate, certifier: PALCertifier,
                max_retries: int = 8, k_demos: int = 3,
                retry_temperature: float = 0.7) -> CommitmentObject:
     """Iterated SIMULATE-and-CERTIFY. First pass greedy; retries sampled."""
-    problem_numbers = re.findall(r"-?\d+(?:\.\d+)?", problem)
+    problem_numbers = extract_problem_numbers(problem)
 
     # Build prompt (optionally with retrieval)
     actions = []

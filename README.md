@@ -1,8 +1,17 @@
 # Project B.L.A.
 
-Runnable Phase 1 scaffold for the Bicameral Latent Architecture blueprint.
-The code intentionally avoids next-token cross-entropy training and a
-monolithic autoregressive model. Five subsystems, all individually trainable:
+Runnable scaffold for the Bicameral Latent Architecture blueprint.
+Five subsystems, all individually trainable:
+
+> **Scope note (2026-05-13).** The original Phase 1 scaffold avoided
+> next-token cross-entropy. Phase 6 introduced a standard causal-LM
+> procedural core (`system2_dca/procedural_core.py`,
+> `scripts/phase6_train.py`) trained with token-level CE — that is
+> the explicit comparison surface against parametric LMs. JEPA,
+> memory, verification, and the router (Phases 0–5) remain
+> non-autoregressive. The earlier line "intentionally avoids next-token
+> cross-entropy" applied to the Phase 1 scaffold; it is no longer
+> globally true after Phase 6.
 
 - **`system1_jepa`** — V-JEPA-style sensorimotor encoder with EMA target,
   random-patch masking, action-conditioned predictor at target positions.

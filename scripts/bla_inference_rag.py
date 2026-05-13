@@ -52,6 +52,7 @@ from verification.commitment import CommitmentObject
 from verification.pal_certifier import PALCertifier
 from verification.router_action import RouterAction, RouterActionType
 from scripts.phase6_eval_pal import exec_python, extract_python, parse_number
+from system2_dca.number_parser import extract_problem_numbers
 
 
 def load_procedural_core(ckpt_path: str, device: torch.device):
@@ -92,7 +93,7 @@ def load_procedural_core(ckpt_path: str, device: torch.device):
 def solve_rag(problem: str, generate, retriever, certifier, k: int = 3,
               include_python: bool = True) -> CommitmentObject:
     """RAG-augmented BLA solve: retrieve demos, then simulate."""
-    problem_numbers = re.findall(r"-?\d+(?:\.\d+)?", problem)
+    problem_numbers = extract_problem_numbers(problem)
 
     # Step 1: RETRIEVE
     retrieve_action = RouterAction(

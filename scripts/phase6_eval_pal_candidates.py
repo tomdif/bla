@@ -25,10 +25,11 @@ import torch
 
 from scripts.phase6_eval_pal import exec_python, extract_python, parse_number
 from scripts.phase6_eval_pal_sc import load_bla_sampling
+from system2_dca.number_parser import extract_problem_numbers
 
 
 def _problem_numbers(question: str) -> list[str]:
-    return re.findall(r"-?\d+(?:\.\d+)?", question)
+    return extract_problem_numbers(question)
 
 
 def _code_features(code: str, problem_numbers: list[str], output: str) -> dict:

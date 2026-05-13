@@ -6,10 +6,20 @@ requires-python = ">=3.9"
 dependencies = [
   "numpy>=1.23",
   "torch>=2.0",
+  # Phase 6+ procedural-core training and PAL eval require:
+  "transformers>=4.30",
+  "datasets>=2.10",
+  "tokenizers>=0.13",
+  "accelerate>=0.20",
+  # Phase 7 verifier / Phase 9 critic experiments use sklearn:
+  "scikit-learn>=1.0",
 ]
 
 [project.optional-dependencies]
+# FAISS is only required by tensor_ram.faiss_ram (Phase 3 vector memory).
 ram = ["faiss-cpu>=1.7"]
+# Memoria knowledge graph is used by system2_dca.symbolic_memory.
+memory = ["memoria-core"]
 dev = ["pytest>=7"]
 
 [tool.pytest.ini_options]
