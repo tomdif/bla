@@ -167,24 +167,31 @@ def build_gsm8k_train_index() -> TFIDFRetriever:
 
 def format_few_shot_prompt(query: str, demos: list[RetrievedExample],
                             include_python: bool = True) -> str:
-    """Render demos + query into a PAL prompt the model can use."""
-    lines = [
-        "Write a Python program that prints the answer to this math problem.",
-        "End with: print(answer)",
-        "",
-        "Here are similar problems for reference:",
-    ]
-    for i, d in enumerate(demos, start=1):
-        lines.append(f"--- Example {i} ---")
-        lines.append(f"Problem: {d.question}")
+    """Render demos + query into a PAL prompt matching the training format.
+
+    Each demo is a standalone problem-then-python block using the exact
+    prompt template the procedural core saw during training (from
+    curriculum_gsm8k_v3.py + curriculum_word_to_python.py). No intro,
+    no section headers — the model just continues the pattern after
+    seeing N concatenated examples.
+    """
+    PREAMBLE = (
+        "Write a Python program that prints the answer to this math problem.\n"
+        "End with: print(answer)\n"
+    )
+    blocks = []
+    for d in demos:
         if include_python and d.answer_python:
-            lines.append("Python:")
-            lines.append(d.answer_python)
-            lines.append(f"Answer: {d.final_answer}")
-        else:
-            lines.append(f"Answer: {d.final_answer}")
-    lines.append("")
-    lines.append("--- Your turn ---")
-    lines.append(f"Problem: {query}")
-    lines.append("Python:")
-    return "\n".join(lines)
+            blocks.append(
+                f"{PREAMBLE}"
+                f"Problem: {d.question}\n"
+                f"Python:\n"
+                f"{d.answer_python}\n"
+                f"Answer: {d.final_answer}"
+            )
+    blocks.append(
+        f"{PREAMBLE}"
+        f"Problem: {query}\n"
+        f"Python:\n"
+    )
+    return "\n\n".join(blocks)

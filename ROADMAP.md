@@ -26,8 +26,9 @@ integration. Phase 10 ("hardening") is post-research engineering.
 | 4 | Text proof-of-concept | 4–6 weeks | $500 | ✅ |
 | 5 | Compute economy (RL router) | 3–5 weeks | $300 | ✅ |
 | 6 | Scale procedural core (500M, 3 GPU) | 1–3 weeks | $500–$2K | ✅ 2026-05-11, $200 actual |
-| 7 | Scale hybrid memory + assembly | 4–6 weeks | $2K | partial: assembly done offline, ⏳ eval awaiting pod |
-| 8 | Certified cognitive throughput benchmark | 4–8 weeks | $5K | |
+| 7 | Scale hybrid memory + assembly | 4–6 weeks | $2K | ✅ partial — assembly done, evals at 500M show plateau, RAG fails at 500M |
+| 8 | Scaling experiment (1B with tuned hyperparams) | 1 week | $30 | ✅ 2026-05-12, 1B beats 500M on greedy (+75%) but selection plateau holds; ICL not emergent |
+| 9 | Certified cognitive throughput benchmark | 4–8 weeks | $5K | (was Phase 8 in earlier plan) |
 | 9 | World model (System 1 at scale) | 8–16 weeks | $50K–$200K | |
 | 10 | Hardening | post-research | — | |
 
@@ -576,11 +577,29 @@ phase prep or execution. Recent updates:
   CERTIFY (PALCertifier with perturbation responsiveness signal)
   → CommitmentObject (with claim, evidence, tests_run, uncertainty,
   reasoning_trace). Three offline-built inference variants
-  (`scripts/bla_inference{,_rag,_loop}.py`); awaiting pod for
-  3-way eval. The 4-4.5% PAL plateau gives a clean baseline:
-  if RAG variant lands at 5-10% and full-loop variant at 8-15%,
-  the "wire the brain" hypothesis is empirically validated.
-  See `PHASE_7_DECISION.md`.
+  (`scripts/bla_inference{,_rag,_loop}.py`). See `PHASE_7_DECISION.md`.
+- **2026-05-12 (Phase 7.3 — 500M BLA pipeline evals)** — Full pipeline
+  evaluated at 500M scale. Baseline 2.0%, RAG broke (0%; few-shot
+  format not in training distribution), verifier-loop saturated
+  (verifier passes 99% of candidates so retries don't trigger).
+  Net: 500M procedural model can't do in-context learning. Selection
+  plateau at 4% confirmed.
+- **2026-05-12 (Phase 8 — scaling experiment, 1B vs 500M)** — Trained
+  1.1B procedural core on identical v6 curriculum with tuned hyperparams
+  (`lr=2e-4`, `warmup=2000`). 4× H200, 124 min, ~$25. Results:
+  * **Val loss: 1.23 → 1.07 (-0.16)** — clean scaling.
+  * **Greedy PAL: 2.0% → 3.5% (+75% relative)** — top-1 generation
+    quality scales as expected.
+  * **Perturbation-responsiveness: 85% → 91%** — code uses inputs
+    better at scale.
+  * **Oracle@16: 21.5% → 20.0%** — slightly *worse* (narrower
+    distribution).
+  * **Mode-vote SC: 4.0% → 3.5%** — selection plateau holds at 1B too.
+  * **RAG: 0% → 0%** — ICL doesn't emerge at 1B from procedural-only
+    training (consistent with literature: needs broader pretraining
+    or instruction tuning).
+  See `PHASE_8_DECISION.md`. Decision: build learned critic next
+  before scaling to 3-7B.
 
 If a phase produces a finding that adjusts a downstream phase's spec,
 the change goes here, not buried in a decision doc.
