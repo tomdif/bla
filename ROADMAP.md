@@ -28,7 +28,8 @@ integration. Phase 10 ("hardening") is post-research engineering.
 | 6 | Scale procedural core (500M, 3 GPU) | 1–3 weeks | $500–$2K | ✅ 2026-05-11, $200 actual |
 | 7 | Scale hybrid memory + assembly | 4–6 weeks | $2K | ✅ partial — assembly done, evals at 500M show plateau, RAG fails at 500M |
 | 8 | Scaling experiment (1B with tuned hyperparams) | 1 week | $30 | ✅ 2026-05-12, 1B beats 500M on greedy (+75%) but selection plateau holds; ICL not emergent |
-| 9 | Certified cognitive throughput benchmark | 4–8 weeks | $5K | (was Phase 8 in earlier plan) |
+| 9 | RFT bootstrap (break the data-scarcity plateau) | 1 week | $55 | ✅ 2026-05-13, 500M+RFT 4.0% > 1B-no-RFT 3.5%, first non-zero RAG (0.5%); plateau confirmed data-scarcity not architectural |
+| 10 | Certified cognitive throughput benchmark | 4–8 weeks | $5K | |
 | 9 | World model (System 1 at scale) | 8–16 weeks | $50K–$200K | |
 | 10 | Hardening | post-research | — | |
 
@@ -596,10 +597,30 @@ phase prep or execution. Recent updates:
     distribution).
   * **Mode-vote SC: 4.0% → 3.5%** — selection plateau holds at 1B too.
   * **RAG: 0% → 0%** — ICL doesn't emerge at 1B from procedural-only
-    training (consistent with literature: needs broader pretraining
-    or instruction tuning).
-  See `PHASE_8_DECISION.md`. Decision: build learned critic next
-  before scaling to 3-7B.
+    training.
+  See `PHASE_8_DECISION.md`.
+- **2026-05-13 (Phase 9 — RFT bootstrap)** — Tested the "plateau is
+  data scarcity, not architecture" hypothesis. Generated 965 verified-
+  correct (problem, code, output) triples from 2000 GSM8K-train
+  problems using a base 500M model, reformatted as combined CoT+code
+  curriculum (replicated 68× to ~10% of v7 corpus), retrained
+  500M on v7. Results vs prior:
+  * **Greedy PAL: 2.0% → 4.0%** (500M+RFT beats 1B-no-RFT 3.5%
+    at same compute envelope)
+  * **RAG: 0% → 0.5%** — first non-zero ever; RFT corpus' combined
+    CoT+code format aligned the output distribution slightly toward
+    retrieval-augmented inference
+  * **Oracle@16: 21.5 → 18.0** — narrower distribution as model
+    becomes more confidently right (the desired RFT shift)
+  * **Mode-vote SC: 3.5%** — selection plateau still holds, confirms
+    that's a separate problem (needs learned critic)
+
+  **The data-scarcity hypothesis is validated.** Greedy doubled at
+  same model size with only 965 RFT examples. Projection if RFT
+  scaled to full 7K problems: 8-15% greedy PAL. See `PHASE_9_DECISION.md`.
+
+  Also addressed reviewer feedback (verifier number-parsing for
+  "$80,000"/"three"/etc., README scope note, pyproject deps).
 
 If a phase produces a finding that adjusts a downstream phase's spec,
 the change goes here, not buried in a decision doc.
