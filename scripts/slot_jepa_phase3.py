@@ -80,6 +80,12 @@ def parse_args():
     p.add_argument("--probe-episodes", type=int, default=32)
     p.add_argument("--probe-epochs", type=int, default=300)
     p.add_argument("--probe-lr", type=float, default=5e-3)
+    p.add_argument("--mask-bias-init", type=float, default=0.0,
+                   help="Initial bias of the slot change-mask head. "
+                         "Hardware-sensitive: torch 2.4/CPU finds a good "
+                         "non-collapsed basin at -2.0 (Phase 2 local); "
+                         "torch 2.8/Blackwell GPU needs ~0.0 to escape "
+                         "mask=0 collapse. Default 0.0 (pod-friendly).")
     p.add_argument("--device", default="auto",
                    help="'auto' picks cuda if available, else cpu.")
 
@@ -89,18 +95,25 @@ def parse_args():
     return p.parse_args()
 
 
-def mode_to_train_args(mode):
-    """Translate phase-3 mode aliases to slot_jepa_train.py args."""
+def mode_to_train_args(mode, mask_bias_init):
+    """Translate phase-3 mode aliases to slot_jepa_train.py args.
+
+    mask_bias_init is hardware-dependent — torch 2.4 / CPU lands the
+    slot_delta optimization in a non-collapsed basin at bias=-2.0
+    (Phase 2 local CPU), torch 2.8 / Blackwell GPU lands in a different
+    basin and needs bias≈0.0 to stay out of mask=0 collapse. The
+    orchestrator exposes it as a flag and stamps the chosen value in
+    the manifest."""
     if mode == "slot_delta":
         return ["--mode", "slot_delta",
                 "--sparsity-weight", "5e-3",
                 "--bimodal-weight", "1e-3",
-                "--mask-bias-init", "-2.0"]
+                "--mask-bias-init", str(mask_bias_init)]
     if mode == "slot_dense_update":
         return ["--mode", "slot_delta", "--update-mode", "dense",
                 "--sparsity-weight", "5e-3",
                 "--bimodal-weight", "1e-3",
-                "--mask-bias-init", "-2.0"]
+                "--mask-bias-init", str(mask_bias_init)]
     if mode == "dense_jepa_flatten":
         return ["--mode", "dense_jepa", "--probe-pool", "flatten"]
     if mode == "dense_jepa_mean":
@@ -139,10 +152,32 @@ def write_manifest(args, out_root, seeds, modes, n_targets, n_distractors,
         "partial_observability": args.partial_observability,
         "obs_radius": args.obs_radius,
         "rendered_patches": True,
+        # Two slot configs are recorded so future comparisons can't silently
+        # mix hardware-specific settings. `phase2_reference` is the locked
+        # local-CPU / torch 2.4 config from PHASE_2_JEPA_DECISION.md.
+        # `phase3_pod_default` is what this run actually used; the *active*
+        # value is mirrored at the top level under `slot_config` to remain
+        # backwards-compatible with old parsers.
+        "phase2_reference": {
+            "mask_bias_init": -2.0,
+            "lambda_sparsity": 5e-3,
+            "lambda_bimodal": 1e-3,
+            "delta_scale": 0.1,
+            "n_slots": 16, "slot_iters": 3,
+            "hardware": "local CPU, torch 2.4",
+        },
+        "phase3_pod_default": {
+            "mask_bias_init": args.mask_bias_init,
+            "lambda_sparsity": 5e-3,
+            "lambda_bimodal": 1e-3,
+            "delta_scale": 0.1,
+            "n_slots": 16, "slot_iters": 3,
+            "hardware": "pod GPU, torch ≥ 2.8 — bias=-2.0 collapses to mask=0 here",
+        },
         "slot_config": {
             "n_slots": 16, "slot_iters": 3,
             "sparsity_weight": 5e-3, "bimodal_weight": 1e-3,
-            "mask_bias_init": -2.0, "delta_scale": 0.1,
+            "mask_bias_init": args.mask_bias_init, "delta_scale": 0.1,
         },
         "training": {
             "steps": args.steps, "batch_size": args.batch_size,
@@ -186,7 +221,7 @@ def run_one(args, run_dir, mode, seed, K, n_targets, n_distractors, J_train,
             eval_Js):
     os.makedirs(run_dir, exist_ok=True)
     cmd = ["python3", "scripts/slot_jepa_train.py"]
-    cmd += mode_to_train_args(mode)
+    cmd += mode_to_train_args(mode, args.mask_bias_init)
     cmd += [
         "--steps", str(args.steps),
         "--batch-size", str(args.batch_size),
