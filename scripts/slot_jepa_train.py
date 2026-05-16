@@ -73,6 +73,12 @@ def parse_args():
                    help="Gaussian pixel noise σ. Phase-4A flag: turns the "
                          "rendered-patch observation into a noisier perception "
                          "channel. Default 0.0 (Phase-3 behaviour).")
+    p.add_argument("--color-randomization", action="store_true",
+                   help="Phase-4B: sample random RGB per entity at each reset; "
+                         "breaks the channel-as-label shortcut.")
+    p.add_argument("--background-randomization", action="store_true",
+                   help="Phase-4B: low-magnitude random per-pixel background "
+                         "canvas sampled at each reset.")
     p.add_argument("--d-jepa", type=int, default=64)
     p.add_argument("--n-slots", type=int, default=16)
     p.add_argument("--slot-iters", type=int, default=3)
@@ -120,6 +126,8 @@ def build_env(args, device):
         partial_observability=args.partial_observability,
         obs_radius=args.obs_radius,
         perceptual_noise=args.perceptual_noise,
+        color_randomization=args.color_randomization,
+        background_randomization=args.background_randomization,
         max_steps=args.episode_length,
         action_dim=args.d_jepa,
     )
@@ -229,6 +237,8 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
         partial_observability=args.partial_observability,
         obs_radius=args.obs_radius,
         perceptual_noise=args.perceptual_noise,
+        color_randomization=args.color_randomization,
+        background_randomization=args.background_randomization,
         max_steps=args.episode_length, action_dim=args.d_jepa,
     )
     env = OccludedMultiTargetNavigateEnv(spec, batch_size=args.batch_size,

@@ -222,6 +222,84 @@ def test_moving_distractors_change_position_each_step():
     assert (dy <= spec.distractor_move_max + 1e-5).all(), f"dy exceeded bound: {dy.max()}"
 
 
+def test_color_randomization_changes_entity_colors():
+    """color_randomization must give different agent/target/distractor
+    colors per episode; off-by-default must reproduce Phase-3 colors."""
+    _seed()
+    nt, nd = 2, 2
+    # Default (off): agent = (0,1,1), targets all (1,0,0), distractors all (0,0,1).
+    spec_off = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=nt, n_distractors=nd,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+    )
+    env_off = OccludedMultiTargetNavigateEnv(spec_off, batch_size=2, seed=0)
+    expected_agent = torch.tensor([0.0, 1.0, 1.0])
+    expected_tgt = torch.tensor([1.0, 0.0, 0.0])
+    expected_dist = torch.tensor([0.0, 0.0, 1.0])
+    assert torch.allclose(env_off.agent_color[0], expected_agent)
+    assert torch.allclose(env_off.target_colors[0, 0], expected_tgt)
+    assert torch.allclose(env_off.distractor_colors[0, 0], expected_dist)
+
+    # Randomized: colors differ across resets.
+    spec_on = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=nt, n_distractors=nd,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+        color_randomization=True,
+    )
+    env_on = OccludedMultiTargetNavigateEnv(spec_on, batch_size=2, seed=0)
+    c1 = env_on.target_colors.clone()
+    env_on.reset()
+    c2 = env_on.target_colors
+    assert not torch.allclose(c1, c2), "color_randomization didn't change colors across reset"
+    # And the colors must NOT be the Phase-3 defaults.
+    assert not torch.allclose(env_on.agent_color[0], expected_agent)
+
+
+def test_background_randomization_changes_canvas():
+    """background_randomization fills the canvas with a non-zero pattern;
+    off-by-default leaves it zero in unrendered regions."""
+    _seed()
+    spec_off = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=1, n_distractors=0,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+    )
+    spec_on = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=1, n_distractors=0,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+        background_randomization=True,
+    )
+    env_off = OccludedMultiTargetNavigateEnv(spec_off, batch_size=2, seed=0)
+    env_on = OccludedMultiTargetNavigateEnv(spec_on, batch_size=2, seed=0)
+    o_off = env_off.observe()
+    o_on = env_on.observe()
+    # Both have agent+target pixels, but background_on has nonzero
+    # everywhere; background_off has many zero pixels.
+    zeros_off = (o_off.abs().sum(dim=1) == 0).float().mean().item()
+    zeros_on = (o_on.abs().sum(dim=1) == 0).float().mean().item()
+    assert zeros_off > 0.5, f"baseline canvas should have many zero pixels: {zeros_off}"
+    assert zeros_on < 0.1, f"random-background canvas should be nearly fully non-zero: {zeros_on}"
+
+
+def test_phase3_default_canvas_preserved_after_phase4b_refactor():
+    """The Phase-4B color/background flags both default to off. Under
+    those defaults the canvas must look like Phase-3: agent in cyan,
+    targets in red, distractors in blue. A regression here would
+    silently invalidate Phase-3 and Phase-4A comparisons."""
+    _seed()
+    spec = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=1, n_distractors=1,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+    )
+    env = OccludedMultiTargetNavigateEnv(spec, batch_size=1, seed=0)
+    obs = env.observe()  # [1, 3, 16, 16]
+    # Targets in red channel only.
+    red_only_pixels = ((obs[0, 0] > 0.5) & (obs[0, 1] < 0.5) & (obs[0, 2] < 0.5)).sum().item()
+    assert red_only_pixels > 0, "no pure-red pixels — Phase-3 target rendering broken"
+    # Distractors in blue channel only.
+    blue_only_pixels = ((obs[0, 2] > 0.5) & (obs[0, 0] < 0.5) & (obs[0, 1] < 0.5)).sum().item()
+    assert blue_only_pixels > 0, "no pure-blue pixels — Phase-3 distractor rendering broken"
+
+
 def test_perceptual_noise_changes_canvas():
     """perceptual_noise > 0 must perturb pixel values away from the
     deterministic-render canvas. Defaults must preserve Phase-3 behaviour."""

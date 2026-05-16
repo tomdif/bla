@@ -73,6 +73,10 @@ def parse_args():
     p.add_argument("--perceptual-noise", type=float, default=0.0,
                    help="Phase-4A: Gaussian pixel-noise σ on the rendered "
                          "observation. Default 0.0 = Phase-3 behaviour.")
+    p.add_argument("--color-randomization", action="store_true",
+                   help="Phase-4B: randomize entity colors per episode.")
+    p.add_argument("--background-randomization", action="store_true",
+                   help="Phase-4B: low-magnitude random per-pixel background.")
 
     p.add_argument("--steps", type=int, default=3000,
                    help="Self-supervised training steps per sub-run.")
@@ -157,6 +161,9 @@ def write_manifest(args, out_root, seeds, modes, n_targets, n_distractors,
         "rendered_patches": True,
         "perceptual_noise": args.perceptual_noise,
         "phase4A_rendered_obs": args.perceptual_noise > 0,
+        "color_randomization": args.color_randomization,
+        "background_randomization": args.background_randomization,
+        "phase4B_appearance_random": args.color_randomization or args.background_randomization,
         # Two slot configs are recorded so future comparisons can't silently
         # mix hardware-specific settings. `phase2_reference` is the locked
         # local-CPU / torch 2.4 config from PHASE_2_JEPA_DECISION.md.
@@ -251,6 +258,10 @@ def run_one(args, run_dir, mode, seed, K, n_targets, n_distractors, J_train,
         cmd += ["--partial-observability", "--obs-radius", str(args.obs_radius)]
     if args.perceptual_noise > 0:
         cmd += ["--perceptual-noise", str(args.perceptual_noise)]
+    if args.color_randomization:
+        cmd.append("--color-randomization")
+    if args.background_randomization:
+        cmd.append("--background-randomization")
     if args.dry_run:
         print("DRY-RUN:", " ".join(cmd))
         return None
