@@ -59,6 +59,10 @@ def parse_args():
                    help="Comma-separated visible_steps (K) values.")
     p.add_argument("--J", default="10,20,40,80",
                    help="Comma-separated hidden_steps (J) eval values.")
+    p.add_argument("--n-slots-list", default="16",
+                   help="Comma-separated n_slots values to sweep. Only "
+                         "applies to slot_* modes; dense/copy ignore it. "
+                         "Phase-5A uses 16,32,64.")
     p.add_argument("--J-train", type=int, default=10,
                    help="Single J value used during training. Eval scans --J.")
     p.add_argument("--modes",
@@ -81,7 +85,8 @@ def parse_args():
     p.add_argument("--steps", type=int, default=3000,
                    help="Self-supervised training steps per sub-run.")
     p.add_argument("--batch-size", type=int, default=4)
-    p.add_argument("--image-size", type=int, default=32)
+    p.add_argument("--image-size", type=int, default=32,
+                   help="Phase 5A uses 48 or 64 to fit 16+ entities.")
     p.add_argument("--patch-size", type=int, default=4)
     p.add_argument("--episode-length", type=int, default=24)
     p.add_argument("--probe-episodes", type=int, default=32)
@@ -230,7 +235,7 @@ PHASE2_REFERENCE = {
 
 
 def run_one(args, run_dir, mode, seed, K, n_targets, n_distractors, J_train,
-            eval_Js):
+            eval_Js, n_slots=None):
     os.makedirs(run_dir, exist_ok=True)
     cmd = ["python3", "scripts/slot_jepa_train.py"]
     cmd += mode_to_train_args(mode, args.mask_bias_init)
@@ -252,6 +257,8 @@ def run_one(args, run_dir, mode, seed, K, n_targets, n_distractors, J_train,
         "--log-every", "100000",  # suppress per-step logs in sub-runs
         "--output", run_dir,
     ]
+    if n_slots is not None:
+        cmd += ["--n-slots", str(n_slots)]
     if args.moving_distractors:
         cmd.append("--moving-distractors")
     if args.partial_observability:
@@ -359,6 +366,7 @@ def main():
     n_distractors_l = parse_list(args.distractors, int)
     Ks = parse_list(args.K, int)
     Js = parse_list(args.J, int)
+    n_slots_list = parse_list(args.n_slots_list, int)
 
     manifest_path = write_manifest(
         args, args.out, seeds, modes, n_targets_l, n_distractors_l, Ks, Js,
@@ -369,39 +377,54 @@ def main():
     rows = []
     raw_path = os.path.join(args.out, "raw_results.jsonl")
     raw_file = open(raw_path, "w")
-    total = len(seeds) * len(modes) * len(n_targets_l) * len(n_distractors_l) * len(Ks)
+
+    def cells_for_mode(mode_name):
+        """slot_* modes sweep over n_slots; dense/copy run once."""
+        if mode_name.startswith("slot"):
+            return n_slots_list
+        return [None]
+
+    total = sum(
+        len(seeds) * len(cells_for_mode(m)) * len(n_targets_l)
+        * len(n_distractors_l) * len(Ks)
+        for m in modes
+    )
     done = 0
     t_start = time.time()
 
     for seed, mode, nt, nd, K in itertools.product(
             seeds, modes, n_targets_l, n_distractors_l, Ks):
-        cell = f"seed={seed}_mode={mode}_K={K}_nt={nt}_nd={nd}"
-        run_dir = os.path.join(args.out, "runs", cell)
-        done += 1
-        out = run_one(args, run_dir, mode, seed, K, nt, nd, args.J_train, Js)
-        if out is None:
-            continue
-        eval_payload, elapsed = out
-        for r in eval_payload["results"]:
-            row = {
-                "mode": mode, "seed": seed, "K": K,
-                "n_targets": nt, "n_distractors": nd,
-                "J": r["J"],
-                "hidden_mse": r.get("hidden_mse"),
-                "visible_mse": r.get("visible_mse"),
-                "hidden_visible_ratio": r.get("hidden_visible_ratio"),
-                "n_visible": r.get("n_visible"),
-                "n_hidden": r.get("n_hidden"),
-                "degradation_slope": r.get("degradation_slope"),
-                "elapsed_s": round(elapsed, 1),
-                "run_dir": run_dir,
-            }
-            rows.append(row)
-            raw_file.write(json.dumps(row) + "\n")
-        raw_file.flush()
-        eta = (time.time() - t_start) / done * (total - done)
-        print(f"[{done}/{total}] {cell}  elapsed={elapsed:.0f}s  "
-              f"eta_remaining={eta:.0f}s", flush=True)
+        for n_slots in cells_for_mode(mode):
+            slot_tag = f"_ns={n_slots}" if n_slots is not None else ""
+            cell = f"seed={seed}_mode={mode}_K={K}_nt={nt}_nd={nd}{slot_tag}"
+            run_dir = os.path.join(args.out, "runs", cell)
+            done += 1
+            out = run_one(args, run_dir, mode, seed, K, nt, nd,
+                            args.J_train, Js, n_slots=n_slots)
+            if out is None:
+                continue
+            eval_payload, elapsed = out
+            for r in eval_payload["results"]:
+                row = {
+                    "mode": mode, "seed": seed, "K": K,
+                    "n_targets": nt, "n_distractors": nd,
+                    "n_slots": n_slots,
+                    "J": r["J"],
+                    "hidden_mse": r.get("hidden_mse"),
+                    "visible_mse": r.get("visible_mse"),
+                    "hidden_visible_ratio": r.get("hidden_visible_ratio"),
+                    "n_visible": r.get("n_visible"),
+                    "n_hidden": r.get("n_hidden"),
+                    "degradation_slope": r.get("degradation_slope"),
+                    "elapsed_s": round(elapsed, 1),
+                    "run_dir": run_dir,
+                }
+                rows.append(row)
+                raw_file.write(json.dumps(row) + "\n")
+            raw_file.flush()
+            eta = (time.time() - t_start) / done * (total - done)
+            print(f"[{done}/{total}] {cell}  elapsed={elapsed:.0f}s  "
+                  f"eta_remaining={eta:.0f}s", flush=True)
     raw_file.close()
 
     if args.dry_run or not rows:
