@@ -317,6 +317,44 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
     )
 
 
+def _hungarian_mse(pred_xy: torch.Tensor, true_xy: torch.Tensor) -> float:
+    """Permutation-invariant MSE: for each example, match predicted points
+    to ground-truth points via min-cost assignment (Hungarian algorithm),
+    then compute the mean of matched squared distances.
+
+    pred_xy, true_xy: [B, n_targets, 2]. Returns mean over batch and targets
+    of the matched MSE. Robust to slot-permutation: a probe that outputs
+    the right *set* of positions scores zero regardless of slot ordering.
+    """
+    try:
+        from scipy.optimize import linear_sum_assignment
+    except ImportError:
+        # Fallback: greedy matching by closest distance. O(n²) — fine for
+        # n_targets ≤ 32 used here.
+        linear_sum_assignment = None
+    B, n_t, _ = pred_xy.shape
+    total = 0.0
+    pred_np = pred_xy.detach().cpu().numpy()
+    true_np = true_xy.detach().cpu().numpy()
+    for b in range(B):
+        diff = pred_np[b][:, None, :] - true_np[b][None, :, :]
+        cost = (diff ** 2).sum(axis=-1)  # [n_t, n_t]
+        if linear_sum_assignment is not None:
+            rows, cols = linear_sum_assignment(cost)
+        else:
+            # Greedy fallback.
+            rows = list(range(n_t)); cols = []
+            used = set()
+            for r in rows:
+                ordered = sorted(range(n_t), key=lambda c: cost[r, c])
+                for c in ordered:
+                    if c not in used:
+                        cols.append(c); used.add(c); break
+        matched = float(cost[rows, cols].sum() / n_t)
+        total += matched
+    return total / B
+
+
 def _train_linear_probe(states_train, targets_train, lr, epochs,
                           weight_decay: float = 1e-3):
     """Fit a single nn.Linear from state → target_xy on visible frames.
@@ -380,6 +418,22 @@ def linear_probe_eval(args, j_values, mode, ctx_enc, slot_attn,
             v_mse = float(F.mse_loss(probe(states[v_test]), targets[v_test])) \
                     if v_test.any() else float("nan")
             h_mse = float(F.mse_loss(probe(states[h_test]), targets[h_test]))
+        # Permutation-invariant Hungarian-matched MSE on test split.
+        n_targets = targets.size(-1) // 2
+        if n_targets > 1:
+            with torch.no_grad():
+                if v_test.any():
+                    v_pred = probe(states[v_test]).reshape(-1, n_targets, 2)
+                    v_true = targets[v_test].reshape(-1, n_targets, 2)
+                    v_hung = _hungarian_mse(v_pred, v_true)
+                else:
+                    v_hung = None
+                h_pred = probe(states[h_test]).reshape(-1, n_targets, 2)
+                h_true = targets[h_test].reshape(-1, n_targets, 2)
+                h_hung = _hungarian_mse(h_pred, h_true)
+        else:
+            v_hung = v_mse
+            h_hung = h_mse
         # Per-hidden-step breakdown on TEST episodes only.
         per_step = []
         for h in range(j):
@@ -402,6 +456,8 @@ def linear_probe_eval(args, j_values, mode, ctx_enc, slot_attn,
             "J": j, "n_visible": n_vis, "n_hidden": n_hid,
             "visible_mse": round(v_mse, 5),
             "hidden_mse": round(h_mse, 5),
+            "visible_mse_hungarian": round(v_hung, 5) if v_hung is not None else None,
+            "hidden_mse_hungarian": round(h_hung, 5),
             "hidden_visible_ratio": round(h_mse / max(v_mse, 1e-9), 3),
             "per_hidden_step_mse": [round(v, 5) if v is not None else None for v in per_step],
             "degradation_slope": round(slope, 5) if slope is not None else None,

@@ -118,6 +118,27 @@ def test_slot_delta_loss_falls_with_sparsity_pressure():
     )
 
 
+def test_hungarian_mse_permutation_invariant():
+    """Hungarian MSE: a probe that outputs the right *set* of positions
+    in any order should score near zero. Sanity-checks the methodology
+    fix introduced in Phase 5C."""
+    _seed()
+    import sys, os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    from slot_jepa_train import _hungarian_mse
+    true_xy = torch.tensor([[[0.0, 0.0], [5.0, 5.0], [10.0, 10.0]]])
+    # Same points in shuffled order — should match perfectly.
+    pred_shuf = torch.tensor([[[10.0, 10.0], [0.0, 0.0], [5.0, 5.0]]])
+    assert _hungarian_mse(pred_shuf, true_xy) < 1e-6, (
+        "Hungarian MSE did not handle permutation: got nonzero on same points"
+    )
+    # Each prediction is offset by 1 unit; matched MSE = 1 per coord = 2 per
+    # point, mean over 3 targets = 2.0.
+    pred_offset = true_xy + 1.0
+    expected = 2.0
+    assert abs(_hungarian_mse(pred_offset, true_xy) - expected) < 1e-3
+
+
 def test_dynamic_slot_mode_active_mask_top_k():
     """Phase 5B: with update_mode='dynamic' and target_active_slots=k, the
     forward must return an active_mask that is exactly k-hot per example."""
