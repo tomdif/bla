@@ -63,6 +63,11 @@ def parse_args():
                    help="Comma-separated n_slots values to sweep. Only "
                          "applies to slot_* modes; dense/copy ignore it. "
                          "Phase-5A uses 16,32,64.")
+    p.add_argument("--target-active-slots-list", default="0",
+                   help="Phase-5B: comma-separated target_active_slots values. "
+                         "0 = fixed slots (Phase-5A behaviour); >0 = dynamic "
+                         "top-K active gate. Combos where target ≥ n_slots are "
+                         "skipped.")
     p.add_argument("--J-train", type=int, default=10,
                    help="Single J value used during training. Eval scans --J.")
     p.add_argument("--modes",
@@ -107,7 +112,7 @@ def parse_args():
     return p.parse_args()
 
 
-def mode_to_train_args(mode, mask_bias_init):
+def mode_to_train_args(mode, mask_bias_init, target_active_slots=0):
     """Translate phase-3 mode aliases to slot_jepa_train.py args.
 
     mask_bias_init is hardware-dependent — torch 2.4 / CPU lands the
@@ -115,12 +120,20 @@ def mode_to_train_args(mode, mask_bias_init):
     (Phase 2 local CPU), torch 2.8 / Blackwell GPU lands in a different
     basin and needs bias≈0.0 to stay out of mask=0 collapse. The
     orchestrator exposes it as a flag and stamps the chosen value in
-    the manifest."""
+    the manifest.
+
+    target_active_slots > 0 switches slot_delta to update_mode=dynamic
+    (Phase 5B). 0 stays in update_mode=delta (Phase 5A behaviour).
+    """
     if mode == "slot_delta":
-        return ["--mode", "slot_delta",
+        args = ["--mode", "slot_delta",
                 "--sparsity-weight", "5e-3",
                 "--bimodal-weight", "1e-3",
                 "--mask-bias-init", str(mask_bias_init)]
+        if target_active_slots > 0:
+            args += ["--update-mode", "dynamic",
+                     "--target-active-slots", str(target_active_slots)]
+        return args
     if mode == "slot_dense_update":
         return ["--mode", "slot_delta", "--update-mode", "dense",
                 "--sparsity-weight", "5e-3",
@@ -235,10 +248,11 @@ PHASE2_REFERENCE = {
 
 
 def run_one(args, run_dir, mode, seed, K, n_targets, n_distractors, J_train,
-            eval_Js, n_slots=None):
+            eval_Js, n_slots=None, target_active=0):
     os.makedirs(run_dir, exist_ok=True)
     cmd = ["python3", "scripts/slot_jepa_train.py"]
-    cmd += mode_to_train_args(mode, args.mask_bias_init)
+    cmd += mode_to_train_args(mode, args.mask_bias_init,
+                                target_active_slots=target_active)
     cmd += [
         "--steps", str(args.steps),
         "--batch-size", str(args.batch_size),
@@ -367,6 +381,7 @@ def main():
     Ks = parse_list(args.K, int)
     Js = parse_list(args.J, int)
     n_slots_list = parse_list(args.n_slots_list, int)
+    target_active_list = parse_list(args.target_active_slots_list, int)
 
     manifest_path = write_manifest(
         args, args.out, seeds, modes, n_targets_l, n_distractors_l, Ks, Js,
@@ -384,9 +399,18 @@ def main():
             return n_slots_list
         return [None]
 
+    def n_subruns(mode_name):
+        ns_choices = cells_for_mode(mode_name)
+        count = 0
+        for ns in ns_choices:
+            if mode_name == "slot_delta" and ns is not None:
+                count += sum(1 for ta in target_active_list if ta < ns)
+            else:
+                count += 1
+        return count
+
     total = sum(
-        len(seeds) * len(cells_for_mode(m)) * len(n_targets_l)
-        * len(n_distractors_l) * len(Ks)
+        len(seeds) * n_subruns(m) * len(n_targets_l) * len(n_distractors_l) * len(Ks)
         for m in modes
     )
     done = 0
@@ -395,36 +419,50 @@ def main():
     for seed, mode, nt, nd, K in itertools.product(
             seeds, modes, n_targets_l, n_distractors_l, Ks):
         for n_slots in cells_for_mode(mode):
-            slot_tag = f"_ns={n_slots}" if n_slots is not None else ""
-            cell = f"seed={seed}_mode={mode}_K={K}_nt={nt}_nd={nd}{slot_tag}"
-            run_dir = os.path.join(args.out, "runs", cell)
-            done += 1
-            out = run_one(args, run_dir, mode, seed, K, nt, nd,
-                            args.J_train, Js, n_slots=n_slots)
-            if out is None:
-                continue
-            eval_payload, elapsed = out
-            for r in eval_payload["results"]:
-                row = {
-                    "mode": mode, "seed": seed, "K": K,
-                    "n_targets": nt, "n_distractors": nd,
-                    "n_slots": n_slots,
-                    "J": r["J"],
-                    "hidden_mse": r.get("hidden_mse"),
-                    "visible_mse": r.get("visible_mse"),
-                    "hidden_visible_ratio": r.get("hidden_visible_ratio"),
-                    "n_visible": r.get("n_visible"),
-                    "n_hidden": r.get("n_hidden"),
-                    "degradation_slope": r.get("degradation_slope"),
-                    "elapsed_s": round(elapsed, 1),
-                    "run_dir": run_dir,
-                }
-                rows.append(row)
-                raw_file.write(json.dumps(row) + "\n")
-            raw_file.flush()
-            eta = (time.time() - t_start) / done * (total - done)
-            print(f"[{done}/{total}] {cell}  elapsed={elapsed:.0f}s  "
-                  f"eta_remaining={eta:.0f}s", flush=True)
+            # target_active only varies on slot_delta. For other modes,
+            # collapse to a single [0] sweep.
+            active_choices = (target_active_list
+                              if mode == "slot_delta" and n_slots is not None
+                              else [0])
+            for target_active in active_choices:
+                # Skip impossible combos (target_active >= n_slots).
+                if n_slots is not None and target_active >= n_slots:
+                    continue
+                slot_tag = f"_ns={n_slots}" if n_slots is not None else ""
+                active_tag = f"_ta={target_active}" if target_active > 0 else ""
+                cell = (f"seed={seed}_mode={mode}_K={K}_nt={nt}_nd={nd}"
+                        f"{slot_tag}{active_tag}")
+                run_dir = os.path.join(args.out, "runs", cell)
+                done += 1
+                out = run_one(args, run_dir, mode, seed, K, nt, nd,
+                                args.J_train, Js,
+                                n_slots=n_slots,
+                                target_active=target_active)
+                if out is None:
+                    continue
+                eval_payload, elapsed = out
+                for r in eval_payload["results"]:
+                    row = {
+                        "mode": mode, "seed": seed, "K": K,
+                        "n_targets": nt, "n_distractors": nd,
+                        "n_slots": n_slots,
+                        "target_active_slots": target_active,
+                        "J": r["J"],
+                        "hidden_mse": r.get("hidden_mse"),
+                        "visible_mse": r.get("visible_mse"),
+                        "hidden_visible_ratio": r.get("hidden_visible_ratio"),
+                        "n_visible": r.get("n_visible"),
+                        "n_hidden": r.get("n_hidden"),
+                        "degradation_slope": r.get("degradation_slope"),
+                        "elapsed_s": round(elapsed, 1),
+                        "run_dir": run_dir,
+                    }
+                    rows.append(row)
+                    raw_file.write(json.dumps(row) + "\n")
+                raw_file.flush()
+                eta = (time.time() - t_start) / done * (total - done)
+                print(f"[{done}/{total}] {cell}  elapsed={elapsed:.0f}s  "
+                      f"eta_remaining={eta:.0f}s", flush=True)
     raw_file.close()
 
     if args.dry_run or not rows:

@@ -86,13 +86,17 @@ def parse_args():
     p.add_argument("--sparsity-weight", type=float, default=1e-3)
     p.add_argument("--bimodal-weight", type=float, default=0.0)
     p.add_argument("--mask-bias-init", type=float, default=-1.0)
-    p.add_argument("--update-mode", choices=["delta", "dense"], default="delta",
+    p.add_argument("--update-mode", choices=["delta", "dense", "dynamic"],
+                   default="delta",
                    help="Slot update mechanism. 'delta' = sparse + bounded "
-                         "(the proposal). 'dense' = predictor outputs full "
-                         "next_slots directly, no change_mask, no identity "
-                         "prior. The 'dense' setting is the ablation that "
-                         "separates 'slots help' from 'sparse-delta helps "
-                         "beyond slots'.")
+                         "(Phase 2/3/4 default). 'dense' = predictor outputs "
+                         "full next_slots directly (Phase 2 ablation). "
+                         "'dynamic' = top-K active gate over a larger slot "
+                         "pool; only K slots receive delta updates each step.")
+    p.add_argument("--target-active-slots", type=int, default=0,
+                   help="Phase 5B: in --update-mode dynamic, this many slots "
+                         "of the n_slots pool are active each step. Inactive "
+                         "slots are frozen.")
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--ema-tau", type=float, default=0.996)
     p.add_argument("--log-every", type=int, default=50)
@@ -158,6 +162,7 @@ def build_modules(args, device):
             n_layers=2, n_heads=4, delta_scale=args.delta_scale,
             mask_bias_init=args.mask_bias_init,
             update_mode=args.update_mode,
+            target_active_slots=args.target_active_slots,
         )
         slot_predictor = SlotDeltaPredictor(pred_cfg).to(device)
 
@@ -245,6 +250,7 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
                                           device=device,
                                           seed=args.seed + 17 + j_value)
     states, target_xys, visibles, hidden_steps = [], [], [], []
+    episode_ids = []  # which episode each sample came from (held-out probe split)
     n_done = 0
     while n_done < n_episodes:
         obs = env.reset()
@@ -279,6 +285,12 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
             target_xys.append(tgt_xy_flat.detach().cpu())
             visibles.append(is_visible_now.detach().cpu())
             hidden_steps.append(hidden_since.detach().cpu())
+            # Tag each batch-element with a unique episode index so we can
+            # later split episodes into train/test for the probe.
+            ep_ids = torch.arange(
+                n_done, n_done + args.batch_size, device=device, dtype=torch.long,
+            )
+            episode_ids.append(ep_ids.cpu())
 
             action_xy = env.expert_action()
             obs, _, done = env.step(action_xy)
@@ -301,15 +313,23 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
         torch.cat(target_xys, dim=0),
         torch.cat(visibles, dim=0),
         torch.cat(hidden_steps, dim=0),
+        torch.cat(episode_ids, dim=0),
     )
 
 
-def _train_linear_probe(states_train, targets_train, lr, epochs):
-    """Fit a single nn.Linear from state → target_xy on visible frames."""
+def _train_linear_probe(states_train, targets_train, lr, epochs,
+                          weight_decay: float = 1e-3):
+    """Fit a single nn.Linear from state → target_xy on visible frames.
+
+    Weight decay is on by default — defends against probe memorization
+    when the state has large constant-per-episode components (Phase
+    5B-attempt-1 lesson: zero-weight-decay + held-out probe set is
+    what we need; the train-test split also goes on the *episode* axis
+    in the caller)."""
     in_dim = states_train.size(-1)
     out_dim = targets_train.size(-1)
     probe = nn.Linear(in_dim, out_dim)
-    opt = torch.optim.AdamW(probe.parameters(), lr=lr, weight_decay=0.0)
+    opt = torch.optim.AdamW(probe.parameters(), lr=lr, weight_decay=weight_decay)
     bs = min(256, states_train.size(0))
     for _ in range(epochs):
         idx = torch.randperm(states_train.size(0))[:bs]
@@ -330,27 +350,40 @@ def linear_probe_eval(args, j_values, mode, ctx_enc, slot_attn,
     breakdown."""
     results = []
     for j in j_values:
-        states, targets, visibles, hidden_step = _collect_probe_rollouts(
+        states, targets, visibles, hidden_step, ep_ids = _collect_probe_rollouts(
             args, j, mode, ctx_enc, slot_attn, slot_predictor,
             device, args.probe_episodes,
         )
-        v_mask = visibles
-        h_mask = ~visibles
-        n_vis = int(v_mask.sum().item())
-        n_hid = int(h_mask.sum().item())
+        # Held-out probe split: train probe on visible frames from a
+        # subset of episodes; test on hidden frames from the OTHER
+        # episodes. Without this split, an episode-specific-constant
+        # state (Phase 5B-attempt-1 issue) lets the probe memorize
+        # (state-signature → targets) and score 0 MSE everywhere.
+        unique_eps = ep_ids.unique()
+        n_eps = unique_eps.numel()
+        train_eps = unique_eps[: int(n_eps * 0.8)]
+        train_mask = torch.isin(ep_ids, train_eps)
+        test_mask = ~train_mask
+
+        v_train = visibles & train_mask
+        h_test = (~visibles) & test_mask
+        v_test = visibles & test_mask
+        n_vis = int(v_train.sum().item())
+        n_hid = int(h_test.sum().item())
         if n_vis < 10 or n_hid < 10:
             results.append({"J": j, "n_visible": n_vis, "n_hidden": n_hid,
                               "visible_mse": None, "hidden_mse": None})
             continue
-        probe = _train_linear_probe(states[v_mask], targets[v_mask],
+        probe = _train_linear_probe(states[v_train], targets[v_train],
                                        args.probe_lr, args.probe_epochs)
         with torch.no_grad():
-            v_mse = float(F.mse_loss(probe(states[v_mask]), targets[v_mask]))
-            h_mse = float(F.mse_loss(probe(states[h_mask]), targets[h_mask]))
-        # Per-hidden-step breakdown: MSE at h=0, 1, 2, ..., J-1
+            v_mse = float(F.mse_loss(probe(states[v_test]), targets[v_test])) \
+                    if v_test.any() else float("nan")
+            h_mse = float(F.mse_loss(probe(states[h_test]), targets[h_test]))
+        # Per-hidden-step breakdown on TEST episodes only.
         per_step = []
         for h in range(j):
-            mask = hidden_step == h
+            mask = (hidden_step == h) & test_mask
             n_h = int(mask.sum().item())
             if n_h < 5:
                 per_step.append(None)

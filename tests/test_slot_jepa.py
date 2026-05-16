@@ -118,6 +118,52 @@ def test_slot_delta_loss_falls_with_sparsity_pressure():
     )
 
 
+def test_dynamic_slot_mode_active_mask_top_k():
+    """Phase 5B: with update_mode='dynamic' and target_active_slots=k, the
+    forward must return an active_mask that is exactly k-hot per example."""
+    _seed()
+    cfg = SlotPredictorConfig(
+        slot_dim=16, obs_dim=8, action_dim=4, n_layers=1, n_heads=2,
+        delta_scale=0.1, update_mode="dynamic", target_active_slots=3,
+    )
+    predictor = SlotDeltaPredictor(cfg)
+    slots = torch.randn(2, 8, 16)
+    obs = torch.randn(2, 12, 8)
+    action = torch.randn(2, 4)
+    out = predictor(slots, obs, action)
+    assert "active_mask" in out
+    am = out["active_mask"].squeeze(-1)             # [B, S]
+    # Hard top-3 per batch element.
+    n_active = (am > 0.5).sum(dim=-1)
+    assert torch.equal(n_active, torch.full((2,), 3))
+    # Inactive slots must be unchanged from the input.
+    inactive = am < 0.5                              # [B, S]
+    for b in range(2):
+        for s in range(8):
+            if inactive[b, s]:
+                assert torch.allclose(out["next_slots"][b, s], slots[b, s], atol=1e-6), (
+                    f"inactive slot ({b},{s}) was updated"
+                )
+
+
+def test_dynamic_slot_mode_gradient_flow():
+    """The straight-through estimator must let gradients reach the active
+    head even though forward uses a hard top-k."""
+    _seed()
+    cfg = SlotPredictorConfig(
+        slot_dim=16, obs_dim=8, action_dim=4, n_layers=1, n_heads=2,
+        delta_scale=0.1, update_mode="dynamic", target_active_slots=3,
+    )
+    predictor = SlotDeltaPredictor(cfg)
+    slots = torch.randn(2, 8, 16)
+    obs = torch.randn(2, 12, 8)
+    action = torch.randn(2, 4)
+    out = predictor(slots, obs, action)
+    out["next_slots"].sum().backward()
+    grad_norm = predictor.active_head.weight.grad.abs().sum().item()
+    assert grad_norm > 0, "no gradient reached active_head via straight-through"
+
+
 def test_copy_baseline_is_identity():
     slots = torch.randn(3, 5, 8)
     out = copy_baseline(slots)

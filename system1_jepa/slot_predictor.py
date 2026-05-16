@@ -46,7 +46,8 @@ class SlotPredictorConfig:
     delta_scale: float = 0.1
     dropout: float = 0.0
     mask_bias_init: float = -1.0
-    update_mode: str = "delta"  # "delta" (sparse) or "dense" (replace)
+    update_mode: str = "delta"  # "delta" (sparse) or "dense" (replace) or "dynamic" (top-k active gate)
+    target_active_slots: int = 0  # Phase-5B: 0 = all slots active (delta mode); >0 = top-k active gate
 
 
 class SlotDeltaPredictor(nn.Module):
@@ -79,6 +80,19 @@ class SlotDeltaPredictor(nn.Module):
         # Two heads per slot: scalar change logit + raw delta vector.
         self.change_head = nn.Linear(d, 1)
         self.delta_head = nn.Linear(d, d)
+        # Phase 5B: optional per-slot "active" gate. When update_mode is
+        # "dynamic", only the top-`target_active_slots` highest-scoring
+        # slots receive a delta update each step. The remaining slots
+        # are frozen (act as long-term memory). Trained via a
+        # straight-through estimator so gradients still flow to the
+        # active_head.
+        if cfg.update_mode == "dynamic":
+            assert cfg.target_active_slots > 0, "dynamic mode needs target_active_slots > 0"
+            self.active_head = nn.Linear(d, 1)
+            nn.init.zeros_(self.active_head.bias)
+            nn.init.normal_(self.active_head.weight, std=0.02)
+        else:
+            self.active_head = None
         # Init the change-mask bias negative so updates default to off —
         # the model has to learn to fire the mask. The exact starting
         # point matters: bias=-1 starts at sigmoid(-1)≈0.27, bias=-2 at
@@ -120,6 +134,7 @@ class SlotDeltaPredictor(nn.Module):
         change_mask = torch.sigmoid(change_logits)
         raw_delta = self.delta_head(slot_out)                     # [B, S, slot_dim]
         delta = self.cfg.delta_scale * torch.tanh(raw_delta)
+        active_mask = None
         if self.cfg.update_mode == "delta":
             # Sparse, bounded update — the proposal.
             next_slots = slots + change_mask * delta
@@ -133,6 +148,22 @@ class SlotDeltaPredictor(nn.Module):
             # Force-report a "mask" of 1.0 so downstream loss reporting still
             # has a consistent field; nothing in the loss penalizes it.
             change_mask = torch.ones_like(change_mask)
+        elif self.cfg.update_mode == "dynamic":
+            # Phase 5B: pool of n_slots, but only the top-K highest-
+            # scoring slots get a delta update each step. Inactive slots
+            # are frozen (act as long-term memory). Straight-through
+            # estimator: forward uses hard top-K mask, backward passes
+            # gradient through the sigmoid score.
+            k = self.cfg.target_active_slots
+            active_logits = self.active_head(slot_out).squeeze(-1)   # [B, S]
+            topk_idx = active_logits.topk(k, dim=-1).indices
+            hard_active = torch.zeros_like(active_logits)
+            hard_active.scatter_(1, topk_idx, 1.0)
+            active_soft = torch.sigmoid(active_logits)
+            # ST: forward = hard_active, backward = active_soft.
+            active = hard_active + active_soft - active_soft.detach()
+            active_mask = active.unsqueeze(-1)                          # [B, S, 1]
+            next_slots = slots + active_mask * change_mask * delta
         else:
             raise ValueError(f"unknown update_mode: {self.cfg.update_mode}")
 
@@ -141,6 +172,8 @@ class SlotDeltaPredictor(nn.Module):
             "change_mask": change_mask,
             "delta": delta,
         }
+        if active_mask is not None:
+            out["active_mask"] = active_mask
         if return_diagnostics:
             out["raw_delta"] = raw_delta
             out["change_logits"] = change_logits
