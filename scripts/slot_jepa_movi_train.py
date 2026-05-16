@@ -369,6 +369,28 @@ def train_one_run(
         metrics["id_drift"] = float(np.mean([d["id_drift"] for d in drift_records]))
         metrics["dyn_drift"] = float(np.mean([d["dyn_drift"] for d in drift_records]))
         metrics["drift_ratio"] = metrics["id_drift"] / max(metrics["dyn_drift"], 1e-9)
+
+    # Phase 7D: id-subspace probe — re-fit a fresh linear probe on the id-half
+    # of slot states only. Tells us whether the id subspace is doing the
+    # assignment-stability work even when the full-slot Hungarian shuffles.
+    id_dim = model.id_dim
+    if model.mode in ("id_dyn_split",) or model.use_id_cons:
+        result_id = identity_aware_probe_eval(
+            states=states, gt_pos=gt_pos, gt_attr=gt_attr,
+            gt_visible=gt_visible, gt_entity_ids=gt_ids,
+            ep_ids=ep_ids, frame_idx=frame_idx, hidden_step=hidden_step,
+            J=0, cfg=cfg, subspace_dims=slice(0, id_dim),
+        )
+        result_dyn = identity_aware_probe_eval(
+            states=states, gt_pos=gt_pos, gt_attr=gt_attr,
+            gt_visible=gt_visible, gt_entity_ids=gt_ids,
+            ep_ids=ep_ids, frame_idx=frame_idx, hidden_step=hidden_step,
+            J=0, cfg=cfg, subspace_dims=slice(id_dim, None),
+        )
+        metrics["switch_rate_id_subspace"] = result_id.identity_switch_rate
+        metrics["switch_rate_dyn_subspace"] = result_dyn.identity_switch_rate
+        metrics["hidden_pos_mse_id_subspace"] = result_id.hidden_position_mse
+        metrics["hidden_pos_mse_dyn_subspace"] = result_dyn.hidden_position_mse
     record = {
         "seed": seed,
         "mode": mode,

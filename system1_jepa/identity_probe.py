@@ -290,13 +290,20 @@ def identity_aware_probe_eval(
     hidden_step: torch.Tensor,   # [N] long — 0 = visible, k = k frames after last visible
     J: int,
     cfg: ProbeFitConfig = ProbeFitConfig(),
+    subspace_dims: Optional[slice] = None,  # Phase 7B/C: restrict probe input to id or dyn subspace
 ) -> IdentityProbeResult:
     """Train probe on train-episode visible frames, eval on test-episode frames.
 
     Identity-switch rate is computed PER EPISODE on the test split: we sort
     by `frame_idx` within each test episode, run the probe + Hungarian per
     frame, and count slot-assignment changes between consecutive frames.
+
+    If `subspace_dims` is provided, the probe input is restricted to that
+    slot-feature subspace (e.g. `slice(0, id_dim)` to compute the
+    id-subspace switch rate from the Phase 7C feedback loop).
     """
+    if subspace_dims is not None:
+        states = states[..., subspace_dims]
     device = states.device
 
     unique_eps = ep_ids.unique()

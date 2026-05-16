@@ -1,0 +1,362 @@
+{
+  "slot_delta": {
+    "visible_position_mse": {
+      "mean": 4.7791029057719925e-05,
+      "std": 0.0,
+      "values": [
+        4.7791029057719925e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 4.6984048496479926e-05,
+      "std": 0.0,
+      "values": [
+        4.6984048496479926e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.8265849892179686,
+      "std": 0.0,
+      "values": [
+        0.8265849892179686
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.5,
+      "std": 0.0,
+      "values": [
+        5.5
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 0.9831143924466376,
+      "std": 0.0,
+      "values": [
+        0.9831143924466376
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.009130710216990641,
+      "std": 0.0,
+      "values": [
+        0.009130710216990641
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.011044096357692329,
+      "std": 0.0,
+      "values": [
+        0.011044096357692329
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.8267503217346529,
+      "std": 0.0,
+      "values": [
+        0.8267503217346529
+      ]
+    }
+  },
+  "id_dyn_split": {
+    "visible_position_mse": {
+      "mean": 4.1860316548033204e-05,
+      "std": 0.0,
+      "values": [
+        4.1860316548033204e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 3.715766716599866e-05,
+      "std": 0.0,
+      "values": [
+        3.715766716599866e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.7287056106175731,
+      "std": 0.0,
+      "values": [
+        0.7287056106175731
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.489583333333334,
+      "std": 0.0,
+      "values": [
+        5.489583333333334
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 0.8876585327146672,
+      "std": 0.0,
+      "values": [
+        0.8876585327146672
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.014144617178638871,
+      "std": 0.0,
+      "values": [
+        0.014144617178638871
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.030429260447631293,
+      "std": 0.0,
+      "values": [
+        0.030429260447631293
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.4648360482825974,
+      "std": 0.0,
+      "values": [
+        0.4648360482825974
+      ]
+    }
+  },
+  "slot_delta_idcons": {
+    "visible_position_mse": {
+      "mean": 1.7827243634490248e-05,
+      "std": 0.0,
+      "values": [
+        1.7827243634490248e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 3.900886289008885e-05,
+      "std": 0.0,
+      "values": [
+        3.900886289008885e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.7060815620933458,
+      "std": 0.0,
+      "values": [
+        0.7060815620933458
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.208333333333333,
+      "std": 0.0,
+      "values": [
+        5.208333333333333
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 2.188160081832206,
+      "std": 0.0,
+      "values": [
+        2.188160081832206
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.013180330602977047,
+      "std": 0.0,
+      "values": [
+        0.013180330602977047
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.017829748047998514,
+      "std": 0.0,
+      "values": [
+        0.017829748047998514
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.7392325773474185,
+      "std": 0.0,
+      "values": [
+        0.7392325773474185
+      ]
+    }
+  },
+  "id_dyn_split_idcons": {
+    "visible_position_mse": {
+      "mean": 2.0138640166737314e-05,
+      "std": 0.0,
+      "values": [
+        2.0138640166737314e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 2.1753015082270763e-05,
+      "std": 0.0,
+      "values": [
+        2.1753015082270763e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.718268328537146,
+      "std": 0.0,
+      "values": [
+        0.718268328537146
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.291666666666666,
+      "std": 0.0,
+      "values": [
+        5.291666666666666
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 1.0801630548124042,
+      "std": 0.0,
+      "values": [
+        1.0801630548124042
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.01178610955112469,
+      "std": 0.0,
+      "values": [
+        0.01178610955112469
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.01231691348300178,
+      "std": 0.0,
+      "values": [
+        0.01231691348300178
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.9569044685903139,
+      "std": 0.0,
+      "values": [
+        0.9569044685903139
+      ]
+    }
+  },
+  "slot_dense_update": {
+    "visible_position_mse": {
+      "mean": 0.0004954255978735963,
+      "std": 0.0,
+      "values": [
+        0.0004954255978735963
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 0.0004147634989923018,
+      "std": 0.0,
+      "values": [
+        0.0004147634989923018
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.4044489681790692,
+      "std": 0.0,
+      "values": [
+        0.4044489681790692
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 4.479166666666667,
+      "std": 0.0,
+      "values": [
+        4.479166666666667
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 0.8371862511192352,
+      "std": 0.0,
+      "values": [
+        0.8371862511192352
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.08336153603205027,
+      "std": 0.0,
+      "values": [
+        0.08336153603205027
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.0763891582649861,
+      "std": 0.0,
+      "values": [
+        0.0763891582649861
+      ]
+    },
+    "drift_ratio": {
+      "mean": 1.0912744416279299,
+      "std": 0.0,
+      "values": [
+        1.0912744416279299
+      ]
+    }
+  }
+}
