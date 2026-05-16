@@ -1,13 +1,14 @@
 # Phase 3 (JEPA Track) — Decision document
 
 **Date:** 2026-05-16.
-**Status:** ✅ **PASSED — stress-robust world-state memory.**
+**Status:** ✅ **PASSED STRONGLY — stress-robust world-state memory.**
 
-> The slot-delta mechanism survives every stress dimension we threw at
-> it: 8× more entities, 5× more distractors, moving distractors,
-> partial observability, and 8× longer occlusion. Across **72 gates ×
-> 5 seeds × 36 stress cells**, the advantage over the strongest fair
-> baseline never drops below **20.6×**.
+> Phase 3 did not merely reproduce Phase 2 under scale. It showed
+> **bounded forgetting across stress axes**. Slot-delta hidden-state
+> error remained low and nearly flat across target count, distractor
+> count, and occlusion length. The worst slot-delta cell across the
+> full stress matrix was **3.50 hidden MSE**, while every gate passed
+> with at least a **20.6× margin**.
 
 ## Scope
 
@@ -81,16 +82,23 @@ nt=3 nd=2 J=80 vs slot_dense_update:    20.7x margin   PASSED
 | n_distractors | 2 → 5 → 10 | 2.06 → 2.31 → 2.19 |
 | J | 10 → 20 → 40 → 80 | 0.71 → 2.72 → 2.61 → 2.72 |
 
-Three things to note:
+Three things to note (phrased carefully so we don't overclaim):
 
 1. **Forgetting is bounded.** Hidden MSE jumps from J=10 to J=20 (0.71
    → 2.72) and then plateaus all the way out to J=80. The mechanism
-   isn't compounding error through occlusion — it's preserving state.
-2. **More entities don't hurt.** Going from 3 to 8 targets actually
-   slightly *lowers* mean MSE — likely because more entities give the
-   linear probe a richer per-frame signal.
-3. **Distractor count is flat noise.** 2 vs 10 distractors moves the
-   number by 0.13 — within seed-to-seed variation.
+   pays a one-time cost going from short to medium occlusion, then
+   stops compounding. Dense / delta-less baselines did not have this
+   property in Phase 2.
+2. **Increasing target count did not degrade slot-delta memory.**
+   Performance slightly *improved* with more targets, likely because
+   the linear probe had richer and more regular slot-position signal.
+   We are *not* claiming "more entities always helps" — only that the
+   tested range (3 → 8) did not break the mechanism.
+3. **Slot-delta memory remains robust under increased distractor
+   pressure**, including moving distractors and partial observability.
+   2 vs 10 distractors moves the number by 0.13 — within seed-to-seed
+   variation. Distractor identity-swap was a plausible failure mode for
+   slot systems; it does not appear to break this configuration.
 
 ## Worst cells (top 5 hardest configurations for slot_delta)
 
@@ -113,16 +121,26 @@ Phase 3 is: "sparse delta is load-bearing in the hard version, the
 moving-distractor version, the partial-observability version, the
 many-targets version, and the long-occlusion version, simultaneously."
 
-The result graduates from *Phase 2 mechanism validated* to **Phase 3
-stress-robust world-state memory**. The KAM-JEPA core claim survives
-contact with realistic stress.
+The most defensible conclusion:
 
-What this **doesn't** show: behavioural transfer (policy success rate
-under occlusion). That was inconclusive in Phase 2 because of standard
-BC distribution-shift problems. A separate Phase-3b track should test
-this using a stronger control regime (replay-buffer BC or DAGGER on
-top of the frozen representation) — but the *representation* claim is
-now solid.
+> Sparse delta updates over persistent slots produce a robust
+> hidden-entity memory mechanism in this controlled world-model
+> setting. The mechanism survives increased entity count, distractor
+> pressure, moving distractors, partial observability, and long
+> occlusion intervals up to J=80.
+
+The caveat we have to carry forward:
+
+> The result is still synthetic and probe-based. Phase 4 must test
+> whether the same mechanism survives rendered image observations and
+> then real video.
+
+What Phase 3 **doesn't** show: behavioural transfer (policy success
+rate under occlusion). That was inconclusive in Phase 2 because of
+standard BC distribution-shift problems. A separate Phase-3b track
+should test this using a stronger control regime (replay-buffer BC or
+DAGGER on top of the frozen representation). The *representation*
+claim is now solid; the *behavioural* claim is still open.
 
 ## Reproducibility
 
@@ -168,17 +186,23 @@ done
 
 ## What's next
 
-Two parallel tracks open up:
+Three tracks open up; they can be pursued in parallel since they don't
+share infrastructure:
 
 - **Phase 3b — behavioural transfer.** Wire slot_delta into a policy
   head with proper BC (replay buffer or DAGGER) and measure success
   rate under occlusion. Tests whether the representational win
   translates to behavioural success.
+- **Phase 4 — perceptual realism.** Replace the toy patch renderer
+  with rendered scene images (CLEVRER-style or similar), then real
+  video. The mechanism *should* survive given that it works on
+  patch-level features already; this checks whether real perceptual
+  noise / lighting / occluders break it.
 - **Integration into BLA.** The slot-delta module is ready to slot in
   as the persistent-state / working-memory layer of the broader BLA
   stack. The procedural-core / hybrid-memory / verifier pieces from
-  earlier phases already exist; this gives them an actual memory
+  earlier phases already exist; Phase 3 gives them an actual memory
   substrate with bounded forgetting.
 
-Either is a natural next step. The Phase 3 result removes the
-"unvalidated mechanism" caveat from the broader architecture.
+The Phase 3 result removes the "unvalidated mechanism" caveat from the
+broader architecture.
