@@ -1,0 +1,59 @@
+/usr/local/lib/python3.12/dist-packages/torch/nn/modules/transformer.py:392: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+{"event": "init", "encoder_mode": "dense_jepa_flatten", "state_dim": 4096, "ckpt": "/workspace/phase4b_run1/seed_0/runs/seed=0_mode=dense_jepa_flatten_K=5_nt=3_nd=5/final.pt"}
+/workspace/bla/scripts/slot_jepa_phase3b_bc.py:266: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:835.)
+  "loss": round(float(loss), 4) if len(buffer) >= args.policy_batch else None,
+{"event": "bc", "ep": 20, "expert_mix": 0.962, "buffer_size": 3400, "loss": 2.2144, "elapsed_s": 2.2}
+{"event": "bc", "ep": 40, "expert_mix": 0.922, "buffer_size": 7064, "loss": 2.051, "elapsed_s": 4.1}
+{"event": "bc", "ep": 60, "expert_mix": 0.882, "buffer_size": 10816, "loss": 1.9189, "elapsed_s": 6.1}
+{"event": "bc", "ep": 80, "expert_mix": 0.842, "buffer_size": 14528, "loss": 1.9967, "elapsed_s": 8.1}
+{"event": "bc", "ep": 100, "expert_mix": 0.802, "buffer_size": 18368, "loss": 2.0024, "elapsed_s": 10.1}
+{"event": "bc", "ep": 120, "expert_mix": 0.762, "buffer_size": 22168, "loss": 2.1107, "elapsed_s": 12.1}
+{"event": "bc", "ep": 140, "expert_mix": 0.721, "buffer_size": 26000, "loss": 1.9381, "elapsed_s": 14.2}
+{"event": "bc", "ep": 160, "expert_mix": 0.681, "buffer_size": 29840, "loss": 2.1553, "elapsed_s": 16.2}
+{"event": "bc", "ep": 180, "expert_mix": 0.641, "buffer_size": 33680, "loss": 2.0679, "elapsed_s": 18.4}
+{"event": "bc", "ep": 200, "expert_mix": 0.601, "buffer_size": 37520, "loss": 2.2302, "elapsed_s": 20.4}
+{"event": "bc", "ep": 220, "expert_mix": 0.561, "buffer_size": 41360, "loss": 2.224, "elapsed_s": 22.5}
+{"event": "bc", "ep": 240, "expert_mix": 0.521, "buffer_size": 45200, "loss": 2.2566, "elapsed_s": 24.6}
+{"event": "bc", "ep": 260, "expert_mix": 0.481, "buffer_size": 49040, "loss": 2.2765, "elapsed_s": 26.6}
+{"event": "bc", "ep": 280, "expert_mix": 0.441, "buffer_size": 50000, "loss": 2.3583, "elapsed_s": 28.6}
+{"event": "bc", "ep": 300, "expert_mix": 0.401, "buffer_size": 50000, "loss": 2.3822, "elapsed_s": 30.7}
+{"event": "bc", "ep": 320, "expert_mix": 0.361, "buffer_size": 50000, "loss": 2.4524, "elapsed_s": 32.8}
+{"event": "bc", "ep": 340, "expert_mix": 0.321, "buffer_size": 50000, "loss": 2.4908, "elapsed_s": 34.9}
+{"event": "bc", "ep": 360, "expert_mix": 0.281, "buffer_size": 50000, "loss": 2.5089, "elapsed_s": 37.0}
+{"event": "bc", "ep": 380, "expert_mix": 0.24, "buffer_size": 50000, "loss": 2.7403, "elapsed_s": 39.1}
+{"event": "bc", "ep": 400, "expert_mix": 0.2, "buffer_size": 50000, "loss": 2.7522, "elapsed_s": 41.2}
+{"event": "bc", "ep": 420, "expert_mix": 0.16, "buffer_size": 50000, "loss": 2.8806, "elapsed_s": 43.2}
+{"event": "bc", "ep": 440, "expert_mix": 0.12, "buffer_size": 50000, "loss": 2.7247, "elapsed_s": 45.3}
+{"event": "bc", "ep": 460, "expert_mix": 0.08, "buffer_size": 50000, "loss": 2.8884, "elapsed_s": 47.4}
+{"event": "bc", "ep": 480, "expert_mix": 0.04, "buffer_size": 50000, "loss": 2.9395, "elapsed_s": 49.5}
+{"event": "bc", "ep": 500, "expert_mix": 0.0, "buffer_size": 50000, "loss": 3.0579, "elapsed_s": 51.6}
+{"event": "eval", "J": 20, "success_rate": 0.0, "n_episodes": 128, "n_success": 0}
+{"event": "eval", "J": 40, "success_rate": 0.0, "n_episodes": 128, "n_success": 0}
+{"event": "eval", "J": 80, "success_rate": 0.0, "n_episodes": 128, "n_success": 0}
+{
+  "event": "done",
+  "encoder_mode": "dense_jepa_flatten",
+  "elapsed_s": 55.5,
+  "results": [
+    {
+      "J": 20,
+      "success_rate": 0.0,
+      "n_episodes": 128,
+      "n_success": 0
+    },
+    {
+      "J": 40,
+      "success_rate": 0.0,
+      "n_episodes": 128,
+      "n_success": 0
+    },
+    {
+      "J": 80,
+      "success_rate": 0.0,
+      "n_episodes": 128,
+      "n_success": 0
+    }
+  ]
+}

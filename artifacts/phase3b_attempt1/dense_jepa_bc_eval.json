@@ -1,0 +1,56 @@
+{
+  "encoder_mode": "dense_jepa_flatten",
+  "encoder_ckpt": "/workspace/phase4b_run1/seed_0/runs/seed=0_mode=dense_jepa_flatten_K=5_nt=3_nd=5/final.pt",
+  "results": [
+    {
+      "J": 20,
+      "success_rate": 0.0,
+      "n_episodes": 128,
+      "n_success": 0
+    },
+    {
+      "J": 40,
+      "success_rate": 0.0,
+      "n_episodes": 128,
+      "n_success": 0
+    },
+    {
+      "J": 80,
+      "success_rate": 0.0,
+      "n_episodes": 128,
+      "n_success": 0
+    }
+  ],
+  "args": {
+    "encoder_ckpt": "/workspace/phase4b_run1/seed_0/runs/seed=0_mode=dense_jepa_flatten_K=5_nt=3_nd=5/final.pt",
+    "encoder_mode": "dense_jepa_flatten",
+    "image_size": 32,
+    "patch_size": 4,
+    "n_targets": 3,
+    "n_distractors": 5,
+    "visible_steps": 5,
+    "hidden_steps": 10,
+    "episode_length": 24,
+    "d_jepa": 64,
+    "n_slots": 16,
+    "moving_distractors": true,
+    "partial_observability": true,
+    "obs_radius": 8.0,
+    "perceptual_noise": 0.1,
+    "color_randomization": true,
+    "background_randomization": true,
+    "batch_size": 8,
+    "bc_episodes": 500,
+    "policy_updates_per_episode": 4,
+    "policy_batch": 256,
+    "buffer_size": 50000,
+    "policy_lr": 0.003,
+    "expert_mix_init": 1.0,
+    "expert_mix_final": 0.0,
+    "seed": 0,
+    "eval_J": "20,40,80",
+    "eval_episodes": 128,
+    "out": "/workspace/phase3b_run1/dense_jepa"
+  },
+  "elapsed_s": 55.5
+}
