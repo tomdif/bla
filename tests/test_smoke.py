@@ -377,6 +377,82 @@ def test_spatiotemporal_jepa_predicts_target_features():
     assert all(p.grad is None for p in model.target_encoder.parameters())
 
 
+def test_spatiotemporal_loss_uses_sigreg():
+    """SIGReg must be wired into the spatiotemporal branch; otherwise the model
+    is free to collapse the EMA target onto a low-rank subspace at scale."""
+    _seed()
+    from system1_jepa import SpatiotemporalConfig, SpatiotemporalJEPA
+
+    cfg = SpatiotemporalConfig(image_size=8, patch_size=2, n_frames=3, d=16,
+                                action_dim=4, sigreg_weight=1.0)
+    model = SpatiotemporalJEPA(cfg)
+    frames = torch.randn(2, cfg.n_frames, 3, cfg.image_size, cfg.image_size)
+    actions = torch.randn(2, cfg.n_frames, cfg.action_dim)
+    metrics = model.training_loss(frames, actions)
+
+    # The loss dict must surface the SIGReg term separately from prediction.
+    assert "sigreg" in metrics, "SpatiotemporalJEPA dropped SIGReg from loss dict"
+    assert "prediction" in metrics
+    assert metrics["sigreg"].isfinite()
+    # And the composite loss must really include it:
+    expected = metrics["prediction"] + cfg.sigreg_weight * metrics["sigreg"]
+    assert torch.allclose(metrics["loss"].detach(), expected, atol=1e-5), (
+        f"composite loss does not match prediction + sigreg_weight * sigreg: "
+        f"{float(metrics['loss']):.6f} vs {float(expected):.6f}"
+    )
+
+
+def test_sample_tube_mask_partitions_grid_correctly():
+    """Tube mask must (i) keep target and context disjoint within a frame and
+    (ii) repeat the same target positions across every frame."""
+    _seed()
+    from system1_jepa import sample_tube_mask
+
+    grid_h, grid_w, n_frames = 4, 4, 3
+    for ratio in (0.25, 0.5, 0.75):
+        mask = sample_tube_mask(n_frames=n_frames, grid_h=grid_h, grid_w=grid_w,
+                                 target_ratio=ratio)
+        n_patch = grid_h * grid_w
+        target_p_per_frame = mask.target_p[: mask.num_target // n_frames]
+        context_p_per_frame = mask.context_p[: mask.num_context // n_frames]
+        # disjoint within a frame
+        overlap = set(target_p_per_frame.tolist()) & set(context_p_per_frame.tolist())
+        assert not overlap, f"overlap at ratio {ratio}: {overlap}"
+        # repeated identically across all frames
+        for f in range(n_frames):
+            chunk = mask.target_p[f * len(target_p_per_frame): (f + 1) * len(target_p_per_frame)]
+            assert torch.equal(chunk, target_p_per_frame), (
+                f"target_p is not the same tube across frames at frame {f}"
+            )
+        # covers full grid when union'd
+        union = set(target_p_per_frame.tolist()) | set(context_p_per_frame.tolist())
+        assert union == set(range(n_patch))
+
+
+def test_ema_target_encoder_is_fp32_even_when_context_is_bf16():
+    """Per docs/01_jepa.md: target encoder must be fp32 so EMA mul+add doesn't
+    underflow when (1 - tau) ~= 0.004 lands at bf16's resolution edge."""
+    _seed()
+    cfg = JEPAConfig.tiny()
+    cfg.dtype = "bfloat16"
+    model = BLAJEPAModel(cfg)
+    ctx_dtype = next(model.context_encoder.parameters()).dtype
+    tgt_dtype = next(model.target_encoder.parameters()).dtype
+    assert ctx_dtype == torch.bfloat16, f"context should be bf16 per config, got {ctx_dtype}"
+    assert tgt_dtype == torch.float32, (
+        f"target encoder must stay fp32 for EMA numerics, got {tgt_dtype}"
+    )
+
+    # And the EMA step must produce a measurable update with a small (1-tau).
+    before = next(model.target_encoder.parameters()).detach().clone()
+    with torch.no_grad():
+        next(model.context_encoder.parameters()).add_(1.0)
+    model.update_target_ema(tau=0.996)  # (1-tau) = 0.004, the realistic edge case
+    after = next(model.target_encoder.parameters()).detach()
+    delta = (after - before).abs().max().item()
+    assert delta > 0.0, f"EMA produced no update at tau=0.996 (underflow?), delta={delta}"
+
+
 def test_checkpoint_save_load_roundtrip(tmp_path):
     _seed()
     cfg = JEPAConfig.tiny()

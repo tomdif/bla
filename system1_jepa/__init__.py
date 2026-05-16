@@ -8,9 +8,20 @@ from .navigate_env import (
     NavigateEnv,
     NavigateSpec,
 )
+from .navigate_occlusion import (
+    OccludedMultiTargetNavigateEnv,
+    OccludedNavigateSpec,
+)
 from .planning import CEMConfig, cem_plan
 from .predictor import ActionConditionedPredictor
 from .sigreg import sigreg_epps_pulley, sigreg_lewm
+from .slot import SlotAttention, SlotAttentionConfig
+from .slot_predictor import (
+    SlotDeltaPredictor,
+    SlotPredictorConfig,
+    copy_baseline,
+    slot_delta_loss,
+)
 from .spatiotemporal import (
     STMask,
     SpatiotemporalConfig,
@@ -40,8 +51,14 @@ __all__ = [
     "MultiTargetNavigateSpec",
     "NavigateEnv",
     "NavigateSpec",
+    "OccludedMultiTargetNavigateEnv",
+    "OccludedNavigateSpec",
     "PatchMask",
     "PatchViTEncoder",
+    "SlotAttention",
+    "SlotAttentionConfig",
+    "SlotDeltaPredictor",
+    "SlotPredictorConfig",
     "STMask",
     "SpatiotemporalConfig",
     "SpatiotemporalEncoder",
@@ -52,6 +69,7 @@ __all__ = [
     "TemporalPredictor",
     "cem_plan",
     "collapse_regularizer",
+    "copy_baseline",
     "gather_tokens",
     "jepa_loss",
     "make_image_loader",
@@ -62,4 +80,5 @@ __all__ = [
     "sample_tube_mask",
     "sigreg_epps_pulley",
     "sigreg_lewm",
+    "slot_delta_loss",
 ]

@@ -21,6 +21,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from .losses import jepa_loss
 from .vit import sincos_2d_position
 
 
@@ -94,6 +95,8 @@ class SpatiotemporalConfig:
     target_ratio: float = 0.5
     mlp_ratio: float = 4.0
     dropout: float = 0.0
+    sigreg_weight: float = 1.0
+    sigreg_variant: str = "epps_pulley"
 
 
 class SpatiotemporalEncoder(nn.Module):
@@ -267,5 +270,14 @@ class SpatiotemporalJEPA(nn.Module):
         mask: STMask | None = None,
     ) -> dict:
         z_hat, z_target, mask = self(frames, actions, mask=mask)
-        prediction = F.smooth_l1_loss(z_hat.float(), z_target.detach().float())
-        return {"loss": prediction, "prediction": prediction.detach(), "mask": mask}
+        # Use the same prediction + SIGReg objective as the patch JEPA. Without
+        # SIGReg the spatiotemporal branch is free to collapse the target
+        # encoder onto a low-rank subspace, which kills downstream usefulness.
+        metrics = jepa_loss(
+            predicted_target=z_hat,
+            target_latent=z_target,
+            sigreg_weight=self.cfg.sigreg_weight,
+            sigreg_variant=self.cfg.sigreg_variant,
+        )
+        metrics["mask"] = mask
+        return metrics
