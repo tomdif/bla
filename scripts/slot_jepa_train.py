@@ -69,6 +69,10 @@ def parse_args():
                    help="Mask observation outside a circle around the agent. "
                          "Phase-3 stress flag.")
     p.add_argument("--obs-radius", type=float, default=8.0)
+    p.add_argument("--perceptual-noise", type=float, default=0.0,
+                   help="Gaussian pixel noise σ. Phase-4A flag: turns the "
+                         "rendered-patch observation into a noisier perception "
+                         "channel. Default 0.0 (Phase-3 behaviour).")
     p.add_argument("--d-jepa", type=int, default=64)
     p.add_argument("--n-slots", type=int, default=16)
     p.add_argument("--slot-iters", type=int, default=3)
@@ -115,6 +119,7 @@ def build_env(args, device):
         distractor_move_max=args.distractor_move_max,
         partial_observability=args.partial_observability,
         obs_radius=args.obs_radius,
+        perceptual_noise=args.perceptual_noise,
         max_steps=args.episode_length,
         action_dim=args.d_jepa,
     )
@@ -223,6 +228,7 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
         distractor_move_max=args.distractor_move_max,
         partial_observability=args.partial_observability,
         obs_radius=args.obs_radius,
+        perceptual_noise=args.perceptual_noise,
         max_steps=args.episode_length, action_dim=args.d_jepa,
     )
     env = OccludedMultiTargetNavigateEnv(spec, batch_size=args.batch_size,

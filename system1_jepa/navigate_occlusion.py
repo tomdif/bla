@@ -38,6 +38,8 @@ class OccludedNavigateSpec(MultiTargetNavigateSpec):
     partial_observability: bool = False  # mask obs outside a circle around the agent
     obs_radius: float = 8.0              # observation circle radius (in pixels)
     rendered_patches: bool = True        # informational flag for the manifest; observations are always pixel-rendered in this env
+    perceptual_noise: float = 0.0        # Gaussian pixel noise σ; >0 turns "rendered image" into a noisy perception channel
+    randomize_colors: bool = False       # if True, sample fresh entity-colour channels each reset
 
 
 class OccludedMultiTargetNavigateEnv(MultiTargetNavigateEnv):
@@ -135,6 +137,20 @@ class OccludedMultiTargetNavigateEnv(MultiTargetNavigateEnv):
         self._draw_distractors(canvas)
         canvas = canvas.clamp(0, 1)
         canvas = self._apply_partial_observability(canvas)
+        # Phase 4A: simulate image-like perceptual noise. Sampled via the
+        # env's RNG so reproducibility holds. Applied *after* the partial-
+        # observability mask so masked-out pixels stay exactly zero (which
+        # is what an honest occluder would do — no noise in unobserved
+        # regions). Final clamp keeps values in valid pixel range.
+        if self.spec.perceptual_noise > 0.0:
+            noise = torch.empty_like(canvas).normal_(
+                mean=0.0, std=self.spec.perceptual_noise, generator=self.gen,
+            )
+            if self.spec.partial_observability:
+                # Re-apply the visibility mask to the noise so we don't leak
+                # signal into the masked region.
+                noise = self._apply_partial_observability(noise)
+            canvas = (canvas + noise).clamp(0, 1)
         return canvas
 
     def step(self, dxy: torch.Tensor, success_bonus: float = 5.0):

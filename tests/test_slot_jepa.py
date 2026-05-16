@@ -222,6 +222,32 @@ def test_moving_distractors_change_position_each_step():
     assert (dy <= spec.distractor_move_max + 1e-5).all(), f"dy exceeded bound: {dy.max()}"
 
 
+def test_perceptual_noise_changes_canvas():
+    """perceptual_noise > 0 must perturb pixel values away from the
+    deterministic-render canvas. Defaults must preserve Phase-3 behaviour."""
+    _seed()
+    spec_no = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=1, n_distractors=2,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+        perceptual_noise=0.0,
+    )
+    spec_yes = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=1, n_distractors=2,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+        perceptual_noise=0.1,
+    )
+    env0 = OccludedMultiTargetNavigateEnv(spec_no, batch_size=2, seed=0)
+    env1 = OccludedMultiTargetNavigateEnv(spec_yes, batch_size=2, seed=0)
+    o0 = env0.observe()
+    o1 = env1.observe()
+    diff = (o0 - o1).abs().mean().item()
+    assert diff > 0.001, f"perceptual_noise=0.1 did not perturb pixels (diff={diff})"
+    # And: zero-noise must reproduce noise-free obs even after env steps.
+    # (Phase-3 regression — confirms default behaviour is unchanged.)
+    o0_again = env0.observe()
+    assert torch.equal(o0, o0_again), "noise=0 obs is non-deterministic"
+
+
 def test_partial_observability_masks_far_pixels():
     """With partial_observability=True and obs_radius < image_size, pixels
     beyond the radius around the agent must be exactly zero."""

@@ -1,0 +1,99 @@
+{
+  "git_commit": "unknown",
+  "timestamp": "2026-05-16T13:27:58.296570Z",
+  "script_version": "phase3-v1",
+  "command": "scripts/slot_jepa_phase3.py --seeds 0 --targets 3,5,8 --distractors 2,5,10 --K 5 --J 20,40,80 --J-train 10 --modes slot_delta,slot_dense_update,dense_jepa_flatten,copy --moving-distractors --partial-observability --obs-radius 8 --perceptual-noise 0.1 --steps 3000 --probe-episodes 16 --probe-epochs 200 --mask-bias-init 0.0 --out /workspace/phase4a_run1/seed_0",
+  "modes": [
+    "slot_delta",
+    "slot_dense_update",
+    "dense_jepa_flatten",
+    "copy"
+  ],
+  "seeds": [
+    0
+  ],
+  "K_values": [
+    5
+  ],
+  "J_values_eval": [
+    20,
+    40,
+    80
+  ],
+  "J_value_train": 10,
+  "n_targets": [
+    3,
+    5,
+    8
+  ],
+  "n_distractors": [
+    2,
+    5,
+    10
+  ],
+  "moving_distractors": true,
+  "partial_observability": true,
+  "obs_radius": 8.0,
+  "rendered_patches": true,
+  "perceptual_noise": 0.1,
+  "phase4A_rendered_obs": true,
+  "phase2_reference": {
+    "mask_bias_init": -2.0,
+    "lambda_sparsity": 0.005,
+    "lambda_bimodal": 0.001,
+    "delta_scale": 0.1,
+    "n_slots": 16,
+    "slot_iters": 3,
+    "hardware": "local CPU, torch 2.4"
+  },
+  "phase3_pod_default": {
+    "mask_bias_init": 0.0,
+    "lambda_sparsity": 0.005,
+    "lambda_bimodal": 0.001,
+    "delta_scale": 0.1,
+    "n_slots": 16,
+    "slot_iters": 3,
+    "hardware": "pod GPU, torch \u2265 2.8 \u2014 bias=-2.0 collapses to mask=0 here"
+  },
+  "slot_config": {
+    "n_slots": 16,
+    "slot_iters": 3,
+    "sparsity_weight": 0.005,
+    "bimodal_weight": 0.001,
+    "mask_bias_init": 0.0,
+    "delta_scale": 0.1
+  },
+  "training": {
+    "steps": 3000,
+    "batch_size": 4,
+    "image_size": 32,
+    "patch_size": 4,
+    "episode_length": 24
+  },
+  "probe": {
+    "episodes": 16,
+    "epochs": 200,
+    "lr": 0.005,
+    "type": "linear",
+    "trained_on": "visible_frames_only",
+    "evaluated_on": "hidden_frames"
+  },
+  "phase2_reference_metrics": {
+    "env": "n_targets=3, n_distractors=2, K=5, J_train=10, seed=0",
+    "results_at_J20_hidden_mse": {
+      "slot_delta": 3.87,
+      "slot_dense_update": 68.01,
+      "dense_jepa_flatten": 62.23,
+      "dense_jepa_mean": 66.87,
+      "copy": 66.87
+    },
+    "gates": {
+      "slot_delta_vs_dense_jepa_flatten_at_J20": "\u2264 0.75\u00d7 threshold passed by 12\u00d7 margin",
+      "slot_delta_vs_slot_dense_update_at_J20": "17.6\u00d7 margin",
+      "slope_J5_to_J40": {
+        "slot_delta": 3.58,
+        "dense_jepa_flatten": 11.35
+      }
+    }
+  }
+}
