@@ -85,6 +85,28 @@ def parse_args():
                    help="Comma-separated J values to eval at.")
     p.add_argument("--eval-episodes", type=int, default=128)
     p.add_argument("--out", required=True)
+
+    # Phase 3b attempt-2: expose the visited-target mask to the policy.
+    # Without this, env.expert_action depends on env.visited (hidden
+    # task state not in any encoder's observation) so the policy
+    # cannot match the expert regardless of encoder quality. The flag
+    # concatenates env.visited.float() ([B, n_targets]) to the state
+    # vector, turning the task into a representation-transfer test
+    # rather than a hidden-state-inference test.
+    p.add_argument("--use-visited-mask", action="store_true",
+                   help="Append env.visited mask (n_targets bits) to the "
+                         "policy input. Required for a valid behavioural eval.")
+    p.add_argument("--oracle-state", action="store_true",
+                   help="DIAGNOSTIC: bypass the encoder entirely and feed "
+                         "(agent_xy, target_xy_per_target, visited_mask) "
+                         "directly to the policy. If this fails, the BC "
+                         "pipeline itself is broken; if it succeeds, any "
+                         "encoder failure is real.")
+    p.add_argument("--include-agent-position", action="store_true",
+                   help="Append normalized agent (x, y) to the policy input. "
+                         "Models proprioception: realistic for any embodied "
+                         "agent and isolates 'did the encoder preserve target "
+                         "info' from 'can the policy decode agent position'.")
     return p.parse_args()
 
 
@@ -166,7 +188,10 @@ def build_env(args, device, hidden_steps_override=None):
 
 
 def make_policy(state_dim: int, action_dim: int = 2,
-                hidden: int = 128) -> nn.Module:
+                hidden: int = 512) -> nn.Module:
+    """3-layer MLP. Hidden defaults to 512 because the slot/patch state
+    is ~1024-d and a 128-wide bottleneck at the input projection was the
+    Phase-3b-run3 limiter (BC loss plateaued ≫ zero)."""
     return nn.Sequential(
         nn.Linear(state_dim, hidden), nn.GELU(),
         nn.Linear(hidden, hidden), nn.GELU(),
@@ -176,11 +201,14 @@ def make_policy(state_dim: int, action_dim: int = 2,
 
 @torch.no_grad()
 def encode_state(args, ctx_enc, slot_attn, slot_predictor,
-                  obs, slots, prev_action_vec, device):
+                  obs, slots, prev_action_vec, device, visited=None,
+                  agent_xy=None):
     """Returns (state_vec [B, state_dim], updated_slots_or_None).
 
     PatchViTEncoder returns (tokens, grid_h, grid_w); the policy only
-    needs `tokens`.
+    needs `tokens`. If `args.use_visited_mask` and `visited` is given,
+    the visited mask is appended to the state vector so the policy can
+    compute "which target is next".
     """
     tokens, _, _ = ctx_enc(obs)  # [B, N, D]
     if args.encoder_mode == "slot_delta":
@@ -190,9 +218,30 @@ def encode_state(args, ctx_enc, slot_attn, slot_predictor,
             pred = slot_predictor(slots, tokens, prev_action_vec)
             slots = pred["next_slots"]
         state = slots.reshape(slots.size(0), -1)
-        return state, slots
-    state = tokens.reshape(tokens.size(0), -1)
-    return state, None
+        out_slots = slots
+    else:
+        state = tokens.reshape(tokens.size(0), -1)
+        out_slots = None
+    if args.use_visited_mask and visited is not None:
+        state = torch.cat([state, visited.float().to(state.device)], dim=-1)
+    if args.include_agent_position and agent_xy is not None:
+        state = torch.cat([state, agent_xy.to(state.device)], dim=-1)
+    return state, out_slots
+
+
+def oracle_state(env, image_size: float) -> torch.Tensor:
+    """Diagnostic state: ground-truth (agent_xy, target_xy_flat, visited_mask),
+    normalized to [-1, 1] for agent_xy and target_xy."""
+    b = env.batch_size
+    s = image_size
+    agent = torch.stack([env.x, env.y], dim=-1) / (s / 2) - 1.0       # [B, 2]
+    tgt = torch.stack([env.tx, env.ty], dim=-1) / (s / 2) - 1.0       # [B, n_t, 2]
+    visited = env.visited.float()                                       # [B, n_t]
+    return torch.cat([agent, tgt.reshape(b, -1), visited], dim=-1)
+
+
+def oracle_state_dim(args) -> int:
+    return 2 + 2 * args.n_targets + args.n_targets
 
 
 def main():
@@ -202,7 +251,20 @@ def main():
     random.seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    ctx_enc, state_dim, slot_attn, slot_predictor, d_jepa = load_encoder(args, device)
+    if args.oracle_state:
+        # Diagnostic mode: skip encoder loading entirely.
+        ctx_enc = slot_attn = slot_predictor = None
+        d_jepa = args.d_jepa
+        state_dim = oracle_state_dim(args)
+        print(json.dumps({"event": "oracle_mode",
+                           "state_dim": state_dim}), flush=True)
+    else:
+        ctx_enc, state_dim, slot_attn, slot_predictor, d_jepa = load_encoder(args, device)
+        if args.use_visited_mask:
+            # Policy input now also carries the visited mask (n_targets bits).
+            state_dim = state_dim + args.n_targets
+        if args.include_agent_position:
+            state_dim = state_dim + 2
     policy = make_policy(state_dim).to(device)
     optim = torch.optim.AdamW(policy.parameters(), lr=args.policy_lr,
                                 weight_decay=1e-4)
@@ -225,10 +287,16 @@ def main():
 
         for t in range(args.episode_length):
             with torch.no_grad():
-                state, slots = encode_state(
-                    args, ctx_enc, slot_attn, slot_predictor,
-                    obs, slots, prev_action_vec, device,
-                )
+                if args.oracle_state:
+                    state = oracle_state(env, args.image_size).to(device)
+                else:
+                    agent_xy = (torch.stack([env.x, env.y], dim=-1)
+                                 / (args.image_size / 2) - 1.0)
+                    state, slots = encode_state(
+                        args, ctx_enc, slot_attn, slot_predictor,
+                        obs, slots, prev_action_vec, device,
+                        visited=env.visited, agent_xy=agent_xy,
+                    )
                 policy_act = policy(state).clamp(-2.0, 2.0)
                 expert_act = env.expert_action()
             # Buffer: always (state, expert) — DAGGER core idea.
@@ -283,10 +351,16 @@ def main():
             success = torch.zeros(args.batch_size, dtype=torch.bool, device=device)
             for t in range(args.episode_length):
                 with torch.no_grad():
-                    state, slots = encode_state(
-                        args, ctx_enc, slot_attn, slot_predictor,
-                        obs, slots, prev_action_vec, device,
-                    )
+                    if args.oracle_state:
+                        state = oracle_state(env_eval, args.image_size).to(device)
+                    else:
+                        agent_xy = (torch.stack([env_eval.x, env_eval.y], dim=-1)
+                                     / (args.image_size / 2) - 1.0)
+                        state, slots = encode_state(
+                            args, ctx_enc, slot_attn, slot_predictor,
+                            obs, slots, prev_action_vec, device,
+                            visited=env_eval.visited, agent_xy=agent_xy,
+                        )
                     action = policy(state).clamp(-2.0, 2.0)
                 if d_jepa > 2:
                     pad = torch.zeros(args.batch_size, d_jepa - 2, device=device)
