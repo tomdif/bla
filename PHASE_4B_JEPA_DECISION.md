@@ -1,14 +1,20 @@
 # Phase 4B (JEPA Track) — Decision document
 
 **Date:** 2026-05-16.
-**Status:** ✅ **PASSED — appearance-randomization stress survived.**
+**Status:** ✅ **PASSED STRONGLY — appearance randomization survived.**
 
 > The slot-delta mechanism survived the next perceptual realism step:
 > **color randomization + random background**, stacked on top of the
 > Phase-4A pixel noise. All 36/36 gates pass; tightest margin
 > **18.3×**; worst slot_delta cell **3.75 hidden MSE**, comfortably
-> under the Phase-4A ceiling (7.0) and even under the original
-> Phase-3 ceiling.
+> under both the Phase-4A ceiling (8.94) and the original Phase-3
+> ceiling (7.0).
+>
+> Color/background randomization plus pixel noise did not break
+> slot-delta memory; it slightly improved the slot_delta line and
+> widened the margin vs baselines. That rules out a cheap
+> explanation of earlier phases: **the mechanism is not merely
+> color shortcutting**.
 
 ## What's new vs Phase 4A
 
@@ -107,12 +113,31 @@ randomized.
 
 ## Interpretation
 
+The most defensible reading:
+
 > Sparse-delta slot memory survives appearance randomization on top of
 > all Phase-3 stress flags and Phase-4A pixel noise. The slot encoder
 > learns position-bearing entity representations that don't depend on
 > fixed colour channels, and the sparse-delta predictor preserves
 > those representations through long occlusion windows even when the
 > visible-frame appearance is unstable.
+
+Updated claim stack across the full JEPA track:
+
+| Phase | Claim |
+|---|---|
+| 2A | slot mechanism validates on a small static env |
+| 2B | sparse delta beats fair patch-level dense JEPA |
+| 3  | survives moving distractors, partial observability, more entities, long occlusion |
+| 4A | survives pixel-level perceptual noise |
+| 4B | **survives colour/background randomization on top of 4A** |
+
+Strongest current conclusion:
+
+> Sparse delta updates over persistent slots produce bounded
+> hidden-entity memory that survives dense JEPA controls, slot-only
+> ablations, moving distractors, partial observability, long occlusion
+> to J=80, pixel noise, AND appearance randomization.
 
 Carry-forward caveat:
 
@@ -169,18 +194,45 @@ representation is doing real position-extraction work.
 
 ## What's next
 
-The natural next-larger step on the realism axis is **rendered 3D
-scenes (CLEVRER-style)** — small spheres/cubes with shading,
-lighting, and proper occlusion physics. That requires a renderer; not
-trivial. Defer to Phase 4C if/when the data pipeline justifies it.
+**Phase 3b — behavioural transfer.** Perception has now passed two
+meaningful realism checks. The next open question is whether the
+representation helps action.
 
-The other natural next step is **behavioural transfer** (Phase 3b):
-with appearance randomization passing, the representation is much
-more robust than the bare Phase-3 version, so replay-buffer BC on top
-of it has a much better chance of producing a working policy. That's
-the obvious next experiment.
+Use a method that avoids the earlier BC failure:
 
-A third option: **BLA integration**. With Phase 4B in hand, the
-"unvalidated memory mechanism" caveat on the broader BLA stack is
-substantially weaker. Dropping slot-delta into the BLA latent-bus as
-the persistent-memory layer is now a defensible architectural move.
+> replay-buffer BC + DAGGER-lite
+
+Minimum setup:
+
+```
+freeze slot_delta encoder    (from Phase 4B trained checkpoint)
+freeze dense_jepa encoder    (same)
+train identical policy heads on each
+use replay buffer with model-policy rollouts
+periodically query expert for corrections
+compare success at J=20, 40, 80
+```
+
+**Primary behavioural gate:**
+
+```
+slot_delta policy success at J=40 ≥ dense_jepa policy success + 10pp
+```
+
+**Better gate (sample-efficiency framing):**
+
+```
+slot_delta needs fewer expert corrections / fewer episodes
+   to reach the same success threshold
+```
+
+— because the thesis is really *bounded memory + sample efficiency*,
+not just success rate.
+
+**Deferred until after 3b:**
+
+- *BLA integration.* The representation has earned it, but a positive
+  Phase-3b result will make the integration much more credible.
+- *Phase 4C rendered 3D scenes.* CLEVRER-style realism is the next
+  step on the realism axis but requires a renderer; defer until the
+  data pipeline justifies it.
