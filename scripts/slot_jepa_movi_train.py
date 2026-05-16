@@ -45,6 +45,9 @@ from torch.utils.data import DataLoader, Subset
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from system1_jepa.convnext_encoder import ConvNeXtEncoderConfig, ConvNeXtSlotEncoder
+from system1_jepa.id_consistency import (
+    SlotPosAuxHead, drift_diagnostic, identity_consistency_loss,
+)
 from system1_jepa.identity_probe import ProbeFitConfig, identity_aware_probe_eval
 from system1_jepa.movi_data import MoviDataset, MoviSpec, ATTR_DIM
 from system1_jepa.sigreg import sigreg_lewm
@@ -64,6 +67,13 @@ class MoviJEPA(nn.Module):
                  mode: str, mask_bias_init: float = 0.0,
                  target_active_slots: int = 0):
         super().__init__()
+        # Phase 7C: mode can carry an "_idcons" suffix indicating the encoder
+        # identity consistency loss should be applied. Strip the suffix for
+        # the architectural branch below; the trainer uses `self.use_id_cons`
+        # to decide whether to add the loss.
+        self.use_id_cons = mode.endswith("_idcons")
+        if self.use_id_cons:
+            mode = mode[:-len("_idcons")]
         self.mode = mode
         self.slot_dim = slot_dim
         self.n_slots = n_slots
@@ -77,11 +87,12 @@ class MoviJEPA(nn.Module):
             cfg=SlotAttentionConfig(n_slots=n_slots, slot_dim=slot_dim, n_iters=3),
         )
 
-        if mode in ("slot_delta", "slot_dense_update", "dynamic"):
+        if mode in ("slot_delta", "slot_dense_update", "dynamic", "id_dyn_split"):
             update_mode = {
                 "slot_delta": "delta",
                 "slot_dense_update": "dense",
                 "dynamic": "dynamic",
+                "id_dyn_split": "id_dyn_split",
             }[mode]
             self.predictor: Optional[nn.Module] = SlotDeltaPredictor(
                 SlotPredictorConfig(
@@ -91,6 +102,8 @@ class MoviJEPA(nn.Module):
                     mask_bias_init=mask_bias_init,
                     update_mode=update_mode,
                     target_active_slots=target_active_slots,
+                    id_dim=slot_dim // 2,
+                    id_ema_alpha=0.05,
                 )
             )
         elif mode == "dense_jepa":
@@ -111,16 +124,29 @@ class MoviJEPA(nn.Module):
         else:
             raise ValueError(f"Unknown mode: {mode}")
 
+        # Phase 7C: auxiliary slot→pos head, used both to train an oracle
+        # binding signal and to drive Hungarian matching for the identity
+        # consistency loss. Tiny, single Linear.
+        self.id_dim = slot_dim // 2 if mode == "id_dyn_split" else slot_dim // 2
+        self.slot_to_pos_aux = SlotPosAuxHead(slot_dim)
+
+    @staticmethod
+    def _norm_slots(slots: torch.Tensor) -> torch.Tensor:
+        """LayerNorm-style normalize per-slot. Prevents the slot-persistence
+        recurrence from compounding magnitudes across 24 frames × N training
+        steps (caused exponential loss blowup on seeds 0,2 at LR=3e-4)."""
+        return F.layer_norm(slots, slots.shape[-1:])
+
     @torch.no_grad()
     def encode_video(self, video: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """video: [T, 3, H, W] → (slot_states [T, S, D], patch_tokens [T, N, D])
         Uses persistent slot init across frames (slot system carries state)."""
         T = video.shape[0]
         tokens = self.enc(video)
-        slots = self.slot_attn(tokens[0:1])  # [1, S, D]
+        slots = self._norm_slots(self.slot_attn(tokens[0:1]))
         slot_states = [slots]
         for t in range(1, T):
-            slots = self.slot_attn(tokens[t:t+1], init_slots=slots)
+            slots = self._norm_slots(self.slot_attn(tokens[t:t+1], init_slots=slots))
             slot_states.append(slots)
         return torch.cat(slot_states, dim=0), tokens
 
@@ -128,10 +154,10 @@ class MoviJEPA(nn.Module):
         """Same as encode_video but tracks grads. Used in training pass."""
         T = video.shape[0]
         tokens = self.enc(video)
-        slots = self.slot_attn(tokens[0:1])
+        slots = self._norm_slots(self.slot_attn(tokens[0:1]))
         slot_states = [slots]
         for t in range(1, T):
-            slots = self.slot_attn(tokens[t:t+1], init_slots=slots)
+            slots = self._norm_slots(self.slot_attn(tokens[t:t+1], init_slots=slots))
             slot_states.append(slots)
         return torch.cat(slot_states, dim=0), tokens
 
@@ -140,7 +166,7 @@ class MoviJEPA(nn.Module):
         """Predict slots_{t+1} from slots_t, obs features, action."""
         if self.mode == "copy":
             return slots_t
-        if self.mode in ("slot_delta", "slot_dense_update", "dynamic"):
+        if self.mode in ("slot_delta", "slot_dense_update", "dynamic", "id_dyn_split"):
             out = self.predictor(slots_t, obs_t, action)
             return out["next_slots"]
         if self.mode == "dense_jepa":
@@ -216,6 +242,20 @@ def train_one_run(
             if args.sigreg_w > 0:
                 sr = sigreg_lewm(slot_states.reshape(-1, slot_states.shape[-1]))
                 loss = loss + args.sigreg_w * sr
+
+            # Phase 7C: identity consistency loss + aux head training.
+            # slot_states is [T, S, D]; gt_pos and gt_vis are [T, E_max, ...]
+            mode_uses_idcons = getattr(model, "use_id_cons", False)
+            eff_id_cons_w = args.id_consistency_w if mode_uses_idcons else 0.0
+            eff_aux_pos_w = args.aux_pos_w if mode_uses_idcons else 0.0
+            if eff_id_cons_w > 0 or eff_aux_pos_w > 0:
+                gt_pos_t = batch["positions"][0].to(device)        # [T, E_max, 2]
+                gt_vis_t = batch["visibility"][0].to(device).bool() # [T, E_max]
+                cons_loss, aux_loss = identity_consistency_loss(
+                    slot_states, model.slot_to_pos_aux,
+                    gt_pos_t, gt_vis_t, model.id_dim,
+                )
+                loss = loss + eff_id_cons_w * cons_loss + eff_aux_pos_w * aux_loss
 
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -297,6 +337,21 @@ def train_one_run(
         J=0, cfg=cfg,
     )
 
+    # Phase 7C: id_drift / dyn_drift diagnostic across eval episodes.
+    # Skip for the 'copy' baseline (no slot_to_pos_aux meaningfully trained).
+    drift_records = []
+    with torch.no_grad():
+        for ep_idx in eval_indices[:16]:  # first 16 eval eps for speed
+            sample = dataset[ep_idx]
+            video = sample["video"].to(device)
+            slot_seq, _ = model.encode_video(video)        # [T, S, D]
+            gt_pos_e = sample["positions"].to(device)
+            gt_vis_e = sample["visibility"].to(device).bool()
+            drift = drift_diagnostic(slot_seq, gt_pos_e, gt_vis_e,
+                                      model.slot_to_pos_aux, model.id_dim)
+            if drift["n_pairs"] > 0:
+                drift_records.append(drift)
+
     # 6 metrics for the decision doc.
     metrics = {
         "visible_position_mse": result.visible_position_mse,
@@ -310,6 +365,10 @@ def train_one_run(
         "n_visible": result.n_visible,
         "n_hidden": result.n_hidden,
     }
+    if drift_records:
+        metrics["id_drift"] = float(np.mean([d["id_drift"] for d in drift_records]))
+        metrics["dyn_drift"] = float(np.mean([d["dyn_drift"] for d in drift_records]))
+        metrics["drift_ratio"] = metrics["id_drift"] / max(metrics["dyn_drift"], 1e-9)
     record = {
         "seed": seed,
         "mode": mode,
@@ -338,6 +397,10 @@ def main():
     p.add_argument("--max-steps", type=int, default=1500)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--sigreg-w", type=float, default=0.01)
+    p.add_argument("--id-consistency-w", type=float, default=0.0,
+                   help="Phase 7C: weight on encoder identity consistency loss")
+    p.add_argument("--aux-pos-w", type=float, default=0.0,
+                   help="Phase 7C: weight on aux slot→pos head training loss")
     p.add_argument("--mask-bias-init", type=float, default=0.0)
     p.add_argument("--probe-epochs", type=int, default=300)
     p.add_argument("--log-every", type=int, default=100)

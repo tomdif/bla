@@ -46,8 +46,13 @@ class SlotPredictorConfig:
     delta_scale: float = 0.1
     dropout: float = 0.0
     mask_bias_init: float = -1.0
-    update_mode: str = "delta"  # "delta" (sparse) or "dense" (replace) or "dynamic" (top-k active gate)
+    update_mode: str = "delta"  # "delta" (sparse) or "dense" (replace) or "dynamic" (top-k active gate) or "id_dyn_split" (slow id + fast sparse dyn)
     target_active_slots: int = 0  # Phase-5B: 0 = all slots active (delta mode); >0 = top-k active gate
+    # Phase 7B: split each slot into [id, dyn]. id updates slowly via EMA on
+    # its own delta head (no mask), dyn updates via sparse mask × delta.
+    # Used only when update_mode == "id_dyn_split".
+    id_dim: int = 0           # if 0 and update_mode=="id_dyn_split", defaults to slot_dim // 2
+    id_ema_alpha: float = 0.05  # EMA step size for the id half (small = slow)
 
 
 class SlotDeltaPredictor(nn.Module):
@@ -93,6 +98,17 @@ class SlotDeltaPredictor(nn.Module):
             nn.init.normal_(self.active_head.weight, std=0.02)
         else:
             self.active_head = None
+        # Phase 7B: id/dyn split. The id half updates slowly via EMA on a
+        # dedicated id_delta head; the dyn half updates via the existing
+        # sparse-delta mechanism on the dyn-dim subset of `raw_delta`. No
+        # new transformer parameters — the id_delta_head re-projects the
+        # transformer output to the id_dim subspace.
+        if cfg.update_mode == "id_dyn_split":
+            self._id_dim = cfg.id_dim if cfg.id_dim > 0 else d // 2
+            assert 0 < self._id_dim < d, f"id_dim {self._id_dim} must be in (0, {d})"
+            self.id_delta_head = nn.Linear(d, self._id_dim)
+        else:
+            self._id_dim = 0
         # Init the change-mask bias negative so updates default to off —
         # the model has to learn to fire the mask. The exact starting
         # point matters: bias=-1 starts at sigmoid(-1)≈0.27, bias=-2 at
@@ -148,6 +164,20 @@ class SlotDeltaPredictor(nn.Module):
             # Force-report a "mask" of 1.0 so downstream loss reporting still
             # has a consistent field; nothing in the loss penalizes it.
             change_mask = torch.ones_like(change_mask)
+        elif self.cfg.update_mode == "id_dyn_split":
+            # Phase 7B: each slot is [id (slow, EMA), dyn (fast, sparse-delta)].
+            # id: id_next = id + alpha * id_delta  (no mask, slow EMA-style)
+            # dyn: dyn_next = dyn + change_mask * delta_scale * tanh(raw_delta_dyn)
+            id_dim = self._id_dim
+            id_in = slots[..., :id_dim]
+            dyn_in = slots[..., id_dim:]
+            id_delta = self.id_delta_head(slot_out)                    # [B, S, id_dim]
+            id_next = id_in + self.cfg.id_ema_alpha * id_delta
+            dyn_delta = delta[..., id_dim:]                            # bounded tanh in slot dim
+            dyn_next = dyn_in + change_mask * dyn_delta
+            next_slots = torch.cat([id_next, dyn_next], dim=-1)
+            # Force the mask reported in `out` to be the actual dyn-half mask
+            # (no change-mask applied to the id half — it's always-on but slow).
         elif self.cfg.update_mode == "dynamic":
             # Phase 5B: pool of n_slots, but only the top-K highest-
             # scoring slots get a delta update each step. Inactive slots
