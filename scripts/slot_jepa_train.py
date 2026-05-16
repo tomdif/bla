@@ -79,6 +79,12 @@ def parse_args():
     p.add_argument("--background-randomization", action="store_true",
                    help="Phase-4B: low-magnitude random per-pixel background "
                          "canvas sampled at each reset.")
+    p.add_argument("--soft-render", action="store_true",
+                   help="Phase-6: render entities as sub-pixel Gaussian "
+                         "footprints with antialiased edges, instead of hard "
+                         "patch fills. Image-like rendering.")
+    p.add_argument("--soft-sigma", type=float, default=1.5,
+                   help="Gaussian footprint σ when --soft-render is on.")
     p.add_argument("--d-jepa", type=int, default=64)
     p.add_argument("--n-slots", type=int, default=16)
     p.add_argument("--slot-iters", type=int, default=3)
@@ -132,6 +138,8 @@ def build_env(args, device):
         perceptual_noise=args.perceptual_noise,
         color_randomization=args.color_randomization,
         background_randomization=args.background_randomization,
+        soft_render=args.soft_render,
+        soft_sigma=args.soft_sigma,
         max_steps=args.episode_length,
         action_dim=args.d_jepa,
     )
@@ -244,6 +252,8 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
         perceptual_noise=args.perceptual_noise,
         color_randomization=args.color_randomization,
         background_randomization=args.background_randomization,
+        soft_render=args.soft_render,
+        soft_sigma=args.soft_sigma,
         max_steps=args.episode_length, action_dim=args.d_jepa,
     )
     env = OccludedMultiTargetNavigateEnv(spec, batch_size=args.batch_size,

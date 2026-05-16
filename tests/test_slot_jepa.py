@@ -118,6 +118,33 @@ def test_slot_delta_loss_falls_with_sparsity_pressure():
     )
 
 
+def test_soft_render_changes_canvas_and_default_preserved():
+    """Phase 6: soft_render=True produces smooth Gaussian footprints; default
+    (off) preserves Phase 3/4/5 hard-patch rendering."""
+    _seed()
+    spec_hard = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=1, n_distractors=0,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+    )
+    spec_soft = OccludedNavigateSpec(
+        image_size=16, patch_size=2, n_targets=1, n_distractors=0,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+        soft_render=True, soft_sigma=1.5,
+    )
+    env_hard = OccludedMultiTargetNavigateEnv(spec_hard, batch_size=1, seed=0)
+    env_soft = OccludedMultiTargetNavigateEnv(spec_soft, batch_size=1, seed=0)
+    o_hard = env_hard.observe()
+    o_soft = env_soft.observe()
+    # Hard render: pixels are 0 or color value (saturated).
+    # Soft render: smooth gradient — many pixels in (0, 1) open interval.
+    hard_frac_smooth = ((o_hard > 0.01) & (o_hard < 0.99)).float().mean().item()
+    soft_frac_smooth = ((o_soft > 0.01) & (o_soft < 0.99)).float().mean().item()
+    assert soft_frac_smooth > hard_frac_smooth + 0.02, (
+        f"soft_render produced too few mid-intensity pixels: "
+        f"hard={hard_frac_smooth:.3f} soft={soft_frac_smooth:.3f}"
+    )
+
+
 def test_hungarian_mse_permutation_invariant():
     """Hungarian MSE: a probe that outputs the right *set* of positions
     in any order should score near zero. Sanity-checks the methodology

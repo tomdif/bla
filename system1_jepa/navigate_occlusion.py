@@ -43,6 +43,8 @@ class OccludedNavigateSpec(MultiTargetNavigateSpec):
     color_randomization: bool = False    # Phase-4B: sample random RGB per entity at each reset; breaks the channel-as-label shortcut
     background_randomization: bool = False  # Phase-4B: per-pixel random background canvas (low magnitude) sampled at each reset
     background_magnitude: float = 0.15   # max background pixel value when background_randomization is on
+    soft_render: bool = False            # Phase-6: replace hard patch fill with sub-pixel Gaussian-footprint entities (image-like)
+    soft_sigma: float = 1.5              # Gaussian footprint σ in pixels when soft_render is on
 
 
 class OccludedMultiTargetNavigateEnv(MultiTargetNavigateEnv):
@@ -161,15 +163,44 @@ class OccludedMultiTargetNavigateEnv(MultiTargetNavigateEnv):
 
     def _draw_colored(self, canvas: torch.Tensor, x: torch.Tensor,
                        y: torch.Tensor, color: torch.Tensor) -> None:
-        """Overwrite a patch on `canvas` ([B, 3, H, W]) at (x, y) with
-        a per-batch color ([B, 3])."""
-        p = self.spec.patch_size
+        """Render an entity onto `canvas` ([B, 3, H, W]) at (x, y) with
+        per-batch color ([B, 3]).
+
+        Default (hard-patch): overwrite a patch_size × patch_size square
+        — Phase-3/4/5 rendering.
+
+        Phase 6 (soft_render=True): additive Gaussian-footprint stamp at
+        sub-pixel position (x+p/2, y+p/2) with σ = spec.soft_sigma. This
+        breaks the patch-aligned shortcut and produces image-like
+        rendering with smooth edges and shading-like falloff.
+        """
         size = self.spec.image_size
+        p = self.spec.patch_size
+        if not self.spec.soft_render:
+            for b in range(canvas.shape[0]):
+                xi = max(0, min(size - p, int(x[b].item())))
+                yi = max(0, min(size - p, int(y[b].item())))
+                for ch in range(3):
+                    canvas[b, ch, yi:yi + p, xi:xi + p] = color[b, ch]
+            return
+        # Gaussian footprint per entity, additive composition. The +p/2
+        # offset puts the centre at the centre of where the hard patch
+        # would have been drawn (so the integer-grid positions in
+        # env.x/env.y still parse the same way).
+        sigma = self.spec.soft_sigma
+        if not hasattr(self, "_render_grid"):
+            yy = torch.arange(size, device=self.device).float()
+            xx = torch.arange(size, device=self.device).float()
+            grid_y, grid_x = torch.meshgrid(yy, xx, indexing="ij")
+            self._render_grid = (grid_x, grid_y)
+        gx, gy = self._render_grid
         for b in range(canvas.shape[0]):
-            xi = max(0, min(size - p, int(x[b].item())))
-            yi = max(0, min(size - p, int(y[b].item())))
-            for ch in range(3):
-                canvas[b, ch, yi:yi + p, xi:xi + p] = color[b, ch]
+            cx = x[b].float() + p / 2
+            cy = y[b].float() + p / 2
+            d2 = (gx - cx) ** 2 + (gy - cy) ** 2
+            gauss = torch.exp(-d2 / (2 * sigma ** 2))     # [H, W]
+            # Additive blend, per channel. Caller clamps at end.
+            canvas[b] = canvas[b] + gauss.unsqueeze(0) * color[b].view(3, 1, 1)
 
     def _is_hidden_step(self) -> bool:
         """True when the current step falls inside a hidden window."""

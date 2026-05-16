@@ -86,6 +86,9 @@ def parse_args():
                    help="Phase-4B: randomize entity colors per episode.")
     p.add_argument("--background-randomization", action="store_true",
                    help="Phase-4B: low-magnitude random per-pixel background.")
+    p.add_argument("--soft-render", action="store_true",
+                   help="Phase-6: Gaussian-footprint entity rendering.")
+    p.add_argument("--soft-sigma", type=float, default=1.5)
 
     p.add_argument("--steps", type=int, default=3000,
                    help="Self-supervised training steps per sub-run.")
@@ -283,6 +286,8 @@ def run_one(args, run_dir, mode, seed, K, n_targets, n_distractors, J_train,
         cmd.append("--color-randomization")
     if args.background_randomization:
         cmd.append("--background-randomization")
+    if args.soft_render:
+        cmd += ["--soft-render", "--soft-sigma", str(args.soft_sigma)]
     if args.dry_run:
         print("DRY-RUN:", " ".join(cmd))
         return None
