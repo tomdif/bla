@@ -33,6 +33,11 @@ class OccludedNavigateSpec(MultiTargetNavigateSpec):
     visible_steps: int = 5      # K — frames where targets are rendered
     hidden_steps: int = 10      # J — frames where targets are removed from obs
     n_distractors: int = 0       # additional visual clutter patches that never matter for reward
+    moving_distractors: bool = False     # distractors random-walk each step
+    distractor_move_max: float = 1.0     # per-step random displacement bound
+    partial_observability: bool = False  # mask obs outside a circle around the agent
+    obs_radius: float = 8.0              # observation circle radius (in pixels)
+    rendered_patches: bool = True        # informational flag for the manifest; observations are always pixel-rendered in this env
 
 
 class OccludedMultiTargetNavigateEnv(MultiTargetNavigateEnv):
@@ -59,6 +64,40 @@ class OccludedMultiTargetNavigateEnv(MultiTargetNavigateEnv):
         self.dy_pos = torch.randint(
             0, max_xy + 1, (self.batch_size, n), device=self.device, generator=self.gen
         ).float()
+
+    def _move_distractors(self) -> None:
+        """Each distractor takes a random step bounded by `distractor_move_max`,
+        clamped to the canvas. Called once per env step when
+        `moving_distractors` is set."""
+        if self.dx_pos is None or not self.spec.moving_distractors:
+            return
+        n = self.spec.n_distractors
+        max_xy = self.spec.image_size - self.spec.patch_size
+        m = self.spec.distractor_move_max
+        # Uniform random walk in [-m, m] per axis. Using the env's RNG so
+        # reproducibility holds.
+        dx = (torch.rand(self.batch_size, n, device=self.device, generator=self.gen) * 2 - 1) * m
+        dy = (torch.rand(self.batch_size, n, device=self.device, generator=self.gen) * 2 - 1) * m
+        self.dx_pos = (self.dx_pos + dx).clamp(0, max_xy)
+        self.dy_pos = (self.dy_pos + dy).clamp(0, max_xy)
+
+    def _apply_partial_observability(self, canvas: torch.Tensor) -> torch.Tensor:
+        """Zero out pixels outside a circle of radius `obs_radius` around the
+        agent. Implemented as a per-pixel mask; not differentiable, which is
+        fine because env outputs are not on the autograd path."""
+        if not self.spec.partial_observability:
+            return canvas
+        size = self.spec.image_size
+        radius = self.spec.obs_radius
+        y = torch.arange(size, device=self.device).float()
+        x = torch.arange(size, device=self.device).float()
+        yy, xx = torch.meshgrid(y, x, indexing="ij")  # [H, W]
+        # Agent center (top-left of patch + half patch).
+        cx = (self.x + self.spec.patch_size / 2).view(-1, 1, 1)
+        cy = (self.y + self.spec.patch_size / 2).view(-1, 1, 1)
+        dist_sq = (xx.unsqueeze(0) - cx) ** 2 + (yy.unsqueeze(0) - cy) ** 2
+        mask = (dist_sq <= radius * radius).float()                 # [B, H, W]
+        return canvas * mask.unsqueeze(1)                            # broadcast over channels
 
     def reset(self) -> torch.Tensor:
         out = super().reset()
@@ -94,7 +133,17 @@ class OccludedMultiTargetNavigateEnv(MultiTargetNavigateEnv):
         if not self._is_hidden_step():
             canvas[:, 0, :, :] += self._all_targets_overlay() * 1.0
         self._draw_distractors(canvas)
-        return canvas.clamp(0, 1)
+        canvas = canvas.clamp(0, 1)
+        canvas = self._apply_partial_observability(canvas)
+        return canvas
+
+    def step(self, dxy: torch.Tensor, success_bonus: float = 5.0):
+        # Override to let distractors move when `moving_distractors` is on.
+        # We move them *before* the parent's step so the agent's
+        # post-step observation reflects the new distractor positions.
+        if self.spec.moving_distractors:
+            self._move_distractors()
+        return super().step(dxy, success_bonus=success_bonus)
 
     def visibility_mask(self) -> torch.Tensor:
         """[B] bool — True if the current step shows targets, False if hidden.

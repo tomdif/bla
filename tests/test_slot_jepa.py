@@ -172,6 +172,89 @@ def test_occluded_env_distractors_render_in_blue_channel():
     assert blue_total > 0, "distractors not rendered in blue channel"
 
 
+def test_occluded_env_default_regression():
+    """Phase-2 defaults must remain byte-identical after Phase-3 flags
+    are added. Otherwise we accidentally moved the floor and the locked
+    Phase-2 numbers stop comparing."""
+    _seed()
+    spec = OccludedNavigateSpec(
+        image_size=32, patch_size=4, n_targets=3, n_distractors=2,
+        visible_steps=5, hidden_steps=10, max_steps=24,
+    )
+    # All Phase-3 flags must default to "off / Phase-2 behaviour".
+    assert spec.moving_distractors is False
+    assert spec.partial_observability is False
+    assert spec.distractor_move_max == 1.0
+    assert spec.obs_radius == 8.0
+    assert spec.rendered_patches is True
+
+    env = OccludedMultiTargetNavigateEnv(spec, batch_size=2, seed=0)
+    # Distractors at t=0 vs after a no-op step: identical when moving is off.
+    pos0 = env.dx_pos.clone(), env.dy_pos.clone()
+    env.step(torch.zeros(2, 2))
+    pos1 = env.dx_pos, env.dy_pos
+    assert torch.equal(pos0[0], pos1[0]), "distractors moved with default settings"
+    assert torch.equal(pos0[1], pos1[1])
+
+
+def test_moving_distractors_change_position_each_step():
+    _seed()
+    spec = OccludedNavigateSpec(
+        image_size=32, patch_size=4, n_targets=1, n_distractors=4,
+        visible_steps=1, hidden_steps=0, max_steps=10,
+        moving_distractors=True, distractor_move_max=2.0,
+    )
+    env = OccludedMultiTargetNavigateEnv(spec, batch_size=2, seed=0)
+    initial = env.dx_pos.clone(), env.dy_pos.clone()
+    env.step(torch.zeros(2, 2))
+    moved = env.dx_pos, env.dy_pos
+    # With move_max=2 it's astronomically unlikely all 8 coords land on
+    # exactly their previous integer value via random walk.
+    assert not (torch.equal(initial[0], moved[0]) and torch.equal(initial[1], moved[1])), (
+        "moving_distractors=True did not change positions"
+    )
+    # Per-step displacement is bounded by move_max in each axis.
+    max_xy = spec.image_size - spec.patch_size
+    dx = (moved[0] - initial[0]).abs()
+    dy = (moved[1] - initial[1]).abs()
+    # Allowing a tiny epsilon for the clamp boundary cases.
+    assert (dx <= spec.distractor_move_max + 1e-5).all(), f"dx exceeded bound: {dx.max()}"
+    assert (dy <= spec.distractor_move_max + 1e-5).all(), f"dy exceeded bound: {dy.max()}"
+
+
+def test_partial_observability_masks_far_pixels():
+    """With partial_observability=True and obs_radius < image_size, pixels
+    beyond the radius around the agent must be exactly zero."""
+    _seed()
+    spec = OccludedNavigateSpec(
+        image_size=32, patch_size=4, n_targets=3, n_distractors=4,
+        visible_steps=1, hidden_steps=0, max_steps=5,
+        partial_observability=True, obs_radius=4.0,
+    )
+    env = OccludedMultiTargetNavigateEnv(spec, batch_size=2, seed=0)
+    obs = env.observe()  # [B, 3, H, W]
+    # A pixel diagonally far from the agent (corner) must be zero.
+    # Test: pick the corner opposite to the agent's position for each batch.
+    for b in range(obs.shape[0]):
+        ax = float(env.x[b])
+        ay = float(env.y[b])
+        # Corner farthest from (ax, ay).
+        corner_x = 0 if ax > spec.image_size / 2 else spec.image_size - 1
+        corner_y = 0 if ay > spec.image_size / 2 else spec.image_size - 1
+        v = obs[b, :, corner_y, corner_x]
+        assert v.abs().sum().item() == 0.0, (
+            f"partial observability didn't mask far corner ({corner_y},{corner_x}): {v}"
+        )
+    # And the agent's own pixel must still be visible (non-zero).
+    for b in range(obs.shape[0]):
+        ax = int(env.x[b])
+        ay = int(env.y[b])
+        center_val = obs[b, :, ay, ax].abs().sum().item()
+        assert center_val > 0.0, (
+            f"agent pixel was masked by partial observability at ({ay},{ax})"
+        )
+
+
 def test_end_to_end_encoder_slot_predictor_backprops():
     """Compose JEPA encoder → SlotAttention → SlotDeltaPredictor → loss in
     one forward+backward and confirm gradients flow to every module."""

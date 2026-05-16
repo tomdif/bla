@@ -62,6 +62,13 @@ def parse_args():
     p.add_argument("--visible-steps", type=int, default=5)
     p.add_argument("--hidden-steps", type=int, default=10)
     p.add_argument("--n-distractors", type=int, default=2)
+    p.add_argument("--moving-distractors", action="store_true",
+                   help="Distractors random-walk each env step. Phase-3 stress flag.")
+    p.add_argument("--distractor-move-max", type=float, default=1.0)
+    p.add_argument("--partial-observability", action="store_true",
+                   help="Mask observation outside a circle around the agent. "
+                         "Phase-3 stress flag.")
+    p.add_argument("--obs-radius", type=float, default=8.0)
     p.add_argument("--d-jepa", type=int, default=64)
     p.add_argument("--n-slots", type=int, default=16)
     p.add_argument("--slot-iters", type=int, default=3)
@@ -104,6 +111,10 @@ def build_env(args, device):
         visible_steps=args.visible_steps,
         hidden_steps=args.hidden_steps,
         n_distractors=args.n_distractors,
+        moving_distractors=args.moving_distractors,
+        distractor_move_max=args.distractor_move_max,
+        partial_observability=args.partial_observability,
+        obs_radius=args.obs_radius,
         max_steps=args.episode_length,
         action_dim=args.d_jepa,
     )
@@ -208,6 +219,10 @@ def _collect_probe_rollouts(args, j_value, mode, ctx_enc, slot_attn,
         image_size=args.image_size, patch_size=args.patch_size,
         n_targets=args.n_targets, visible_steps=args.visible_steps,
         hidden_steps=j_value, n_distractors=args.n_distractors,
+        moving_distractors=args.moving_distractors,
+        distractor_move_max=args.distractor_move_max,
+        partial_observability=args.partial_observability,
+        obs_radius=args.obs_radius,
         max_steps=args.episode_length, action_dim=args.d_jepa,
     )
     env = OccludedMultiTargetNavigateEnv(spec, batch_size=args.batch_size,
