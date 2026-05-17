@@ -104,18 +104,70 @@ Object-file memory
          └── reachability(state_goal) → cost-to-go
 ```
 
+## Phase 14.4 — action-ranking eval
+
+For each (state_t, actual_action a*, actual_next_pos) in eval, rank
+a* against K-1 random alternatives by `predicted_pos(model, state_t, a)`
+distance to ground-truth next position. If the model has learned
+action effects, a* should rank first.
+
+| Mode | top1 hit | top3 hit | rank_of_actual | n_pairs |
+|---|---|---|---|---|
+| baseline (no action) | **1.000** | **1.000** | **1.000** (tie artifact) | 3040 |
+| **+action** | **0.125** | 0.363 | **4.564** | 3040 |
+| chance (K=8) | 0.125 | 0.375 | 4.5 | — |
+
+The baseline's 1.000 is informationally vacuous: its predictions
+ignore action so all candidates have identical distances, and
+stable-sort puts the actual action at index 0. The +action result
+**lands at chance**: top-1 hit rate 0.125 matches chance 0.125; rank
+of actual 4.564 matches chance 4.5.
+
+So **action conditioning, as implemented, does NOT let the model
+discriminate actions from each other**. It improves average position
+prediction by ~13% (Phase 14.3) but cannot answer "which action was
+taken." Combined verdict:
+
+> Action conditioning gives a small average pos improvement but
+> does not let the model rank actions. The model uses action as
+> noise-reduction, not as a discriminative input. Action
+> conditioning, as currently set up, is NOT load-bearing for
+> action-discrimination / planning.
+
+## Why action conditioning doesn't help discrimination in this regime
+
+Likely root causes:
+
+1. **Random policy gives weak training signal.** Most random actions
+   in 80-frame rollouts don't change object positions (robot waves
+   around without grasping). The action→effect map the model needs
+   to learn is sparsely populated.
+2. **Action effects localize to ONE slot.** The EE moves; the cubes
+   only move when the EE touches them. With Hungarian-aggregated
+   per-pair distance, signal washes out.
+3. **k=4 stride loses immediate action signal.** Most action effects
+   on cubes propagate via collision chains over multiple frames.
+4. **Small predictor + 1500 steps.** Future_head is a small MLP. The
+   action→state map needs more capacity or training.
+
+To make action conditioning truly load-bearing for ranking, the
+likely needed changes:
+- **Scripted-policy rollouts** (not random), so the data has informative
+  action→effect pairs.
+- **Per-slot action conditioning** that targets the actor slot
+  specifically (the EE), instead of broadcasting to all slots.
+- **k=1 stride** for immediate-effect prediction first.
+- **Slot-binding to actor** as a discrete inductive bias.
+
 ## What's still open
 
 - **Multi-seed confirmation.** 1 seed; the −13% pos improvement could
   be within seed noise. 3 seeds would tighten the claim.
-- **Phase 14.4 — which-object-changed.** The plan called for a
-  separate test: predict which of {cubeA, cubeB, eef} moves most at
-  step t given action. That separates "action effect locality" from
-  "action effect magnitude" and is the right test for relation graph
-  load-bearing under action conditioning. Not yet run.
-- **Successful task completion.** Random policy rarely stacks. To
-  generate richer interaction signal, replace random policy with
-  scripted task-completion policy or imitation rollouts.
+- **Scripted-policy rollouts.** Replace random with task-completion
+  policy or imitation. Likely needed to make action conditioning
+  load-bearing.
+- **Action-as-actor-binding architecture.** Bind one slot to the
+  end-effector explicitly, condition only that slot's update on action.
 
 ## Reproducibility
 
