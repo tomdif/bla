@@ -1,0 +1,514 @@
+{
+  "of_jepa_v1": {
+    "visible_position_mse": {
+      "mean": 5.430118527698369e-05,
+      "std": 0.0,
+      "values": [
+        5.430118527698369e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 0.008809260891302984,
+      "std": 0.0,
+      "values": [
+        0.008809260891302984
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.09773551087577723,
+      "std": 0.0,
+      "values": [
+        0.09773551087577723
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 2.2240842490842487,
+      "std": 0.0,
+      "values": [
+        2.2240842490842487
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 162.22962438790285,
+      "std": 0.0,
+      "values": [
+        162.22962438790285
+      ]
+    },
+    "n_visible": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "n_hidden": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "id_drift": {
+      "mean": 0.7742985716307947,
+      "std": 0.0,
+      "values": [
+        0.7742985716307947
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.12739684408869217,
+      "std": 0.0,
+      "values": [
+        0.12739684408869217
+      ]
+    },
+    "drift_ratio": {
+      "mean": 6.077847353045396,
+      "std": 0.0,
+      "values": [
+        6.077847353045396
+      ]
+    },
+    "same_object_cos": {
+      "mean": 0.9790759853127906,
+      "std": 0.0,
+      "values": [
+        0.9790759853127906
+      ]
+    },
+    "diff_object_cos": {
+      "mean": 0.8204548609536031,
+      "std": 0.0,
+      "values": [
+        0.8204548609536031
+      ]
+    },
+    "cos_gap": {
+      "mean": 0.15862112435918752,
+      "std": 0.0,
+      "values": [
+        0.15862112435918752
+      ]
+    },
+    "identity_visible_mse": {
+      "mean": 0.004464112893622642,
+      "std": 0.0,
+      "values": [
+        0.004464112893622642
+      ]
+    },
+    "identity_hidden_mse": {
+      "mean": 0.03441960883603976,
+      "std": 0.0,
+      "values": [
+        0.03441960883603976
+      ]
+    },
+    "identity_hidden_visible_ratio": {
+      "mean": 7.7102908587305325,
+      "std": 0.0,
+      "values": [
+        7.7102908587305325
+      ]
+    },
+    "n_id_visible": {
+      "mean": 3920.0,
+      "std": 0.0,
+      "values": [
+        3920
+      ]
+    },
+    "n_id_hidden": {
+      "mean": 88.0,
+      "std": 0.0,
+      "values": [
+        88
+      ]
+    }
+  },
+  "of_jepa_v0": {
+    "visible_position_mse": {
+      "mean": 1.4955262799768814e-05,
+      "std": 0.0,
+      "values": [
+        1.4955262799768814e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 0.06519284519987802,
+      "std": 0.0,
+      "values": [
+        0.06519284519987802
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.0910407243928702,
+      "std": 0.0,
+      "values": [
+        0.0910407243928702
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 2.007334160937102,
+      "std": 0.0,
+      "values": [
+        2.007334160937102
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 4359.1908796738635,
+      "std": 0.0,
+      "values": [
+        4359.1908796738635
+      ]
+    },
+    "n_visible": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "n_hidden": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "id_drift": {
+      "mean": 1.9246903292979851,
+      "std": 0.0,
+      "values": [
+        1.9246903292979851
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.010779733624823212,
+      "std": 0.0,
+      "values": [
+        0.010779733624823212
+      ]
+    },
+    "drift_ratio": {
+      "mean": 178.54711408321558,
+      "std": 0.0,
+      "values": [
+        178.54711408321558
+      ]
+    },
+    "same_object_cos": {
+      "mean": 0.8789411543355713,
+      "std": 0.0,
+      "values": [
+        0.8789411543355713
+      ]
+    },
+    "diff_object_cos": {
+      "mean": 0.44134202462759226,
+      "std": 0.0,
+      "values": [
+        0.44134202462759226
+      ]
+    },
+    "cos_gap": {
+      "mean": 0.43759912970797904,
+      "std": 0.0,
+      "values": [
+        0.43759912970797904
+      ]
+    },
+    "identity_visible_mse": {
+      "mean": 1.6159313889387446e-05,
+      "std": 0.0,
+      "values": [
+        1.6159313889387446e-05
+      ]
+    },
+    "identity_hidden_mse": {
+      "mean": 1.620142092688352e-05,
+      "std": 0.0,
+      "values": [
+        1.620142092688352e-05
+      ]
+    },
+    "identity_hidden_visible_ratio": {
+      "mean": 1.0026057441413851,
+      "std": 0.0,
+      "values": [
+        1.0026057441413851
+      ]
+    },
+    "n_id_visible": {
+      "mean": 3639.0,
+      "std": 0.0,
+      "values": [
+        3639
+      ]
+    },
+    "n_id_hidden": {
+      "mean": 81.0,
+      "std": 0.0,
+      "values": [
+        81
+      ]
+    }
+  },
+  "slot_delta": {
+    "visible_position_mse": {
+      "mean": 1.9086775520330927e-05,
+      "std": 0.0,
+      "values": [
+        1.9086775520330927e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 2.031035694661417e-05,
+      "std": 0.0,
+      "values": [
+        2.031035694661417e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.8684915850176227,
+      "std": 0.0,
+      "values": [
+        0.8684915850176227
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 6.505,
+      "std": 0.0,
+      "values": [
+        6.505
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 1.0641062407309136,
+      "std": 0.0,
+      "values": [
+        1.0641062407309136
+      ]
+    },
+    "n_visible": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "n_hidden": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "id_drift": {
+      "mean": 0.0075671470885815655,
+      "std": 0.0,
+      "values": [
+        0.0075671470885815655
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.0058888119833122475,
+      "std": 0.0,
+      "values": [
+        0.0058888119833122475
+      ]
+    },
+    "drift_ratio": {
+      "mean": 1.2850040228870263,
+      "std": 0.0,
+      "values": [
+        1.2850040228870263
+      ]
+    },
+    "same_object_cos": {
+      "mean": 0.9999947271435113,
+      "std": 0.0,
+      "values": [
+        0.9999947271435113
+      ]
+    },
+    "diff_object_cos": {
+      "mean": 0.9999940422483795,
+      "std": 0.0,
+      "values": [
+        0.9999940422483795
+      ]
+    },
+    "cos_gap": {
+      "mean": 6.848951318305652e-07,
+      "std": 0.0,
+      "values": [
+        6.848951318305652e-07
+      ]
+    },
+    "identity_visible_mse": {
+      "mean": 4.279336756307615e-06,
+      "std": 0.0,
+      "values": [
+        4.279336756307615e-06
+      ]
+    },
+    "identity_hidden_mse": {
+      "mean": 6.4465407826391515e-06,
+      "std": 0.0,
+      "values": [
+        6.4465407826391515e-06
+      ]
+    },
+    "identity_hidden_visible_ratio": {
+      "mean": 1.5064345597801208,
+      "std": 0.0,
+      "values": [
+        1.5064345597801208
+      ]
+    },
+    "n_id_visible": {
+      "mean": 3826.0,
+      "std": 0.0,
+      "values": [
+        3826
+      ]
+    },
+    "n_id_hidden": {
+      "mean": 134.0,
+      "std": 0.0,
+      "values": [
+        134
+      ]
+    }
+  },
+  "slot_dense_update": {
+    "visible_position_mse": {
+      "mean": 0.000340904917347018,
+      "std": 0.0,
+      "values": [
+        0.000340904917347018
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 0.00032261509615712686,
+      "std": 0.0,
+      "values": [
+        0.00032261509615712686
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.5814405329789105,
+      "std": 0.0,
+      "values": [
+        0.5814405329789105
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.465,
+      "std": 0.0,
+      "values": [
+        5.465
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 0.9463492010258293,
+      "std": 0.0,
+      "values": [
+        0.9463492010258293
+      ]
+    },
+    "n_visible": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "n_hidden": {
+      "mean": 240.0,
+      "std": 0.0,
+      "values": [
+        240
+      ]
+    },
+    "id_drift": {
+      "mean": 0.09065620589714028,
+      "std": 0.0,
+      "values": [
+        0.09065620589714028
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.08039561775214737,
+      "std": 0.0,
+      "values": [
+        0.08039561775214737
+      ]
+    },
+    "drift_ratio": {
+      "mean": 1.127626211874202,
+      "std": 0.0,
+      "values": [
+        1.127626211874202
+      ]
+    },
+    "same_object_cos": {
+      "mean": 0.9990110269355378,
+      "std": 0.0,
+      "values": [
+        0.9990110269355378
+      ]
+    },
+    "diff_object_cos": {
+      "mean": 0.99711581496886,
+      "std": 0.0,
+      "values": [
+        0.99711581496886
+      ]
+    },
+    "cos_gap": {
+      "mean": 0.0018952119666777456,
+      "std": 0.0,
+      "values": [
+        0.0018952119666777456
+      ]
+    },
+    "identity_visible_mse": {
+      "mean": 0.0003400161166025895,
+      "std": 0.0,
+      "values": [
+        0.0003400161166025895
+      ]
+    },
+    "identity_hidden_mse": {
+      "mean": 0.0003827586075715317,
+      "std": 0.0,
+      "values": [
+        0.0003827586075715317
+      ]
+    },
+    "identity_hidden_visible_ratio": {
+      "mean": 1.12570724998574,
+      "std": 0.0,
+      "values": [
+        1.12570724998574
+      ]
+    },
+    "n_id_visible": {
+      "mean": 4347.0,
+      "std": 0.0,
+      "values": [
+        4347
+      ]
+    },
+    "n_id_hidden": {
+      "mean": 93.0,
+      "std": 0.0,
+      "values": [
+        93
+      ]
+    }
+  }
+}
