@@ -1,0 +1,31 @@
+{
+  "strength": {
+    "g1_top1": 0.3118421052631579,
+    "g1_pass": true,
+    "g2_pos_ratio": 0.8769679466430342,
+    "g2_pass": true,
+    "state_ratio": 1.5580588442431673,
+    "verdict": "PASS"
+  },
+  "noise": {
+    "g1_top1": 0.33631578947368423,
+    "g1_pass": true,
+    "g2_pos_ratio": 0.8640233206946617,
+    "g2_pass": true,
+    "state_ratio": 1.7213656499539196,
+    "verdict": "PASS"
+  },
+  "horizon": {
+    "g1_top1": 0.32155172413793104,
+    "g1_pass": true,
+    "g2_pos_ratio": 0.9034396844430226,
+    "g2_pass": true,
+    "state_ratio": 1.4826280369068456,
+    "verdict": "PASS"
+  },
+  "overall": {
+    "n_pass": 3,
+    "n_total": 3,
+    "verdict": "3/3 clean"
+  }
+}

@@ -28,6 +28,10 @@ os.environ.setdefault("MUJOCO_GL", "egl")
 import robosuite as rs
 
 
+# Perturbation knobs read by scripted_push. Default = v3 fixed values.
+_PERTURB = {"gain_lo": 10.0, "gain_hi": 10.0, "sigma_lo": 0.20, "sigma_hi": 0.20}
+
+
 def _random_action(env, t: int, ep_state: dict, obs) -> np.ndarray:
     return np.random.uniform(-1, 1, env.action_dim).astype(np.float32)
 
@@ -65,15 +69,16 @@ def _scripted_push_action(env, t: int, ep_state: dict, obs) -> np.ndarray:
     a = np.zeros(env.action_dim, dtype=np.float32)
     contact_radius = 0.05   # slightly larger than cube width
     sweep_dir = ep_state["sweep_dir"]   # 2D unit vector for horizontal follow-through
+    gain = ep_state["gain"]
+    sigma = ep_state["noise_sigma"]
     if horiz_dist > contact_radius:
         # Approach: aim at the side of the cube along sweep direction so
         # we land just off-center with momentum already in sweep_dir.
-        # Aim at cube_pos - 0.05 * sweep_dir, at cube height.
         approach_target = target.copy()
         approach_target[:2] -= 0.05 * sweep_dir
         approach_target[2] += 0.005   # barely above table to slide laterally
         delta = approach_target - eef
-        a[:3] = np.clip(delta * 10.0, -1, 1)
+        a[:3] = np.clip(delta * gain, -1, 1)
         a[6] = +1.0    # gripper closed = small effective tip for pushing
     else:
         # Contact / drive-through: push laterally in sweep_dir at full gain
@@ -82,18 +87,22 @@ def _scripted_push_action(env, t: int, ep_state: dict, obs) -> np.ndarray:
         a[2] = -0.3    # mild downward to maintain contact with cube side
         a[6] = +1.0
     a[3:6] = 0.0
-    # Exploration noise σ=0.20: keeps action-discrimination non-trivial
-    # without drowning out the scripted lateral sweep.
-    a = a + np.random.normal(0, 0.20, env.action_dim).astype(np.float32)
+    a = a + np.random.normal(0, sigma, env.action_dim).astype(np.float32)
     return np.clip(a, -1, 1)
 
 
 def _scripted_push_pick_target(ep_state: dict, t: int):
-    """(Re-)sample target cube and sweep direction."""
+    """(Re-)sample target cube, sweep direction, and any perturbation params.
+
+    Per-episode jitter on (gain, sigma) is sampled here so the same
+    episode uses one consistent gain/sigma. Default (lo==hi) matches v3.
+    """
     ep_state["target_idx"] = int(np.random.randint(2))
     angle = float(np.random.uniform(0, 2 * np.pi))
     ep_state["sweep_dir"] = np.array([np.cos(angle), np.sin(angle)], dtype=np.float32)
     ep_state["switch_step"] = t + int(np.random.randint(20, 35))
+    ep_state["gain"] = float(np.random.uniform(_PERTURB["gain_lo"], _PERTURB["gain_hi"]))
+    ep_state["noise_sigma"] = float(np.random.uniform(_PERTURB["sigma_lo"], _PERTURB["sigma_hi"]))
 
 
 _POLICIES = {
@@ -147,7 +156,17 @@ def main():
     p.add_argument("--policy", default="random", choices=list(_POLICIES.keys()),
                     help="Action policy. 'random'=uniform[-1,1] (Phase 14.3 baseline). "
                           "'scripted_push'=OSC toward cube + noise (Phase 14.5).")
+    p.add_argument("--gain-range", default="10,10",
+                    help="OSC approach gain uniform[lo,hi] per episode. v3 default 10,10.")
+    p.add_argument("--noise-range", default="0.20,0.20",
+                    help="Action noise sigma uniform[lo,hi] per episode. v3 default 0.20,0.20.")
     args = p.parse_args()
+    gl, gh = (float(x) for x in args.gain_range.split(","))
+    sl, sh = (float(x) for x in args.noise_range.split(","))
+    _PERTURB["gain_lo"], _PERTURB["gain_hi"] = gl, gh
+    _PERTURB["sigma_lo"], _PERTURB["sigma_hi"] = sl, sh
+    print(f"Perturbation: gain~U({gl},{gh}) sigma~U({sl},{sh}) horizon={args.horizon}",
+          flush=True)
 
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
 
