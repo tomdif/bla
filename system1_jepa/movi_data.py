@@ -74,6 +74,7 @@ class MoviSpec:
     frames: int = 24
     image_size: int = 128
     normalize_positions: bool = True  # divide pixel coords by image_size
+    min_entities: int = 0  # Phase 8D: filter to episodes with ≥ this many instances
 
 
 class MoviDataset(Dataset):
@@ -86,9 +87,10 @@ class MoviDataset(Dataset):
             mf = json.load(f)
         self.episodes: List[Dict] = mf["episodes"]
         self.frame_size = mf.get("frame_size", spec.image_size)
-        # Filter out episodes with more instances than max_entities (rare).
+        # Filter out episodes with more instances than max_entities (rare)
+        # or fewer than min_entities (Phase 8D hard-MOVi stress test).
         self.episodes = [e for e in self.episodes
-                         if e["num_instances"] <= spec.max_entities]
+                         if spec.min_entities <= e["num_instances"] <= spec.max_entities]
 
     def __len__(self) -> int:
         return len(self.episodes)

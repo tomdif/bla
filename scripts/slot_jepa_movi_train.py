@@ -256,19 +256,22 @@ def train_one_run(
                 gt_pos_t = batch["positions"][0].to(device)
                 gt_vis_t = batch["visibility"][0].to(device).bool()
 
-                # JEPA-style internal consistency on STATE_VALUE only.
+                # JEPA-style internal consistency on STATE_VALUE only at stride k.
                 # id_key updates via EMA, not predictor — including it in the JEPA
-                # loss makes the loss punish EMA drift, which is wrong (and was
-                # the source of the v0-first-attempt divergence).
+                # loss makes the loss punish EMA drift, which is wrong.
+                # Phase 8D: stride > 1 makes the JEPA target meaningfully
+                # non-trivial (objects move further between t and t+k).
                 id_dim = model.cfg.id_dim
                 state_dim = model.cfg.state_dim
                 state_only = slot_states[..., id_dim:]                 # [T, N, state_dim]
+                stride = args.jepa_stride
                 jepa_loss = 0.0
-                for t in range(T - 1):
-                    target = state_only[t+1].detach()
+                n_pairs = max(T - stride, 1)
+                for t in range(T - stride):
+                    target = state_only[t + stride].detach()
                     pred = state_only[t]
                     jepa_loss = jepa_loss + F.mse_loss(pred, target)
-                jepa_loss = jepa_loss / max(T - 1, 1)
+                jepa_loss = jepa_loss / n_pairs
 
                 # Supervised position loss via slot_to_pos_aux head.
                 pred_positions = model.slot_to_pos_aux(slot_states)  # [T, N_files, 2]
@@ -525,6 +528,11 @@ def main():
                    help="Phase 8C OF-JEPA: weight on internal JEPA temporal smoothness")
     p.add_argument("--of-pos-w", type=float, default=10.0,
                    help="Phase 8C OF-JEPA: weight on supervised position loss")
+    p.add_argument("--jepa-stride", type=int, default=1,
+                   help="Phase 8D: predict slot[t+stride] from slot[t]. Larger "
+                        "stride makes the JEPA target less trivial.")
+    p.add_argument("--episode-min-entities", type=int, default=0,
+                   help="Phase 8D: filter to episodes with ≥N instances")
     p.add_argument("--mask-bias-init", type=float, default=0.0)
     p.add_argument("--probe-epochs", type=int, default=300)
     p.add_argument("--log-every", type=int, default=100)
@@ -535,7 +543,8 @@ def main():
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
 
     dataset = MoviDataset(MoviSpec(cache_dir=args.cache, image_size=args.image_size,
-                                     max_entities=10))
+                                     max_entities=10,
+                                     min_entities=args.episode_min_entities))
     n = len(dataset)
     indices = list(range(n))
     np.random.RandomState(0).shuffle(indices)  # stable split across seeds
