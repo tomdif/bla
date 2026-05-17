@@ -189,6 +189,108 @@ class ObjectFileMemory(nn.Module):
         )
 
 
+class ObjectFileMemoryV1(ObjectFileMemory):
+    """Phase 9B: visibility-gated OF-JEPA.
+
+    Adds three pieces beyond v0:
+      1. NULL column in Sinkhorn. Each file can choose "no match this
+         frame" → low match_confidence → transition update instead of
+         delta-from-proposal. Prevents the v0 failure mode where
+         occluded files get bound to arbitrary visible proposals and
+         their state_value gets corrupted.
+      2. transition_model MLP. When a file's match_confidence is low
+         (entity occluded), state_value evolves via this learned
+         transition rather than from the proposal.
+      3. visibility_head. Per-file logit predicting whether the entity
+         is currently visible. Trained against GT visibility.
+
+    The state update is a soft blend between "delta from proposal"
+    and "transition only", weighted by match_confidence.
+    """
+
+    def __init__(self, cfg: OFJEPAConfig):
+        super().__init__(cfg)
+        # Learnable null-column bias used by Sinkhorn so files can "no match".
+        self.null_bias = nn.Parameter(torch.zeros(1))
+        # Transition model for occluded-entity state evolution.
+        self.transition = nn.Sequential(
+            nn.Linear(cfg.state_dim, cfg.state_dim * 2),
+            nn.GELU(),
+            nn.Linear(cfg.state_dim * 2, cfg.state_dim),
+        )
+        # Visibility belief head.
+        self.visibility_head = nn.Linear(cfg.state_dim, 1)
+
+    def step(self, memory: dict, proposals: torch.Tensor):
+        cfg = self.cfg
+        id_key = memory["id_key"]
+        state = memory["state_value"]
+        B, N_files, _ = id_key.shape
+        _, n_props, _ = proposals.shape
+
+        prop_id = self.proposal_id_proj(proposals)
+
+        id_norm = F.normalize(id_key, dim=-1, eps=1e-6)
+        prop_norm = F.normalize(prop_id, dim=-1, eps=1e-6)
+        sim = torch.einsum("bnd,bmd->bnm", id_norm, prop_norm)
+        log_scores_props = sim / cfg.sinkhorn_temperature
+
+        # Append null column: a constant score the model can pick when no
+        # proposal is good enough. The null score is learnable globally —
+        # this is the "should this slot just predict forward via transition?"
+        # threshold.
+        null_score = self.null_bias.view(1, 1, 1).expand(B, N_files, 1)
+        log_scores = torch.cat([log_scores_props, null_score], dim=-1)  # [B, N, n_props+1]
+
+        # Sinkhorn over the augmented matrix.
+        assignment = sinkhorn(log_scores, n_iters=cfg.sinkhorn_iters)  # [B, N, n_props+1]
+
+        # Split: assignment to real proposals vs to null column.
+        prop_assign = assignment[..., :n_props]                   # [B, N, n_props]
+        match_confidence = prop_assign.sum(dim=-1, keepdim=True)  # [B, N, 1] in [0, 1]
+
+        # Weighted matched proposal (only from real proposals).
+        # Renormalize prop_assign per file to make it a proper distribution
+        # over proposals conditional on "did match" — guards against tiny
+        # match_confidence corrupting the matched_proposal direction.
+        prop_assign_renorm = prop_assign / (match_confidence + 1e-6)
+        matched_proposal = torch.einsum("bnm,bmd->bnd", prop_assign_renorm, proposals)
+
+        # id_key update: slow EMA toward matched proposal's id projection,
+        # GATED by match_confidence. Occluded files (low confidence) keep
+        # their address frozen — they were the LAST seen identity.
+        matched_id = F.layer_norm(
+            self.proposal_id_proj(matched_proposal),
+            (cfg.id_dim,),
+        )
+        id_step = match_confidence * cfg.id_ema_alpha * (matched_id - id_key)
+        id_key_new = F.layer_norm(id_key + id_step, (cfg.id_dim,))
+
+        # State update: blend delta-from-proposal (when matched) with
+        # transition-only (when occluded), weighted by match_confidence.
+        delta_in = torch.cat([state, matched_proposal], dim=-1)
+        change_mask = torch.sigmoid(self.change_head(delta_in))
+        delta = cfg.state_delta_scale * torch.tanh(self.delta_head(delta_in))
+        matched_state = state + change_mask * delta
+        transition_state = state + 0.05 * self.transition(state)
+
+        state_new = match_confidence * matched_state + (1 - match_confidence) * transition_state
+        state_new = F.layer_norm(state_new, (cfg.state_dim,))
+
+        # Visibility logit (predicted from state).
+        visibility_logit = self.visibility_head(state_new).squeeze(-1)  # [B, N]
+
+        return (
+            {"id_key": id_key_new, "state_value": state_new},
+            {
+                "assignment": assignment,
+                "match_confidence": match_confidence,
+                "change_mask": change_mask,
+                "visibility_logit": visibility_logit,
+            },
+        )
+
+
 class OFJEPA(nn.Module):
     """Object-File JEPA wrapper for MOVi-A training.
 
@@ -201,32 +303,45 @@ class OFJEPA(nn.Module):
     The "full slot state" returned for compatibility with the existing
     identity probe is concat(id_key, state_value).
     """
-    def __init__(self, image_size: int, cfg: OFJEPAConfig = OFJEPAConfig()):
+    def __init__(self, image_size: int, cfg: OFJEPAConfig = OFJEPAConfig(),
+                 version: str = "v0"):
         super().__init__()
         self.cfg = cfg
+        self.version = version
         self.proposal_encoder = ProposalEncoder(image_size, cfg.proposal_dim)
-        self.memory = ObjectFileMemory(cfg)
+        # v0 uses ObjectFileMemory; v1 adds null-Sinkhorn + transition + visibility.
+        if version == "v1":
+            self.memory = ObjectFileMemoryV1(cfg)
+        else:
+            self.memory = ObjectFileMemory(cfg)
         # Compatibility shim with existing trainer:
         self.id_dim = cfg.id_dim
         self.use_id_cons = False
         self.use_id_contrast = False
-        self.mode = "of_jepa_v0"
+        self.mode = f"of_jepa_{version}"
         # Slot dim that the existing probe expects = id_dim + state_dim
         self.slot_dim = cfg.id_dim + cfg.state_dim
         self.n_slots = cfg.n_files
         self.slot_to_pos_aux = self.memory.slot_to_pos_aux
 
     def encode_video(self, video: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """video: [T, 3, H, W] → (slot_states [T, n_files, full_dim], proposals [T, n_props, prop_dim])"""
+        """video: [T, 3, H, W] → (slot_states [T, n_files, full_dim], proposals [T, n_props, prop_dim])
+
+        For v1, also tracks per-frame visibility logits in self._last_vis_logits
+        for the trainer to read out.
+        """
         T = video.shape[0]
-        # Encoder runs on whole video at once (it's just a CNN).
-        proposals = self.proposal_encoder(video)            # [T, n_tokens, prop_dim]
+        proposals = self.proposal_encoder(video)
         memory = self.memory.init_episode(batch_size=1, device=video.device)
         slot_states = []
+        vis_logits = []
         for t in range(T):
-            memory, _ = self.memory.step(memory, proposals[t:t+1])
-            full = torch.cat([memory["id_key"], memory["state_value"]], dim=-1)  # [1, N, full]
-            slot_states.append(full[0])  # [N, full]
+            memory, diag = self.memory.step(memory, proposals[t:t+1])
+            full = torch.cat([memory["id_key"], memory["state_value"]], dim=-1)
+            slot_states.append(full[0])
+            if "visibility_logit" in diag:
+                vis_logits.append(diag["visibility_logit"][0])
+        self._last_vis_logits = torch.stack(vis_logits, dim=0) if vis_logits else None
         return torch.stack(slot_states, dim=0), proposals
 
     def encode_video_grad(self, video: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:

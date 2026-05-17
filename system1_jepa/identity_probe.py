@@ -279,6 +279,165 @@ def fit_identity_probe(
 
 # ---------- Full eval --------------------------------------------------------
 
+def identity_conditioned_position_eval(
+    states: torch.Tensor,       # [N, S, D]
+    gt_pos: torch.Tensor,        # [N, E, 2]
+    gt_visible: torch.Tensor,    # [N, E] bool
+    ep_ids: torch.Tensor,        # [N] long
+    frame_idx: torch.Tensor,     # [N] long
+    cfg: "ProbeFitConfig",
+    subspace_dims: Optional[slice] = None,
+) -> Dict[str, float]:
+    """Phase 9B headline metric: identity-conditioned position MSE.
+
+    For each file s, find its **modal entity** across the episode (the
+    entity it gets Hungarian-matched to in the most frames). Then for
+    each (file, frame) pair, compute MSE between the probe's prediction
+    for that file and the GT position of *that file's modal entity*,
+    regardless of which entity might be a better local match.
+
+    This separates two things that the standard probe conflates:
+    - "anonymous Hungarian rematching" — relabel files frame-by-frame to
+      minimize MSE. Slot_delta wins this trivially on occluded frames by
+      matching the occluded entity to whatever slot happens to predict
+      a nearby position.
+    - "persistent object tracking" — does file s STAY bound to its
+      entity across time, even when that entity becomes occluded?
+
+    The latter is what OF-JEPA actually tries to do. This function
+    measures it.
+
+    Returns:
+      {
+        'identity_visible_mse': mean MSE for (file, frame) pairs where
+          the file's modal entity is visible at frame,
+        'identity_hidden_mse': same but for occluded frames,
+        'identity_hidden_visible_ratio': hidden/visible,
+        'n_id_visible': sample count,
+        'n_id_hidden': sample count,
+      }
+    """
+    if subspace_dims is not None:
+        states = states[..., subspace_dims]
+    device = states.device
+
+    unique_eps = ep_ids.unique()
+    n_eps = unique_eps.numel()
+    train_eps = unique_eps[: int(n_eps * 0.8)]
+    train_mask = torch.isin(ep_ids, train_eps)
+    test_mask = ~train_mask
+
+    visible_any = gt_visible.any(dim=-1)
+    train_idx = (train_mask & visible_any).nonzero(as_tuple=True)[0]
+    if train_idx.numel() < 16:
+        return {"identity_visible_mse": float("nan"),
+                 "identity_hidden_mse": float("nan"),
+                 "identity_hidden_visible_ratio": float("nan"),
+                 "n_id_visible": 0, "n_id_hidden": 0}
+
+    # Train a position-only probe (no attr).
+    in_dim = states.size(-1)
+    probe = nn.Linear(in_dim, 2).to(device)
+    opt = torch.optim.AdamW(probe.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+
+    # Pre-compute training pairs: for each train (frame, file), find the
+    # closest visible GT entity (by position) and use that as target.
+    train_pairs_x, train_pairs_y = [], []
+    with torch.no_grad():
+        pre_pred = probe(states[train_idx]).detach()  # noop init, just for shape
+    # Sample-based: at each step, for the train sub-batch, compute Hungarian
+    # match and use it as fresh targets. (Same as identity_aware_probe.)
+    for _ in range(cfg.epochs):
+        idx = train_idx[torch.randperm(train_idx.numel(), device=device)[:cfg.batch_size]]
+        s_b = states[idx]               # [B, S, D']
+        gtp = gt_pos[idx]                # [B, E, 2]
+        gtv = gt_visible[idx]            # [B, E]
+        pp = probe(s_b)                  # [B, S, 2]
+        # Per-sample Hungarian targets restricted to visible entities.
+        targets = torch.zeros_like(pp)
+        valid = torch.zeros(pp.shape[:-1], dtype=torch.bool, device=device)
+        pp_np = pp.detach().cpu().numpy()
+        gtp_np = gtp.cpu().numpy()
+        gtv_np = gtv.cpu().numpy()
+        for b in range(pp.size(0)):
+            vis_e = np.where(gtv_np[b])[0]
+            if vis_e.size == 0:
+                continue
+            rows, cols, _ = hungarian_assign(pp_np[b], gtp_np[b][vis_e])
+            for r, c in zip(rows, cols):
+                targets[b, r] = gtp[b, vis_e[c]]
+                valid[b, r] = True
+        if not valid.any():
+            continue
+        loss = F.mse_loss(pp[valid], targets[valid])
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        opt.step()
+
+    # ---- Eval: per-episode, compute modal entity per file, then per-frame
+    # identity-conditioned position MSE.
+    probe.eval()
+    test_eps = unique_eps[int(n_eps * 0.8):]
+    visible_mses = []
+    hidden_mses = []
+
+    with torch.no_grad():
+        for ep in test_eps.tolist():
+            ep_rows = (ep_ids == ep).nonzero(as_tuple=True)[0]
+            if ep_rows.numel() == 0:
+                continue
+            order = torch.argsort(frame_idx[ep_rows])
+            ep_rows = ep_rows[order]
+            T = ep_rows.numel()
+            S = states.size(1)
+            E = gt_pos.size(1)
+
+            # Per-frame Hungarian assignment file→entity.
+            assignments = -np.ones((T, S), dtype=np.int64)
+            for t_idx, r in enumerate(ep_rows.tolist()):
+                pp = probe(states[r:r+1]).cpu().numpy()[0]  # [S, 2]
+                tp = gt_pos[r].cpu().numpy()                  # [E, 2]
+                tv = gt_visible[r].cpu().numpy()
+                vis_e = np.where(tv)[0]
+                if vis_e.size == 0:
+                    continue
+                rows, cols, _ = hungarian_assign(pp, tp[vis_e])
+                for rr, cc in zip(rows, cols):
+                    assignments[t_idx, rr] = int(vis_e[cc])
+
+            # For each file, find modal entity assignment.
+            modal_entity = -np.ones(S, dtype=np.int64)
+            for f in range(S):
+                ents = assignments[:, f][assignments[:, f] >= 0]
+                if ents.size > 0:
+                    vals, counts = np.unique(ents, return_counts=True)
+                    modal_entity[f] = int(vals[np.argmax(counts)])
+
+            # Per-(file, frame), compute MSE against modal entity's GT.
+            for t_idx, r in enumerate(ep_rows.tolist()):
+                pp = probe(states[r:r+1]).cpu().numpy()[0]
+                for f in range(S):
+                    e = modal_entity[f]
+                    if e < 0:
+                        continue
+                    err = float(((pp[f] - gt_pos[r, e].cpu().numpy()) ** 2).sum())
+                    if gt_visible[r, e].item():
+                        visible_mses.append(err)
+                    else:
+                        hidden_mses.append(err)
+
+    vis_mean = float(np.mean(visible_mses)) if visible_mses else float("nan")
+    hid_mean = float(np.mean(hidden_mses)) if hidden_mses else float("nan")
+    ratio = hid_mean / vis_mean if vis_mean > 0 else float("nan")
+    return {
+        "identity_visible_mse": vis_mean,
+        "identity_hidden_mse": hid_mean,
+        "identity_hidden_visible_ratio": ratio,
+        "n_id_visible": len(visible_mses),
+        "n_id_hidden": len(hidden_mses),
+    }
+
+
 def identity_aware_probe_eval(
     states: torch.Tensor,       # [N, S, D]
     gt_pos: torch.Tensor,        # [N, E, 2]

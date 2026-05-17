@@ -59,10 +59,23 @@ def main() -> int:
         inst = ex["instances"]
         image_positions = inst["image_positions"].numpy()        # [E, T, 2] float
         visibility = inst["visibility"].numpy()                  # [E, T] uint16
-        color_label = inst["color_label"].numpy().astype(np.int32)   # [E]
-        shape_label = inst["shape_label"].numpy().astype(np.int32)   # [E]
-        material_label = inst["material_label"].numpy().astype(np.int32)  # [E]
-        size_label = inst["size_label"].numpy().astype(np.int32)     # [E]
+        E = visibility.shape[0]
+        # MOVi-A has color_label/shape_label/material_label/size_label.
+        # MOVi-C/D/E/F have category (GSO category ID) + is_dynamic.
+        # Fall back to zeros for missing fields so the unified .npz schema works.
+        if "color_label" in inst:
+            color_label = inst["color_label"].numpy().astype(np.int32)
+            shape_label = inst["shape_label"].numpy().astype(np.int32)
+            material_label = inst["material_label"].numpy().astype(np.int32)
+            size_label = inst["size_label"].numpy().astype(np.int32)
+        else:
+            # MOVi-D and later: use category as the coarse label, others zero.
+            color_label = inst["category"].numpy().astype(np.int32) if "category" in inst \
+                          else np.zeros(E, dtype=np.int32)
+            shape_label = np.zeros(E, dtype=np.int32)
+            material_label = inst["is_dynamic"].numpy().astype(np.int32) if "is_dynamic" in inst \
+                              else np.zeros(E, dtype=np.int32)
+            size_label = np.zeros(E, dtype=np.int32)
         num_instances = int(ex["metadata"]["num_instances"].numpy())
         video_name = ex["metadata"]["video_name"].numpy().decode("utf-8")
 

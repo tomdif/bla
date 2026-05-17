@@ -50,7 +50,9 @@ from system1_jepa.id_consistency import (
     identity_consistency_loss, identity_contrastive_loss,
 )
 from system1_jepa.of_jepa import OFJEPA, OFJEPAConfig
-from system1_jepa.identity_probe import ProbeFitConfig, identity_aware_probe_eval
+from system1_jepa.identity_probe import (
+    ProbeFitConfig, identity_aware_probe_eval, identity_conditioned_position_eval,
+)
 from system1_jepa.movi_data import MoviDataset, MoviSpec, ATTR_DIM
 from system1_jepa.sigreg import sigreg_lewm
 from system1_jepa.slot import SlotAttention, SlotAttentionConfig
@@ -196,9 +198,11 @@ def train_one_run(
     np.random.seed(seed)
     device = args.device
 
-    if mode == "of_jepa_v0":
-        # Phase 8C: Object-File JEPA — persistent learned id_keys, memory-anchored
-        # Sinkhorn matching, sparse-delta state_value. Slot_dim becomes id+state.
+    if mode in ("of_jepa_v0", "of_jepa_v1"):
+        # Phase 8C/9B: Object-File JEPA.
+        # v0 = persistent learned id_keys + Sinkhorn matching + sparse-delta state.
+        # v1 = + null-Sinkhorn dustbin + transition model + visibility belief
+        #      (Phase 9B addresses MOVi-D's occluded-entity state corruption).
         of_cfg = OFJEPAConfig(
             n_files=args.n_slots,
             id_dim=args.slot_dim // 2,
@@ -209,7 +213,8 @@ def train_one_run(
             sinkhorn_iters=20,
             sinkhorn_temperature=0.1,
         )
-        model = OFJEPA(image_size=args.image_size, cfg=of_cfg).to(device)
+        version = "v1" if mode == "of_jepa_v1" else "v0"
+        model = OFJEPA(image_size=args.image_size, cfg=of_cfg, version=version).to(device)
     else:
         model = MoviJEPA(
             image_size=args.image_size, slot_dim=args.slot_dim,
@@ -244,7 +249,7 @@ def train_one_run(
             opt.zero_grad(set_to_none=True)
             slot_states, tokens = model.encode_video_grad(video)
 
-            if mode == "of_jepa_v0":
+            if mode in ("of_jepa_v0", "of_jepa_v1"):
                 # Phase 8C: OF-JEPA training signal.
                 # 1. JEPA self-prediction on state_value via the memory's own
                 #    internal step (slot_states[t+1] from slot_states[t]).
@@ -299,6 +304,27 @@ def train_one_run(
                         pos_count += 1
                 pos_loss = pos_loss / max(pos_count, 1)
                 loss = args.of_jepa_w * jepa_loss + args.of_pos_w * pos_loss
+
+                # Phase 9B: visibility BCE loss (only for v1).
+                if mode == "of_jepa_v1" and getattr(model, "_last_vis_logits", None) is not None:
+                    vis_logits = model._last_vis_logits  # [T, N_files]
+                    # Build a per-file visibility target from GT.
+                    # For each frame, the file is considered "visible" if the
+                    # entity it's Hungarian-matched to is visible. Compute via
+                    # the aux head per frame.
+                    with torch.no_grad():
+                        pred_pos = model.slot_to_pos_aux(slot_states)  # [T, N_files, 2]
+                    from system1_jepa.id_consistency import _assign_slots_to_entities
+                    assignments = _assign_slots_to_entities(pred_pos, gt_pos_t, gt_vis_t)  # [T, N_files]
+                    # For each (t, file_i), target = 1 if matched-entity visible at t, else 0.
+                    vis_target = torch.zeros_like(vis_logits)
+                    for t in range(vis_logits.shape[0]):
+                        for f in range(vis_logits.shape[1]):
+                            e = int(assignments[t, f])
+                            if e >= 0 and gt_vis_t[t, e]:
+                                vis_target[t, f] = 1.0
+                    vis_loss = F.binary_cross_entropy_with_logits(vis_logits, vis_target)
+                    loss = loss + args.of_visibility_w * vis_loss
 
             else:
                 # Existing JEPA loss for slot_delta-family modes.
@@ -467,6 +493,19 @@ def train_one_run(
         metrics["diff_object_cos"] = float(np.mean([c["diff_cos"] for c in cosine_records]))
         metrics["cos_gap"] = metrics["same_object_cos"] - metrics["diff_object_cos"]
 
+    # Phase 9B: identity-conditioned position MSE — the headline OF-JEPA metric.
+    id_cond = identity_conditioned_position_eval(
+        states=states, gt_pos=gt_pos, gt_visible=gt_visible,
+        ep_ids=ep_ids, frame_idx=frame_idx, cfg=cfg,
+    )
+    metrics.update({
+        "identity_visible_mse": id_cond["identity_visible_mse"],
+        "identity_hidden_mse": id_cond["identity_hidden_mse"],
+        "identity_hidden_visible_ratio": id_cond["identity_hidden_visible_ratio"],
+        "n_id_visible": id_cond["n_id_visible"],
+        "n_id_hidden": id_cond["n_id_hidden"],
+    })
+
     # Phase 7D: id-subspace probe — re-fit a fresh linear probe on the id-half
     # of slot states only. Tells us whether the id subspace is doing the
     # assignment-stability work even when the full-slot Hungarian shuffles.
@@ -533,6 +572,10 @@ def main():
                         "stride makes the JEPA target less trivial.")
     p.add_argument("--episode-min-entities", type=int, default=0,
                    help="Phase 8D: filter to episodes with ≥N instances")
+    p.add_argument("--max-entities", type=int, default=25,
+                   help="Max entities per episode (MOVi-A ≤ 10; MOVi-D ≤ 23)")
+    p.add_argument("--of-visibility-w", type=float, default=1.0,
+                   help="Phase 9B OF-JEPA v1: weight on visibility BCE loss")
     p.add_argument("--mask-bias-init", type=float, default=0.0)
     p.add_argument("--probe-epochs", type=int, default=300)
     p.add_argument("--log-every", type=int, default=100)
@@ -543,7 +586,7 @@ def main():
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
 
     dataset = MoviDataset(MoviSpec(cache_dir=args.cache, image_size=args.image_size,
-                                     max_entities=10,
+                                     max_entities=args.max_entities,
                                      min_entities=args.episode_min_entities))
     n = len(dataset)
     indices = list(range(n))

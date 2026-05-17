@@ -70,7 +70,7 @@ def encode_attrs(color: np.ndarray, shape: np.ndarray,
 @dataclass
 class MoviSpec:
     cache_dir: str
-    max_entities: int = 10
+    max_entities: int = 25     # Phase 9: MOVi-D has 11-23 instances per scene
     frames: int = 24
     image_size: int = 128
     normalize_positions: bool = True  # divide pixel coords by image_size
