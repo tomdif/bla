@@ -1,0 +1,16 @@
+{
+  "id_visible_mse": 0.057928819323390356,
+  "id_hidden_mse": 0.5742861330119783,
+  "id_h/v": 9.913651611057338,
+  "n_id_visible": 5346,
+  "n_id_hidden": 574,
+  "switch_rate": 0.002397187787610566,
+  "slot_diversity": 1.0504761904761906,
+  "visible_position_mse": 0.08329754429287277,
+  "hidden_position_mse": 0.2952495142351836,
+  "hidden_visible_ratio": 3.544516428924858,
+  "same_object_cos": 0.9573055439582564,
+  "diff_object_cos": 0.501197541717205,
+  "cos_gap": 0.4561080022410514,
+  "steps": 3000
+}
