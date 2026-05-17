@@ -130,6 +130,119 @@ def identity_consistency_loss(
     return cons_loss, aux_loss
 
 
+def identity_contrastive_loss(
+    slot_states: torch.Tensor,         # [T, S, D]
+    slot_to_pos_aux: SlotPosAuxHead,
+    gt_pos: torch.Tensor,              # [T, E, 2]
+    gt_visible: torch.Tensor,          # [T, E] bool
+    id_dim: int,
+    temperature: float = 0.1,
+) -> torch.Tensor:
+    """InfoNCE contrastive loss on the id-half of slot states.
+
+    For each consecutive frame pair (t, t+1) and each anchor slot i at t
+    that is Hungarian-matched to some entity e (also visible at t+1):
+      - positive: slot j at t+1 matched to the same entity e
+      - negatives: all OTHER slots at t+1 (matched to other entities or
+        unassigned)
+
+    The loss is:
+        -log( exp(sim(anchor, pos)/τ) /
+              sum_{k in {pos, neg_1, ..., neg_K}} exp(sim(anchor, k)/τ) )
+
+    Cosine similarity in the id-subspace. Returns mean over anchors.
+
+    This is the Phase 8A intervention: directly reward the encoder for
+    putting same-entity slot id_keys close to each other across frames,
+    and different-entity ones far apart. Operates only on the id-half so
+    we don't constrain the dyn-half's freedom to encode state changes.
+    """
+    T, S, D = slot_states.shape
+    id_keys = slot_states[..., :id_dim]                  # [T, S, id_dim]
+    pred_pos = slot_to_pos_aux(slot_states)               # [T, S, 2]
+
+    assignments = _assign_slots_to_entities(pred_pos, gt_pos, gt_visible)  # [T, S]
+
+    # Normalize id_keys for cosine similarity.
+    id_norm = F.normalize(id_keys, dim=-1, eps=1e-6)
+
+    loss_terms = []
+    for t in range(T - 1):
+        for i_anchor in range(S):
+            e = assignments[t, i_anchor]
+            if e < 0:
+                continue
+            # Positive: slot at t+1 with the same entity ID.
+            pos_rows = np.where(assignments[t + 1] == e)[0]
+            if pos_rows.size == 0:
+                continue
+            j_pos = int(pos_rows[0])
+
+            anchor = id_norm[t, i_anchor]                  # [id_dim]
+            candidates = id_norm[t + 1]                     # [S, id_dim]
+            sims = (candidates @ anchor) / temperature      # [S]
+            # InfoNCE: log p(positive | candidates).
+            log_probs = F.log_softmax(sims, dim=0)
+            loss_terms.append(-log_probs[j_pos])
+
+    if not loss_terms:
+        return torch.tensor(0.0, device=slot_states.device, requires_grad=True)
+    return torch.stack(loss_terms).mean()
+
+
+@torch.no_grad()
+def cosine_diagnostic(
+    slot_states: torch.Tensor,         # [T, S, D]
+    slot_to_pos_aux: SlotPosAuxHead,
+    gt_pos: torch.Tensor,              # [T, E, 2]
+    gt_visible: torch.Tensor,          # [T, E] bool
+    id_dim: int,
+) -> dict:
+    """For Phase 8A diagnostic: mean cosine similarity between id_keys of
+    same-entity pairs (consecutive frames) and different-entity pairs.
+
+    A working contrastive signal should show:
+        same_object_cos ↑ (close to 1)
+        diff_object_cos ↓ (close to 0 or negative)
+
+    Returns {'same_cos': float, 'diff_cos': float, 'gap': float, 'n_pairs': int}.
+    """
+    T, S, D = slot_states.shape
+    id_keys = slot_states[..., :id_dim]
+    id_norm = F.normalize(id_keys, dim=-1, eps=1e-6)
+    pred_pos = slot_to_pos_aux(slot_states)
+    assignments = _assign_slots_to_entities(pred_pos, gt_pos, gt_visible)
+
+    same_sims = []
+    diff_sims = []
+    for t in range(T - 1):
+        a_t = assignments[t]
+        a_n = assignments[t + 1]
+        for i in range(S):
+            e = a_t[i]
+            if e < 0:
+                continue
+            for j in range(S):
+                e2 = a_n[j]
+                if e2 < 0:
+                    continue
+                sim = float((id_norm[t, i] * id_norm[t + 1, j]).sum().item())
+                if e == e2:
+                    same_sims.append(sim)
+                else:
+                    diff_sims.append(sim)
+
+    same_mean = float(np.mean(same_sims)) if same_sims else float("nan")
+    diff_mean = float(np.mean(diff_sims)) if diff_sims else float("nan")
+    return {
+        "same_cos": same_mean,
+        "diff_cos": diff_mean,
+        "gap": same_mean - diff_mean,
+        "n_same_pairs": len(same_sims),
+        "n_diff_pairs": len(diff_sims),
+    }
+
+
 @torch.no_grad()
 def drift_diagnostic(
     slot_states: torch.Tensor,         # [T, S, D]

@@ -46,7 +46,8 @@ from torch.utils.data import DataLoader, Subset
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from system1_jepa.convnext_encoder import ConvNeXtEncoderConfig, ConvNeXtSlotEncoder
 from system1_jepa.id_consistency import (
-    SlotPosAuxHead, drift_diagnostic, identity_consistency_loss,
+    SlotPosAuxHead, cosine_diagnostic, drift_diagnostic,
+    identity_consistency_loss, identity_contrastive_loss,
 )
 from system1_jepa.identity_probe import ProbeFitConfig, identity_aware_probe_eval
 from system1_jepa.movi_data import MoviDataset, MoviSpec, ATTR_DIM
@@ -67,13 +68,14 @@ class MoviJEPA(nn.Module):
                  mode: str, mask_bias_init: float = 0.0,
                  target_active_slots: int = 0):
         super().__init__()
-        # Phase 7C: mode can carry an "_idcons" suffix indicating the encoder
-        # identity consistency loss should be applied. Strip the suffix for
-        # the architectural branch below; the trainer uses `self.use_id_cons`
-        # to decide whether to add the loss.
-        self.use_id_cons = mode.endswith("_idcons")
-        if self.use_id_cons:
-            mode = mode[:-len("_idcons")]
+        # Phase 7C / 8A: mode can carry suffixes indicating which auxiliary
+        # losses are active. Suffixes can stack in any order.
+        #   "_idcons"      → encoder identity consistency loss + aux pos head
+        #   "_idcontrast"  → identity InfoNCE contrastive loss on id_key
+        self.use_id_cons = "_idcons" in mode
+        self.use_id_contrast = "_idcontrast" in mode
+        for suffix in ("_idcons", "_idcontrast"):
+            mode = mode.replace(suffix, "")
         self.mode = mode
         self.slot_dim = slot_dim
         self.n_slots = n_slots
@@ -257,6 +259,18 @@ def train_one_run(
                 )
                 loss = loss + eff_id_cons_w * cons_loss + eff_aux_pos_w * aux_loss
 
+            # Phase 8A: identity-contrastive loss on the id-key subspace.
+            mode_uses_contrast = getattr(model, "use_id_contrast", False)
+            if mode_uses_contrast and args.id_contrastive_w > 0:
+                gt_pos_t = batch["positions"][0].to(device)
+                gt_vis_t = batch["visibility"][0].to(device).bool()
+                contrast_loss = identity_contrastive_loss(
+                    slot_states, model.slot_to_pos_aux,
+                    gt_pos_t, gt_vis_t, model.id_dim,
+                    temperature=args.id_contrastive_temp,
+                )
+                loss = loss + args.id_contrastive_w * contrast_loss
+
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
@@ -340,6 +354,7 @@ def train_one_run(
     # Phase 7C: id_drift / dyn_drift diagnostic across eval episodes.
     # Skip for the 'copy' baseline (no slot_to_pos_aux meaningfully trained).
     drift_records = []
+    cosine_records = []
     with torch.no_grad():
         for ep_idx in eval_indices[:16]:  # first 16 eval eps for speed
             sample = dataset[ep_idx]
@@ -351,6 +366,10 @@ def train_one_run(
                                       model.slot_to_pos_aux, model.id_dim)
             if drift["n_pairs"] > 0:
                 drift_records.append(drift)
+            cos = cosine_diagnostic(slot_seq, model.slot_to_pos_aux,
+                                      gt_pos_e, gt_vis_e, model.id_dim)
+            if cos["n_same_pairs"] > 0 and cos["n_diff_pairs"] > 0:
+                cosine_records.append(cos)
 
     # 6 metrics for the decision doc.
     metrics = {
@@ -369,12 +388,16 @@ def train_one_run(
         metrics["id_drift"] = float(np.mean([d["id_drift"] for d in drift_records]))
         metrics["dyn_drift"] = float(np.mean([d["dyn_drift"] for d in drift_records]))
         metrics["drift_ratio"] = metrics["id_drift"] / max(metrics["dyn_drift"], 1e-9)
+    if cosine_records:
+        metrics["same_object_cos"] = float(np.mean([c["same_cos"] for c in cosine_records]))
+        metrics["diff_object_cos"] = float(np.mean([c["diff_cos"] for c in cosine_records]))
+        metrics["cos_gap"] = metrics["same_object_cos"] - metrics["diff_object_cos"]
 
     # Phase 7D: id-subspace probe — re-fit a fresh linear probe on the id-half
     # of slot states only. Tells us whether the id subspace is doing the
     # assignment-stability work even when the full-slot Hungarian shuffles.
     id_dim = model.id_dim
-    if model.mode in ("id_dyn_split",) or model.use_id_cons:
+    if model.mode in ("id_dyn_split",) or model.use_id_cons or model.use_id_contrast:
         result_id = identity_aware_probe_eval(
             states=states, gt_pos=gt_pos, gt_attr=gt_attr,
             gt_visible=gt_visible, gt_entity_ids=gt_ids,
@@ -423,6 +446,10 @@ def main():
                    help="Phase 7C: weight on encoder identity consistency loss")
     p.add_argument("--aux-pos-w", type=float, default=0.0,
                    help="Phase 7C: weight on aux slot→pos head training loss")
+    p.add_argument("--id-contrastive-w", type=float, default=0.0,
+                   help="Phase 8A: weight on InfoNCE identity contrastive loss")
+    p.add_argument("--id-contrastive-temp", type=float, default=0.1,
+                   help="Phase 8A: contrastive temperature τ")
     p.add_argument("--mask-bias-init", type=float, default=0.0)
     p.add_argument("--probe-epochs", type=int, default=300)
     p.add_argument("--log-every", type=int, default=100)

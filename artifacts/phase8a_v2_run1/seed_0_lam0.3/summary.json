@@ -1,0 +1,123 @@
+{
+  "id_dyn_split_idcons_idcontrast": {
+    "visible_position_mse": {
+      "mean": 2.7879583535413605e-05,
+      "std": 0.0,
+      "values": [
+        2.7879583535413605e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 3.335177049961415e-05,
+      "std": 0.0,
+      "values": [
+        3.335177049961415e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.636632998893986,
+      "std": 0.0,
+      "values": [
+        0.636632998893986
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.270833333333333,
+      "std": 0.0,
+      "values": [
+        5.270833333333333
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 1.1962793654090846,
+      "std": 0.0,
+      "values": [
+        1.1962793654090846
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.016828214650893066,
+      "std": 0.0,
+      "values": [
+        0.016828214650893066
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.017694947962508742,
+      "std": 0.0,
+      "values": [
+        0.017694947962508742
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.9510180355742175,
+      "std": 0.0,
+      "values": [
+        0.9510180355742175
+      ]
+    },
+    "same_object_cos": {
+      "mean": 0.999981389410133,
+      "std": 0.0,
+      "values": [
+        0.999981389410133
+      ]
+    },
+    "diff_object_cos": {
+      "mean": 0.9999804507869899,
+      "std": 0.0,
+      "values": [
+        0.9999804507869899
+      ]
+    },
+    "cos_gap": {
+      "mean": 9.386231430985603e-07,
+      "std": 0.0,
+      "values": [
+        9.386231430985603e-07
+      ]
+    },
+    "switch_rate_id_subspace": {
+      "mean": 0.6647505430210683,
+      "std": 0.0,
+      "values": [
+        0.6647505430210683
+      ]
+    },
+    "switch_rate_dyn_subspace": {
+      "mean": 0.6541684646970184,
+      "std": 0.0,
+      "values": [
+        0.6541684646970184
+      ]
+    },
+    "hidden_pos_mse_id_subspace": {
+      "mean": 3.641357515545833e-05,
+      "std": 0.0,
+      "values": [
+        3.641357515545833e-05
+      ]
+    },
+    "hidden_pos_mse_dyn_subspace": {
+      "mean": 2.884400864326258e-05,
+      "std": 0.0,
+      "values": [
+        2.884400864326258e-05
+      ]
+    }
+  }
+}
