@@ -1,0 +1,346 @@
+{
+  "slot_delta": {
+    "visible_position_mse": {
+      "mean": 4.687397357964566e-05,
+      "std": 0.0,
+      "values": [
+        4.687397357964566e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 4.6406588986718836e-05,
+      "std": 0.0,
+      "values": [
+        4.6406588986718836e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.8005410853543475,
+      "std": 0.0,
+      "values": [
+        0.8005410853543475
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.427083333333334,
+      "std": 0.0,
+      "values": [
+        5.427083333333334
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 0.9900289103476011,
+      "std": 0.0,
+      "values": [
+        0.9900289103476011
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.009161129959462937,
+      "std": 0.0,
+      "values": [
+        0.009161129959462937
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.011070893298534376,
+      "std": 0.0,
+      "values": [
+        0.011070893298534376
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.8274969067469683,
+      "std": 0.0,
+      "values": [
+        0.8274969067469683
+      ]
+    }
+  },
+  "id_dyn_split": {
+    "visible_position_mse": {
+      "mean": 7.267137020964635e-06,
+      "std": 0.0,
+      "values": [
+        7.267137020964635e-06
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 1.4642929826281022e-05,
+      "std": 0.0,
+      "values": [
+        1.4642929826281022e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.774695132877892,
+      "std": 0.0,
+      "values": [
+        0.774695132877892
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.353219696969697,
+      "std": 0.0,
+      "values": [
+        5.353219696969697
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 2.014951663087994,
+      "std": 0.0,
+      "values": [
+        2.014951663087994
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.02721397482218582,
+      "std": 0.0,
+      "values": [
+        0.02721397482218582
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.07610002063626728,
+      "std": 0.0,
+      "values": [
+        0.07610002063626728
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.3576079821615233,
+      "std": 0.0,
+      "values": [
+        0.3576079821615233
+      ]
+    },
+    "switch_rate_id_subspace": {
+      "mean": 0.6895363089461373,
+      "std": 0.0,
+      "values": [
+        0.6895363089461373
+      ]
+    },
+    "switch_rate_dyn_subspace": {
+      "mean": 0.6971444781654611,
+      "std": 0.0,
+      "values": [
+        0.6971444781654611
+      ]
+    },
+    "hidden_pos_mse_id_subspace": {
+      "mean": 9.403405103437015e-06,
+      "std": 0.0,
+      "values": [
+        9.403405103437015e-06
+      ]
+    },
+    "hidden_pos_mse_dyn_subspace": {
+      "mean": 2.0554330561575894e-05,
+      "std": 0.0,
+      "values": [
+        2.0554330561575894e-05
+      ]
+    }
+  },
+  "id_dyn_split_idcons": {
+    "visible_position_mse": {
+      "mean": 2.258713194465874e-05,
+      "std": 0.0,
+      "values": [
+        2.258713194465874e-05
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 3.20938132864582e-05,
+      "std": 0.0,
+      "values": [
+        3.20938132864582e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.6998075928651588,
+      "std": 0.0,
+      "values": [
+        0.6998075928651588
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.302083333333333,
+      "std": 0.0,
+      "values": [
+        5.302083333333333
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 1.420889264077086,
+      "std": 0.0,
+      "values": [
+        1.420889264077086
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.01538088456944784,
+      "std": 0.0,
+      "values": [
+        0.01538088456944784
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.014930288885739829,
+      "std": 0.0,
+      "values": [
+        0.014930288885739829
+      ]
+    },
+    "drift_ratio": {
+      "mean": 1.0301799708737307,
+      "std": 0.0,
+      "values": [
+        1.0301799708737307
+      ]
+    },
+    "switch_rate_id_subspace": {
+      "mean": 0.6766035541364166,
+      "std": 0.0,
+      "values": [
+        0.6766035541364166
+      ]
+    },
+    "switch_rate_dyn_subspace": {
+      "mean": 0.7283120337688509,
+      "std": 0.0,
+      "values": [
+        0.7283120337688509
+      ]
+    },
+    "hidden_pos_mse_id_subspace": {
+      "mean": 2.9522650398308107e-05,
+      "std": 0.0,
+      "values": [
+        2.9522650398308107e-05
+      ]
+    },
+    "hidden_pos_mse_dyn_subspace": {
+      "mean": 2.844615689890079e-05,
+      "std": 0.0,
+      "values": [
+        2.844615689890079e-05
+      ]
+    }
+  },
+  "slot_dense_update": {
+    "visible_position_mse": {
+      "mean": 0.0004961911293660156,
+      "std": 0.0,
+      "values": [
+        0.0004961911293660156
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 0.0004157131253748154,
+      "std": 0.0,
+      "values": [
+        0.0004157131253748154
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.4059468698390119,
+      "std": 0.0,
+      "values": [
+        0.4059468698390119
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 4.690340909090908,
+      "std": 0.0,
+      "values": [
+        4.690340909090908
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 0.8378084588210453,
+      "std": 0.0,
+      "values": [
+        0.8378084588210453
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.08330271108904905,
+      "std": 0.0,
+      "values": [
+        0.08330271108904905
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.07635861376643999,
+      "std": 0.0,
+      "values": [
+        0.07635861376643999
+      ]
+    },
+    "drift_ratio": {
+      "mean": 1.0909405891501534,
+      "std": 0.0,
+      "values": [
+        1.0909405891501534
+      ]
+    }
+  }
+}

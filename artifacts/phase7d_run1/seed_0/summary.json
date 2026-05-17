@@ -1,0 +1,346 @@
+{
+  "slot_delta": {
+    "visible_position_mse": {
+      "mean": 3.3064350213329874e-06,
+      "std": 0.0,
+      "values": [
+        3.3064350213329874e-06
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 8.095712106168227e-06,
+      "std": 0.0,
+      "values": [
+        8.095712106168227e-06
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.515046590685189,
+      "std": 0.0,
+      "values": [
+        0.515046590685189
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 4.994318181818182,
+      "std": 0.0,
+      "values": [
+        4.994318181818182
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 2.4484715574130487,
+      "std": 0.0,
+      "values": [
+        2.4484715574130487
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.021311361895516554,
+      "std": 0.0,
+      "values": [
+        0.021311361895516554
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.01696392724307186,
+      "std": 0.0,
+      "values": [
+        0.01696392724307186
+      ]
+    },
+    "drift_ratio": {
+      "mean": 1.2562752474796308,
+      "std": 0.0,
+      "values": [
+        1.2562752474796308
+      ]
+    }
+  },
+  "id_dyn_split": {
+    "visible_position_mse": {
+      "mean": 5.2951933423213875e-06,
+      "std": 0.0,
+      "values": [
+        5.2951933423213875e-06
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 1.2488269821203896e-05,
+      "std": 0.0,
+      "values": [
+        1.2488269821203896e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.7792252421243999,
+      "std": 0.0,
+      "values": [
+        0.7792252421243999
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.479166666666667,
+      "std": 0.0,
+      "values": [
+        5.479166666666667
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 2.3584162114331972,
+      "std": 0.0,
+      "values": [
+        2.3584162114331972
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.024400299708108482,
+      "std": 0.0,
+      "values": [
+        0.024400299708108482
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.08418049797360269,
+      "std": 0.0,
+      "values": [
+        0.08418049797360269
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.2898569181161167,
+      "std": 0.0,
+      "values": [
+        0.2898569181161167
+      ]
+    },
+    "switch_rate_id_subspace": {
+      "mean": 0.7367985548500626,
+      "std": 0.0,
+      "values": [
+        0.7367985548500626
+      ]
+    },
+    "switch_rate_dyn_subspace": {
+      "mean": 0.7824920135439891,
+      "std": 0.0,
+      "values": [
+        0.7824920135439891
+      ]
+    },
+    "hidden_pos_mse_id_subspace": {
+      "mean": 1.4937067914945113e-05,
+      "std": 0.0,
+      "values": [
+        1.4937067914945113e-05
+      ]
+    },
+    "hidden_pos_mse_dyn_subspace": {
+      "mean": 2.577311749764648e-05,
+      "std": 0.0,
+      "values": [
+        2.577311749764648e-05
+      ]
+    }
+  },
+  "id_dyn_split_idcons": {
+    "visible_position_mse": {
+      "mean": 8.67523764188268e-06,
+      "std": 0.0,
+      "values": [
+        8.67523764188268e-06
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 1.7027639743696733e-05,
+      "std": 0.0,
+      "values": [
+        1.7027639743696733e-05
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.7312667253065421,
+      "std": 0.0,
+      "values": [
+        0.7312667253065421
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 5.489583333333333,
+      "std": 0.0,
+      "values": [
+        5.489583333333333
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 1.9627865479430757,
+      "std": 0.0,
+      "values": [
+        1.9627865479430757
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.011924023190715146,
+      "std": 0.0,
+      "values": [
+        0.011924023190715146
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.011988455749898267,
+      "std": 0.0,
+      "values": [
+        0.011988455749898267
+      ]
+    },
+    "drift_ratio": {
+      "mean": 0.9946254496386102,
+      "std": 0.0,
+      "values": [
+        0.9946254496386102
+      ]
+    },
+    "switch_rate_id_subspace": {
+      "mean": 0.7119074809321558,
+      "std": 0.0,
+      "values": [
+        0.7119074809321558
+      ]
+    },
+    "switch_rate_dyn_subspace": {
+      "mean": 0.7156494896466049,
+      "std": 0.0,
+      "values": [
+        0.7156494896466049
+      ]
+    },
+    "hidden_pos_mse_id_subspace": {
+      "mean": 2.9091528854237675e-05,
+      "std": 0.0,
+      "values": [
+        2.9091528854237675e-05
+      ]
+    },
+    "hidden_pos_mse_dyn_subspace": {
+      "mean": 2.0383861709878736e-05,
+      "std": 0.0,
+      "values": [
+        2.0383861709878736e-05
+      ]
+    }
+  },
+  "slot_dense_update": {
+    "visible_position_mse": {
+      "mean": 0.0003507437673352006,
+      "std": 0.0,
+      "values": [
+        0.0003507437673352006
+      ]
+    },
+    "hidden_position_mse": {
+      "mean": 0.0002194452658272894,
+      "std": 0.0,
+      "values": [
+        0.0002194452658272894
+      ]
+    },
+    "identity_switch_rate": {
+      "mean": 0.3918606467897186,
+      "std": 0.0,
+      "values": [
+        0.3918606467897186
+      ]
+    },
+    "mean_slot_diversity": {
+      "mean": 4.635416666666666,
+      "std": 0.0,
+      "values": [
+        4.635416666666666
+      ]
+    },
+    "hidden_visible_ratio": {
+      "mean": 0.6256569218450826,
+      "std": 0.0,
+      "values": [
+        0.6256569218450826
+      ]
+    },
+    "n_visible": {
+      "mean": 192.0,
+      "std": 0.0,
+      "values": [
+        192
+      ]
+    },
+    "n_hidden": {
+      "mean": 163.0,
+      "std": 0.0,
+      "values": [
+        163
+      ]
+    },
+    "id_drift": {
+      "mean": 0.09236535422677267,
+      "std": 0.0,
+      "values": [
+        0.09236535422677267
+      ]
+    },
+    "dyn_drift": {
+      "mean": 0.07939882836263831,
+      "std": 0.0,
+      "values": [
+        0.07939882836263831
+      ]
+    },
+    "drift_ratio": {
+      "mean": 1.1633087808917322,
+      "std": 0.0,
+      "values": [
+        1.1633087808917322
+      ]
+    }
+  }
+}
