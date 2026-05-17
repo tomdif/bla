@@ -1,35 +1,26 @@
-"""Encoder-side identity consistency loss (Phase 7C).
+"""Identity-binding diagnostics + the SlotPosAuxHead used by OF-JEPA eval.
 
-Phase 7B established that the predictor-side id_dyn_split fix alone is
-insufficient: the encoder still emits identity-subspace features that
-drift frame-to-frame, and the JEPA loss forces the predictor to chase
-that drift. The identity problem is **upstream** in the encoder.
+This module is the **canonical** site for the small slot→position
+auxiliary head and the per-frame Hungarian assignment helper, plus the
+two diagnostics that survived the Phase 7-8 falsification arc:
 
-This module supplies an auxiliary training-time loss that directly
-penalizes encoder-output identity drift. Sketch:
+  - `SlotPosAuxHead`        — slot → 2D position projection for matching
+  - `_assign_slots_to_entities` — per-frame Hungarian helper
+  - `cosine_diagnostic`     — same-entity vs different-entity id_key cosine
+  - `drift_diagnostic`      — per-frame id_drift vs dyn_drift
 
-    1. Tiny auxiliary head `slot_to_pos_aux(slot) -> [x, y]` trained
-       alongside JEPA by MSE on GT positions for visible entities.
-    2. Per frame, Hungarian-match `slot_to_pos_aux(slots[t])` against
-       GT entity positions → assignment a_t: slot_idx → entity_id.
-    3. For each pair of consecutive frames and each entity visible at
-       both, find the slot bound to that entity at t-1 (i_{t-1}) and
-       at t (i_t). The identity loss:
+Two training-time loss functions that were active in Phase 7C and
+Phase 8A — `identity_consistency_loss` and `identity_contrastive_loss`
+— have been **falsified** and moved to `system1_jepa/_attic/falsified_losses.py`.
+See `docs/phases/PHASE_7C_JEPA_DECISION.md` and
+`docs/phases/PHASE_8A_JEPA_DECISION.md` for the falsification arc and
+`feedback-prediction-vs-assignment` in the memory layer for why
+content-side identity losses can't fix what is structurally an
+assignment problem.
 
-           L_id = mean ||slot_id_half(t)[i_t]
-                          - stopgrad(slot_id_half(t-1)[i_{t-1}])||²
-
-       The stop-grad anchors the *current* slot to the *previous*
-       slot's identity coordinate — the encoder is pushed to make
-       identity-subspace features temporally stable across frames
-       for the same entity.
-
-This is GT-supervised at training time (uses MOVi's per-entity GT
-positions to drive the Hungarian match). At eval time the assignment
-is recomputed from the regular identity probe — no leak.
-
-The id_drift / dyn_drift diagnostic is also defined here so we can
-verify the split is actually doing what we want.
+The canonical OF-JEPA v0 (post-Phase-9B) trains with only the JEPA
+temporal-smoothness loss on `state_value` + supervised position loss
+via `SlotPosAuxHead`. No identity-consistency or contrastive terms.
 """
 from __future__ import annotations
 
@@ -78,116 +69,10 @@ def _assign_slots_to_entities(
     return out
 
 
-def identity_consistency_loss(
-    slot_states: torch.Tensor,         # [T, S, D] — encoder output, with grads
-    slot_to_pos_aux: SlotPosAuxHead,
-    gt_pos: torch.Tensor,              # [T, E, 2]
-    gt_visible: torch.Tensor,          # [T, E] bool
-    id_dim: int,
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Returns (consistency_loss, aux_pos_loss).
-
-    consistency_loss: pushes slot[i_t][:id_dim] toward sg(slot[i_{t-1}][:id_dim])
-    for pairs of consecutive frames where the same entity was visible at both.
-
-    aux_pos_loss: MSE between slot_to_pos_aux(slot_visible) and gt_pos for
-    visible-entity rows (trains the aux head used for matching).
-    """
-    T, S, D = slot_states.shape
-    pred_pos = slot_to_pos_aux(slot_states)              # [T, S, 2]
-
-    assignments = _assign_slots_to_entities(pred_pos, gt_pos, gt_visible)  # [T, S]
-
-    # Aux-head loss: for each (t, s) with a visible-entity assignment,
-    # MSE between pred_pos and gt_pos of that entity.
-    aux_terms = []
-    for t in range(T):
-        for s in range(S):
-            e = assignments[t, s]
-            if e >= 0:
-                aux_terms.append(F.mse_loss(pred_pos[t, s], gt_pos[t, e]))
-    aux_loss = torch.stack(aux_terms).mean() if aux_terms else \
-                torch.tensor(0.0, device=slot_states.device)
-
-    # Consistency loss: for each (t > 0, slot s_t), find the slot s_{t-1}
-    # assigned to the SAME entity. If found, accumulate id-half loss.
-    cons_terms = []
-    for t in range(1, T):
-        for s_t in range(S):
-            e = assignments[t, s_t]
-            if e < 0:
-                continue
-            prev_rows = np.where(assignments[t-1] == e)[0]
-            if prev_rows.size == 0:
-                continue
-            s_prev = int(prev_rows[0])
-            id_cur = slot_states[t, s_t, :id_dim]
-            id_prev = slot_states[t-1, s_prev, :id_dim].detach()
-            cons_terms.append(F.mse_loss(id_cur, id_prev))
-    cons_loss = torch.stack(cons_terms).mean() if cons_terms else \
-                 torch.tensor(0.0, device=slot_states.device)
-
-    return cons_loss, aux_loss
-
-
-def identity_contrastive_loss(
-    slot_states: torch.Tensor,         # [T, S, D]
-    slot_to_pos_aux: SlotPosAuxHead,
-    gt_pos: torch.Tensor,              # [T, E, 2]
-    gt_visible: torch.Tensor,          # [T, E] bool
-    id_dim: int,
-    temperature: float = 0.1,
-) -> torch.Tensor:
-    """InfoNCE contrastive loss on the id-half of slot states.
-
-    For each consecutive frame pair (t, t+1) and each anchor slot i at t
-    that is Hungarian-matched to some entity e (also visible at t+1):
-      - positive: slot j at t+1 matched to the same entity e
-      - negatives: all OTHER slots at t+1 (matched to other entities or
-        unassigned)
-
-    The loss is:
-        -log( exp(sim(anchor, pos)/τ) /
-              sum_{k in {pos, neg_1, ..., neg_K}} exp(sim(anchor, k)/τ) )
-
-    Cosine similarity in the id-subspace. Returns mean over anchors.
-
-    This is the Phase 8A intervention: directly reward the encoder for
-    putting same-entity slot id_keys close to each other across frames,
-    and different-entity ones far apart. Operates only on the id-half so
-    we don't constrain the dyn-half's freedom to encode state changes.
-    """
-    T, S, D = slot_states.shape
-    id_keys = slot_states[..., :id_dim]                  # [T, S, id_dim]
-    pred_pos = slot_to_pos_aux(slot_states)               # [T, S, 2]
-
-    assignments = _assign_slots_to_entities(pred_pos, gt_pos, gt_visible)  # [T, S]
-
-    # Normalize id_keys for cosine similarity.
-    id_norm = F.normalize(id_keys, dim=-1, eps=1e-6)
-
-    loss_terms = []
-    for t in range(T - 1):
-        for i_anchor in range(S):
-            e = assignments[t, i_anchor]
-            if e < 0:
-                continue
-            # Positive: slot at t+1 with the same entity ID.
-            pos_rows = np.where(assignments[t + 1] == e)[0]
-            if pos_rows.size == 0:
-                continue
-            j_pos = int(pos_rows[0])
-
-            anchor = id_norm[t, i_anchor]                  # [id_dim]
-            candidates = id_norm[t + 1]                     # [S, id_dim]
-            sims = (candidates @ anchor) / temperature      # [S]
-            # InfoNCE: log p(positive | candidates).
-            log_probs = F.log_softmax(sims, dim=0)
-            loss_terms.append(-log_probs[j_pos])
-
-    if not loss_terms:
-        return torch.tensor(0.0, device=slot_states.device, requires_grad=True)
-    return torch.stack(loss_terms).mean()
+# Falsified Phase 7C / 8A loss functions moved to
+# `system1_jepa/_attic/falsified_losses.py`. The canonical OF-JEPA v0
+# does not import them. Code that wants to reproduce the falsification
+# sweeps imports from `_attic` explicitly.
 
 
 @torch.no_grad()

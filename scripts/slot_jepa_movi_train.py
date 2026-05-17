@@ -47,6 +47,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from system1_jepa.convnext_encoder import ConvNeXtEncoderConfig, ConvNeXtSlotEncoder
 from system1_jepa.id_consistency import (
     SlotPosAuxHead, cosine_diagnostic, drift_diagnostic,
+)
+# Phase 7C / 8A modes (now falsified) import their losses from _attic.
+from system1_jepa._attic.falsified_losses import (
     identity_consistency_loss, identity_contrastive_loss,
 )
 from system1_jepa.of_jepa import OFJEPA, OFJEPAConfig
