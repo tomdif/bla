@@ -1,0 +1,24 @@
+{
+  "baseline": {
+    "future_visible_mse": 0.006013304482569574,
+    "future_hidden_mse": 0.025700809859613927,
+    "n_visible": 4471,
+    "n_hidden": 233,
+    "interaction_visible_mse": 0.005671328002693731,
+    "interaction_hidden_mse": 0.009356990761087966,
+    "n_interaction_visible": 3502,
+    "n_interaction_hidden": 136
+  },
+  "with_relations": {
+    "future_visible_mse": 0.005496854053882343,
+    "future_hidden_mse": 0.023975084404642973,
+    "n_visible": 4471,
+    "n_hidden": 233,
+    "interaction_visible_mse": 0.005208298812884837,
+    "interaction_hidden_mse": 0.008967019218270126,
+    "n_interaction_visible": 3502,
+    "n_interaction_hidden": 136
+  },
+  "k_steps": 4,
+  "seed": 0
+}
