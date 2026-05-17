@@ -33,42 +33,67 @@ def _random_action(env, t: int, ep_state: dict, obs) -> np.ndarray:
 
 
 def _scripted_push_action(env, t: int, ep_state: dict, obs) -> np.ndarray:
-    """Heuristic OSC-toward-cube + gripper oscillation + Gaussian noise.
+    """Approach + contact + push policy.
 
-    Generates informative (action, effect) pairs for Phase 14.5: the EE
-    deterministically drives toward a randomly-chosen cube target, so
-    most actions correlate with EE motion AND occasional cube
-    displacements when the EE makes contact. Compare to uniform random
-    where cubes barely move.
+    Two-phase scripted policy that produces informative (action, effect)
+    pairs by driving the EE into the cube rather than hovering near it:
 
-    Per-episode state in `ep_state`:
+      Phase A (approach):  horizontal dist > contact radius
+                            → aim at the cube + small vertical offset above
+                            → gripper open
+      Phase B (contact):   horizontal dist ≤ contact radius
+                            → drive z downward to press into cube
+                            → gripper closing (negative action sign in OSC)
+
+    Phase 14.5 v1 (hover-only) hit ~0.04m displacement; this version
+    targets ≥ 0.06–0.10m by adding the contact phase.
+
+    Per-episode state:
       target_idx     — 0/1 which cube is currently the target
       switch_step    — when to switch targets next
     """
     if "target_idx" not in ep_state:
-        ep_state["target_idx"] = int(np.random.randint(2))
-        ep_state["switch_step"] = int(np.random.randint(15, 30))
+        _scripted_push_pick_target(ep_state, t)
 
-    if t == ep_state["switch_step"]:
-        ep_state["target_idx"] = 1 - ep_state["target_idx"]
-        ep_state["switch_step"] = t + int(np.random.randint(15, 30))
+    if t >= ep_state["switch_step"]:
+        _scripted_push_pick_target(ep_state, t)
 
     target = obs["cubeA_pos"] if ep_state["target_idx"] == 0 else obs["cubeB_pos"]
     eef = obs["robot0_eef_pos"]
-    delta = target - eef          # 3D world offset
-    # OSC_POSE: action[0:3] is xyz delta (scaled), [3:6] rot, [6] gripper.
-    # robosuite scales OSC action to physical delta with internal gain;
-    # clamping to [-1,1] keeps it in the controller's nominal range.
+    horiz_dist = float(np.linalg.norm((target - eef)[:2]))
+
     a = np.zeros(env.action_dim, dtype=np.float32)
-    a[:3] = np.clip(delta * 5.0, -1, 1)
+    contact_radius = 0.05   # slightly larger than cube width
+    sweep_dir = ep_state["sweep_dir"]   # 2D unit vector for horizontal follow-through
+    if horiz_dist > contact_radius:
+        # Approach: aim at the side of the cube along sweep direction so
+        # we land just off-center with momentum already in sweep_dir.
+        # Aim at cube_pos - 0.05 * sweep_dir, at cube height.
+        approach_target = target.copy()
+        approach_target[:2] -= 0.05 * sweep_dir
+        approach_target[2] += 0.005   # barely above table to slide laterally
+        delta = approach_target - eef
+        a[:3] = np.clip(delta * 10.0, -1, 1)
+        a[6] = +1.0    # gripper closed = small effective tip for pushing
+    else:
+        # Contact / drive-through: push laterally in sweep_dir at full gain
+        # so the EE sweeps PAST the cube position, dragging it sideways.
+        a[0:2] = sweep_dir * 1.0
+        a[2] = -0.3    # mild downward to maintain contact with cube side
+        a[6] = +1.0
     a[3:6] = 0.0
-    # Oscillating gripper so the dataset has open/close diversity.
-    a[6] = float(np.sin(t / 8.0))
-    # Exploration noise: σ=0.3 keeps the policy informative but
-    # introduces enough randomness that action-discrimination is
-    # non-trivial (model has to use action to predict trajectory).
-    a = a + np.random.normal(0, 0.3, env.action_dim).astype(np.float32)
+    # Exploration noise σ=0.20: keeps action-discrimination non-trivial
+    # without drowning out the scripted lateral sweep.
+    a = a + np.random.normal(0, 0.20, env.action_dim).astype(np.float32)
     return np.clip(a, -1, 1)
+
+
+def _scripted_push_pick_target(ep_state: dict, t: int):
+    """(Re-)sample target cube and sweep direction."""
+    ep_state["target_idx"] = int(np.random.randint(2))
+    angle = float(np.random.uniform(0, 2 * np.pi))
+    ep_state["sweep_dir"] = np.array([np.cos(angle), np.sin(angle)], dtype=np.float32)
+    ep_state["switch_step"] = t + int(np.random.randint(20, 35))
 
 
 _POLICIES = {

@@ -47,7 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from system1_jepa.robosuite_data import RobosuiteDataset, RobosuiteSpec
 from system1_jepa.of_jepa import OFJEPAConfig
 from system1_jepa.identity_probe import hungarian_assign
-from scripts.slot_jepa_robosuite_train import ActionConditionedOFJEPA, train_one_run
+from scripts.slot_jepa_robosuite_train import ActionConditionedOFJEPA, train_one_run, eval_future_mse
 
 
 def eval_action_ranking(model, dataset, eval_idx, args, device,
@@ -168,9 +168,11 @@ def main():
             action_dim=dataset.action_dim, use_action=use_action,
         ).to(args.device)
         train_one_run(model, dataset, train_idx, args, args.device, use_action)
-        metrics = eval_action_ranking(model, dataset, eval_idx, args, args.device,
-                                        use_action, k_candidates=args.k_candidates)
-        metrics["mode"] = mode
+        # Joint eval: state-matching MSE (Phase 14.3 gates A,C) + action ranking (gate B).
+        state_metrics = eval_future_mse(model, dataset, eval_idx, args, args.device, use_action)
+        rank_metrics = eval_action_ranking(model, dataset, eval_idx, args, args.device,
+                                             use_action, k_candidates=args.k_candidates)
+        metrics = {**state_metrics, **rank_metrics, "mode": mode}
         results[mode] = metrics
         with open(out / f"seed{args.seed}_{mode}.json", "w") as f:
             json.dump(metrics, f, indent=2)

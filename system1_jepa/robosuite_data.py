@@ -73,7 +73,13 @@ class RobosuiteDataset(Dataset):
 
         # Pad to E_max (=3, no padding needed for Stack).
         pad_pos = np.zeros((T, E_max, 2), dtype=np.float32)
-        pad_vis = np.ones((T, E_max), dtype=bool)
+        # Per-entity visibility: defaults to True for all entities.
+        # Robomimic-Lift replays write entity_visibility=[1,0,1] (cubeB absent).
+        if "entity_visibility" in data.files:
+            ent_vis = data["entity_visibility"].astype(bool)  # [E_max]
+            pad_vis = np.broadcast_to(ent_vis[None, :], (T, E_max)).copy()
+        else:
+            pad_vis = np.ones((T, E_max), dtype=bool)
         pad_attr = np.zeros((E_max, 3), dtype=np.float32)
         for i in range(min(3, E_max)):
             pad_attr[i, i] = 1.0

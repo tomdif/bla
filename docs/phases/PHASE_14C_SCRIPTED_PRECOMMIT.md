@@ -104,31 +104,60 @@ quirk; weakens the "action helps planner readouts" claim.
 | ❌ | ❌ | ❌ | Random-policy was not the problem. Action-conditioning is just additive noise to the perceptual loop regardless of data. 14.3 + 14.4 conclusions stand verbatim. |
 | ✅ | ✅ | ❌ | Mixed. The ranking improvement isolates planner-facing benefit; the lost pos improvement says random-policy was a confound. Plausible "action only good for ranking" verdict. |
 
+## Robomimic Lift inspection (rejected as alternative source)
+
+After v3 passed the smoke gate, we briefly considered pivoting to
+externally-grounded robomimic Lift PH demonstrations as a cleaner
+"non-hand-tuned" data source. **Inspection revealed Lift PH demos
+displace the cube only ~0.045-0.048m on average** — *below* the
+precommitted 0.05m gate and *less* than scripted v3 (0.056-0.062m).
+
+Sample over 20 demos:
+```
+demo_0 (T=59):  cube z 0.831 → 0.876 = Δ 0.045 m
+mean over 20 demos: 0.048 m  max 0.055  min 0.040
+```
+
+The Lift task's success criterion is *"cube is lifted off the table by
+some small height"* — humans don't bother lifting it high. So while
+robomimic PH demos would have provided cleaner external framing, they
+would have been *weaker data* for this specific action-conditioning
+test. Can/PickPlace would give larger displacements but requires
+rewriting the dataset class (4 objects, different state schema, new
+eval path) — substantial plumbing for marginal methodology gain.
+
+**Decision: scripted v3 is the disciplined choice. Phase 14.5 proceeds
+on v3 data.** Can/PickPlace remains a future external-data target if
+Phase 14.5 results require a follow-up sanity check.
+
+Architecturally, the deeper answer to "don't hand-tune the policy" is
+[[project_bla_roadmap]]'s System-2-driven exploration where curiosity
+or planning generates informative data, not scripted heuristics. That
+belongs in a later phase, not retrofitted into Phase 14.5.
+
 ## Reproducibility — pod runbook
 
 ```bash
-# 1. Collect 200 scripted-push rollouts (~5-10 min on RTX 4090 pod)
+# 1. Collect 200 scripted-push (v3 drive-through) rollouts.
+# Policy: per-target random sweep direction, approach + lateral
+# drive-through phase, target re-sampled every 20-35 steps. v3 hit
+# 0.056/0.062m mean displacement after v1/v2 iterations.
 python3 scripts/robosuite_collect_rollouts.py \
   --task Stack --n-episodes 200 --horizon 80 \
   --policy scripted_push \
   --out /workspace/robosuite_local/stack_scripted
 
 # Smoke test: manifest's cube_a_disp_mean + cube_b_disp_mean should
-# both be ≥ 0.05 m. If not, the policy is broken.
+# both be ≥ 0.05 m. v3 produces ~0.056/0.062m.
 
-# 2. Train baseline + action-conditioned on scripted data (~40 min)
-python3 scripts/slot_jepa_robosuite_train.py \
-  --cache /workspace/robosuite_local/stack_scripted \
-  --modes of_jepa_v0,of_jepa_v0_action \
-  --seeds 0 --max-steps 1500 --jepa-stride 4 \
-  --out /workspace/phase14c_state
-
-# 3. Action-ranking eval (~20 min)
+# 2. Joint train + eval (state-matching + action-ranking) in one
+# ~90-min run. The patched phase14_action_ranking.py also calls
+# eval_future_mse so a single trained model yields all three gates.
 python3 scripts/phase14_action_ranking.py \
   --cache /workspace/robosuite_local/stack_scripted \
   --modes of_jepa_v0,of_jepa_v0_action \
-  --seed 0 --max-steps 1500 --k-candidates 8 \
-  --out /workspace/phase14c_ranking
+  --seed 0 --max-steps 1500 --jepa-stride 4 --k-candidates 8 \
+  --out /workspace/phase14c_joint
 ```
 
 Artifacts then pulled to `artifacts/phase14c_{state,ranking}/`. Decision
