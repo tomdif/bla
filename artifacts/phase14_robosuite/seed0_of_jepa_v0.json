@@ -1,0 +1,8 @@
+{
+  "future_state_mse": 6.107512753691193e-05,
+  "future_pos_mse": 0.022797539205011593,
+  "n_samples": 3040,
+  "steps": 1500,
+  "mode": "of_jepa_v0",
+  "seed": 0
+}
