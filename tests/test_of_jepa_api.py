@@ -16,7 +16,7 @@ import torch
 import pytest
 
 from latent_bus.bus import TokenlessLatentBus
-from system1_jepa.of_jepa_api import (
+from system1_jepa.of_jepa import (
     ObjectFileBatch, OFJEPAObjectFiles, per_file_project,
 )
 

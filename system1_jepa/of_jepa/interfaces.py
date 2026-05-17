@@ -37,7 +37,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from system1_jepa.of_jepa import OFJEPA, OFJEPAConfig
+from .predictor import OFJEPA
+from .object_file_memory import OFJEPAConfig
 
 
 @dataclass
