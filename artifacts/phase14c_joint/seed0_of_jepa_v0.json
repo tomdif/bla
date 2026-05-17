@@ -1,0 +1,14 @@
+{
+  "future_state_mse": 0.00011084616615299207,
+  "future_pos_mse": 0.016639787920767528,
+  "n_samples": 3040,
+  "top1_hit_rate": 1.0,
+  "top3_hit_rate": 1.0,
+  "rank_of_actual": 1.0,
+  "delta_distance": 0.0,
+  "n": 3040,
+  "k_candidates": 8,
+  "chance_top1": 0.125,
+  "chance_top3": 0.375,
+  "mode": "of_jepa_v0"
+}
