@@ -49,6 +49,7 @@ from system1_jepa.id_consistency import (
     SlotPosAuxHead, cosine_diagnostic, drift_diagnostic,
     identity_consistency_loss, identity_contrastive_loss,
 )
+from system1_jepa.of_jepa import OFJEPA, OFJEPAConfig
 from system1_jepa.identity_probe import ProbeFitConfig, identity_aware_probe_eval
 from system1_jepa.movi_data import MoviDataset, MoviSpec, ATTR_DIM
 from system1_jepa.sigreg import sigreg_lewm
@@ -195,12 +196,27 @@ def train_one_run(
     np.random.seed(seed)
     device = args.device
 
-    model = MoviJEPA(
-        image_size=args.image_size, slot_dim=args.slot_dim,
-        n_slots=args.n_slots, mode=mode,
-        mask_bias_init=args.mask_bias_init,
-        target_active_slots=0,
-    ).to(device)
+    if mode == "of_jepa_v0":
+        # Phase 8C: Object-File JEPA — persistent learned id_keys, memory-anchored
+        # Sinkhorn matching, sparse-delta state_value. Slot_dim becomes id+state.
+        of_cfg = OFJEPAConfig(
+            n_files=args.n_slots,
+            id_dim=args.slot_dim // 2,
+            state_dim=args.slot_dim // 2,
+            proposal_dim=args.slot_dim,
+            id_ema_alpha=0.05,
+            state_delta_scale=0.2,
+            sinkhorn_iters=20,
+            sinkhorn_temperature=0.1,
+        )
+        model = OFJEPA(image_size=args.image_size, cfg=of_cfg).to(device)
+    else:
+        model = MoviJEPA(
+            image_size=args.image_size, slot_dim=args.slot_dim,
+            n_slots=args.n_slots, mode=mode,
+            mask_bias_init=args.mask_bias_init,
+            target_active_slots=0,
+        ).to(device)
 
     if mode != "copy":
         opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
@@ -227,18 +243,73 @@ def train_one_run(
 
             opt.zero_grad(set_to_none=True)
             slot_states, tokens = model.encode_video_grad(video)
-            # JEPA: predict slots_{t+1} from slots_t + tokens_t, target = sg(slots_{t+1})
-            zero_action = torch.zeros(1, 4, device=device)
-            loss = 0.0
-            count = 0
-            for t in range(T - 1):
-                pred = model.predict_next(
-                    slot_states[t:t+1], tokens[t:t+1], zero_action,
-                )
-                target = slot_states[t+1:t+2].detach()
-                loss = loss + F.mse_loss(pred, target)
-                count += 1
-            loss = loss / max(count, 1)
+
+            if mode == "of_jepa_v0":
+                # Phase 8C: OF-JEPA training signal.
+                # 1. JEPA self-prediction on state_value via the memory's own
+                #    internal step (slot_states[t+1] from slot_states[t]).
+                # 2. Supervised position loss via aux_pos head — this is what
+                #    drives the encoder + state_value to encode location info,
+                #    and provides a clean training signal grounded in MOVi GT.
+                # The Sinkhorn assignment in memory.step is trained INDIRECTLY
+                # via these two losses + the persistent id_proto parameters.
+                gt_pos_t = batch["positions"][0].to(device)
+                gt_vis_t = batch["visibility"][0].to(device).bool()
+
+                # JEPA-style internal consistency on STATE_VALUE only.
+                # id_key updates via EMA, not predictor — including it in the JEPA
+                # loss makes the loss punish EMA drift, which is wrong (and was
+                # the source of the v0-first-attempt divergence).
+                id_dim = model.cfg.id_dim
+                state_dim = model.cfg.state_dim
+                state_only = slot_states[..., id_dim:]                 # [T, N, state_dim]
+                jepa_loss = 0.0
+                for t in range(T - 1):
+                    target = state_only[t+1].detach()
+                    pred = state_only[t]
+                    jepa_loss = jepa_loss + F.mse_loss(pred, target)
+                jepa_loss = jepa_loss / max(T - 1, 1)
+
+                # Supervised position loss via slot_to_pos_aux head.
+                pred_positions = model.slot_to_pos_aux(slot_states)  # [T, N_files, 2]
+                pos_loss = 0.0
+                pos_count = 0
+                for t in range(T):
+                    vis_mask = gt_vis_t[t]
+                    if not vis_mask.any():
+                        continue
+                    pred_t = pred_positions[t].unsqueeze(0)
+                    gt_t_vis = gt_pos_t[t][vis_mask].unsqueeze(0)
+                    if gt_t_vis.shape[1] == 0:
+                        continue
+                    # Hungarian-MSE matching predicted slots to visible GT entities.
+                    from system1_jepa.identity_probe import hungarian_assign
+                    pp_np = pred_t[0].detach().cpu().numpy()
+                    gt_np = gt_t_vis[0].detach().cpu().numpy()
+                    rows, cols, _ = hungarian_assign(pp_np, gt_np)
+                    if len(rows) > 0:
+                        rs = torch.from_numpy(rows).to(device)
+                        cs = torch.from_numpy(cols).to(device)
+                        pos_loss = pos_loss + F.mse_loss(
+                            pred_t[0, rs], gt_t_vis[0, cs]
+                        )
+                        pos_count += 1
+                pos_loss = pos_loss / max(pos_count, 1)
+                loss = args.of_jepa_w * jepa_loss + args.of_pos_w * pos_loss
+
+            else:
+                # Existing JEPA loss for slot_delta-family modes.
+                zero_action = torch.zeros(1, 4, device=device)
+                loss = 0.0
+                count = 0
+                for t in range(T - 1):
+                    pred = model.predict_next(
+                        slot_states[t:t+1], tokens[t:t+1], zero_action,
+                    )
+                    target = slot_states[t+1:t+2].detach()
+                    loss = loss + F.mse_loss(pred, target)
+                    count += 1
+                loss = loss / max(count, 1)
 
             # SIGReg on slot states to prevent collapse.
             if args.sigreg_w > 0:
@@ -450,6 +521,10 @@ def main():
                    help="Phase 8A: weight on InfoNCE identity contrastive loss")
     p.add_argument("--id-contrastive-temp", type=float, default=0.1,
                    help="Phase 8A: contrastive temperature τ")
+    p.add_argument("--of-jepa-w", type=float, default=1.0,
+                   help="Phase 8C OF-JEPA: weight on internal JEPA temporal smoothness")
+    p.add_argument("--of-pos-w", type=float, default=10.0,
+                   help="Phase 8C OF-JEPA: weight on supervised position loss")
     p.add_argument("--mask-bias-init", type=float, default=0.0)
     p.add_argument("--probe-epochs", type=int, default=300)
     p.add_argument("--log-every", type=int, default=100)
