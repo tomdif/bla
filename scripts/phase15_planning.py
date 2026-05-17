@@ -318,6 +318,12 @@ def main():
                     help="Episodes for pre-flight oracle sanity gate.")
     p.add_argument("--oracle-min-improvement", type=float, default=0.20)
     p.add_argument("--oracle-min-dir-score", type=float, default=0.0)
+    p.add_argument("--oracle-min-contact", type=float, default=0.0,
+                    help="Minimum oracle contact rate to pass sanity gate.")
+    p.add_argument("--g2-threshold", type=float, default=0.20,
+                    help="G2: action_improvement >= threshold")
+    p.add_argument("--g3-ratio", type=float, default=1.5,
+                    help="G3: action_improvement / noaction_improvement >= ratio (at matched K)")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = p.parse_args()
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
@@ -355,7 +361,8 @@ def main():
     print(f"  Oracle: imp={o_imp:.3f}  dir={o_dir:.3f}  succ={o_succ:.3f}  "
           f"contact={o_contact:.2f}  mean_disp={o_disp:.4f}m", flush=True)
     sanity_pass = (o_imp >= args.oracle_min_improvement and
-                    o_dir >= args.oracle_min_dir_score)
+                    o_dir > args.oracle_min_dir_score and
+                    o_contact >= args.oracle_min_contact)
     if not sanity_pass:
         print(f"\nORACLE SANITY GATE FAILED  (need imp>={args.oracle_min_improvement}, "
               f"dir>={args.oracle_min_dir_score}). Task setup invalid as planning benchmark.")
@@ -431,22 +438,27 @@ def main():
         g1_pass = g1_diff >= 0.10
         print(f"  G1 improvement_gap: action={a_main['improvement']:.3f} noaction={noaction['improvement']:.3f}"
               f"  Δ={g1_diff:+.3f}  (>=0.10 {'PASS' if g1_pass else 'FAIL'})")
-        g2_pass = a_main["improvement"] >= 0.20
-        print(f"  G2 action_improvement: {a_main['improvement']:.3f}  (>=0.20 {'PASS' if g2_pass else 'FAIL'})")
+        g2_pass = a_main["improvement"] >= args.g2_threshold
+        print(f"  G2 action_improvement: {a_main['improvement']:.3f}  "
+              f"(>={args.g2_threshold:.2f} {'PASS' if g2_pass else 'FAIL'})")
+        # G3: matched-K ratio of action_improvement / noaction_improvement
+        if noaction["improvement"] > 1e-6:
+            g3_ratio = a_main["improvement"] / noaction["improvement"]
+        else:
+            g3_ratio = float("inf") if a_main["improvement"] > 1e-6 else float("nan")
+        g3_pass = g3_ratio >= args.g3_ratio
+        print(f"  G3 matched_K_ratio: action/noaction={g3_ratio:.3f}  "
+              f"(>={args.g3_ratio} {'PASS' if g3_pass else 'FAIL'})")
         summary["g1_diff"] = g1_diff
         summary["g2_improvement"] = a_main["improvement"]
+        summary["g3_ratio"] = g3_ratio
     if a_main:
-        # G3: does any K' <= main_K/2 achieve >= main_K improvement?
-        target_imp = a_main["improvement"]
-        small_Ks = [K for K in action_K if K <= args.main_K // 2]
-        passes = [K for K in small_Ks if action_K[K]["improvement"] >= target_imp]
-        g3_pass = len(passes) > 0
-        print(f"  G3 cand_efficiency: K={args.main_K} imp={target_imp:.3f}")
+        # Diagnostic: K sweep performance
+        print(f"  K-sweep diagnostic:")
         for K in sorted(action_K):
             r = action_K[K]
             print(f"    K={K}: imp={r['improvement']:.3f}  dir={r['dir_score']:.3f}  "
-                  f"succ={r['success_rate']:.3f}  mean_dist={r['mean_dist']:.4f}")
-        print(f"    G3 {'PASS' if g3_pass else 'FAIL'}  (need K<={args.main_K//2} matching K={args.main_K})")
+                  f"contact={r['contact_rate']:.2f}  succ={r['success_rate']:.3f}")
     if random_r:
         print(f"  Random baseline:    imp={random_r['improvement']:.3f}  dir={random_r['dir_score']:.3f}  "
               f"succ={random_r['success_rate']:.3f}  mean_dist={random_r['mean_dist']:.4f}")
