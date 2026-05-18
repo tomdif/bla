@@ -89,6 +89,15 @@ def step_and_track(env, obs, action, args):
     return obs
 
 
+def lift_sigma(scalar: float, action_dim: int = 7) -> np.ndarray:
+    """Per-dim CEM sigma for Lift: noise on motion dims (0-5), zero on
+    gripper bit (dim 6). The gripper-bit perturbation breaks demo-prior
+    grasps; keeping it deterministic preserves grasp semantics."""
+    v = np.full(action_dim, scalar, dtype=np.float32)
+    v[-1] = 0.0
+    return v
+
+
 def build_score_fn_lift(env, model, obs, goal_xy_world):
     init_slot = encode_frame(model, obs["agentview_image"])
     cube_idx = find_cube_slot_lift(
@@ -123,7 +132,7 @@ def collect_lift_dataset(env, model, args):
             plan, _ = cem_with_prior(
                 score_fn, mu, env.action_dim,
                 args.plan_horizon, args.train_cem_iters, args.train_K,
-                args.elite_frac, sigma=args.train_sigma,
+                args.elite_frac, sigma=lift_sigma(args.train_sigma),
                 sigma_floor=args.sigma_floor,
             )
             if plan is None: plan = mu
@@ -322,7 +331,7 @@ def run_episode(env, model_action, heads, adapters, mode, args, ep_id):
             plan, _ = cem_with_prior(score_fn, mu, env.action_dim,
                                        args.plan_horizon, args.eval_cem_iters,
                                        args.eval_K, args.elite_frac,
-                                       sigma=args.naive_sigma,
+                                       sigma=lift_sigma(args.naive_sigma),
                                        sigma_floor=args.sigma_floor)
             if plan is None: plan = mu
             n_exec = min(args.replan_every,
@@ -352,7 +361,7 @@ def run_episode(env, model_action, heads, adapters, mode, args, ep_id):
             plan, _ = cem_with_prior(score_fn, mu, env.action_dim,
                                        args.plan_horizon, args.eval_cem_iters,
                                        args.eval_K, args.elite_frac,
-                                       sigma=args.eval_sigma,
+                                       sigma=lift_sigma(args.eval_sigma),
                                        sigma_floor=args.sigma_floor)
             if plan is None: plan = mu
             n_exec = min(args.replan_every,
@@ -470,9 +479,13 @@ def main():
     p.add_argument("--slot-dim", type=int, default=128)
     p.add_argument("--action-dim", type=int, default=7)
     p.add_argument("--jepa-stride", type=int, default=4)
-    p.add_argument("--plan-horizon", type=int, default=10)
-    p.add_argument("--total-actions", type=int, default=20)  # Lift needs more steps
-    p.add_argument("--replan-every", type=int, default=5)
+    # For Lift: replan_every == total_actions == plan_horizon so the episode
+    # is one single plan. Replanning during MPC breaks demo-replay priors
+    # because each replan restarts the demo from t=0, but the env state has
+    # advanced. Single-plan execution = 1 replay of the demo per episode.
+    p.add_argument("--plan-horizon", type=int, default=20)
+    p.add_argument("--total-actions", type=int, default=20)
+    p.add_argument("--replan-every", type=int, default=20)
     p.add_argument("--rollout-episodes", type=int, default=200)
     p.add_argument("--rollout-log-every", type=int, default=20)
     p.add_argument("--train-K", type=int, default=32)

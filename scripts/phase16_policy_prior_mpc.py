@@ -151,9 +151,21 @@ def rollout_bc_prior(env, obs, goal_xy, H, stride, bc_policy, device):
 # ---------- prior-aware CEM ----------
 def cem_with_prior(score_fn, mu_init, action_dim, n_steps, n_iters, n_cand,
                     elite_frac, sigma=0.2, sigma_floor=0.05):
-    """CEM where μ is initialized from a prior trajectory instead of zeros."""
+    """CEM where μ is initialized from a prior trajectory instead of zeros.
+
+    `sigma` and `sigma_floor` accept either a scalar (applied to all
+    action dims) or a per-dim array of length `action_dim` (different
+    noise per action component). The per-dim form is required for
+    tasks where some action dims must remain deterministic (e.g.,
+    Lift's gripper bit at dim 6 must not be perturbed once grasping).
+    """
     mu = mu_init.astype(np.float32).copy()
-    sig = np.full((n_steps, action_dim), sigma, dtype=np.float32)
+    # Broadcast scalar or per-dim sigma to [n_steps, action_dim]
+    sigma_arr = np.broadcast_to(np.asarray(sigma, dtype=np.float32),
+                                  (action_dim,)).astype(np.float32)
+    sigma_floor_arr = np.broadcast_to(np.asarray(sigma_floor, dtype=np.float32),
+                                         (action_dim,)).astype(np.float32)
+    sig = np.tile(sigma_arr, (n_steps, 1))  # [n_steps, action_dim]
     best_score = -np.inf; best_seq = None
     elite_n = max(1, int(elite_frac * n_cand))
     for it in range(n_iters):
@@ -163,7 +175,7 @@ def cem_with_prior(score_fn, mu_init, action_dim, n_steps, n_iters, n_cand,
         elite_idx = np.argsort(scores)[::-1][:elite_n]
         elites = cands[elite_idx]
         mu = elites.mean(0)
-        sig = np.maximum(elites.std(0), sigma_floor)
+        sig = np.maximum(elites.std(0), sigma_floor_arr[None, :])
         if scores[elite_idx[0]] > best_score:
             best_score = float(scores[elite_idx[0]])
             best_seq = cands[elite_idx[0]].copy()
