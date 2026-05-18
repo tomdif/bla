@@ -13,6 +13,11 @@ from .navigate_occlusion import (
     OccludedNavigateSpec,
 )
 from .planning import CEMConfig, cem_plan
+from .planning_policy import (
+    PlanProposalPolicy,
+    plan_weighted_mse,
+    train_plan_policy_supervised,
+)
 from .predictor import ActionConditionedPredictor
 from .sigreg import sigreg_epps_pulley, sigreg_lewm
 from .slot import SlotAttention, SlotAttentionConfig
@@ -55,6 +60,7 @@ __all__ = [
     "OccludedNavigateSpec",
     "PatchMask",
     "PatchViTEncoder",
+    "PlanProposalPolicy",
     "SlotAttention",
     "SlotAttentionConfig",
     "SlotDeltaPredictor",
@@ -75,10 +81,12 @@ __all__ = [
     "make_image_loader",
     "make_moving_patch_episodes",
     "multistep_rollout_loss",
+    "plan_weighted_mse",
     "pool_patch_tokens",
     "sample_patch_mask",
     "sample_tube_mask",
     "sigreg_epps_pulley",
     "sigreg_lewm",
     "slot_delta_loss",
+    "train_plan_policy_supervised",
 ]
