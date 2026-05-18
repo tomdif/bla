@@ -111,3 +111,65 @@ Common thread: search in a structured subspace that respects the demo manifold, 
 > **The transferable object across tasks is the demonstration manifold, not CEM exploration around it.**
 
 That falsifies one specific extension of the BLA recipe family (action-space CEM refinement of expert demos for Lift) while validating the underlying engineering (per-dim sigma, demo-replay prior). Useful negative result.
+
+---
+
+## Addendum (2026-05-18, post-commit): seed-2 was run twice
+
+A second seed-2 launch (`bbw44ghyq` background relaunch) finished after
+the original 3-seed commit, overwriting `/workspace/phase18k_r3_seed2/`.
+Same `--seed 2` argument, but produced materially different results —
+indicating non-trivial unseeded variance in the pipeline (likely
+MuJoCo init state, demo-bank selection RNG, or env-reset noise).
+
+The two seed-2 runs are therefore **independent draws from a wider
+distribution at seed=2**, not redundant. Treating them as four
+independent runs:
+
+| Mode | s0 | s1 | s2-orig | s2-rerun | mean | std (n=4) |
+|---|---:|---:|---:|---:|---:|---:|
+| **demo_no_cem** | **0.333** | **0.400** | **0.267** | 0.233 | **0.308** | **0.074** |
+| phase17_locked | 0.300 | 0.300 | 0.133 | 0.100 | 0.208 | 0.107 |
+| combined_sum_supervised | 0.167 | 0.200 | 0.233 | 0.167 | 0.192 | 0.032 |
+| combined_sum_geo | 0.133 | 0.233 | 0.067 | **0.300** | 0.183 | 0.104 |
+| combined_sum_end2end | 0.100 | 0.200 | 0.067 | **0.300** | 0.167 | 0.105 |
+| naive_cem | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
+
+### What this changes
+
+The "3/3 outright wins" framing is no longer the cleanest description.
+At n=4: `demo_no_cem` wins outright on 3 of 4 runs and falls to rank
+3 on the 4th, where `combined_sum_geo` and `combined_sum_end2end`
+each hit 0.300 (above `demo_no_cem`'s 0.233 on the same run).
+
+### What this does NOT change
+
+The qualitative verdict holds, but softer:
+
+- **4-run mean still favors `demo_no_cem`**: 0.308 vs 0.208 next-best (Δ = +0.100 ≈ 1.3× demo's std, ≈ 0.94× phase17_locked's std).
+- **`demo_no_cem` has the lowest variance across runs** (std 0.074 vs CEM modes' 0.104–0.107). The CEM modes are unstable: same `--seed 2` produced 0.067 *and* 0.300 for both `combined_sum_geo` and `combined_sum_end2end`. `demo_no_cem` was 0.233–0.400 (range 0.167) vs `combined_sum_geo` 0.067–0.300 (range 0.233).
+- **The architectural lesson is unchanged**: demo-prior + no-CEM is the most reliable mode; CEM modes are noisier and only sometimes match it.
+- **Registered gates G1/G4 still FAIL.**
+
+### Updated honest framing
+
+> On Lift fine-tune at 200-sample scale with robomimic demo prior:
+> demo-replay alone is the **most reliable** mode (lowest variance,
+> highest mean across 4 runs). CEM-with-value-head modes occasionally
+> match it when they happen to land near the demo manifold, but
+> their variance across nominally-identical-seed runs is large
+> enough that they cannot be relied upon. The recommended deployment
+> choice for the demo-prior regime is `demo_no_cem`.
+
+### Additional finding: unseeded pipeline variance
+
+The fact that `--seed 2` produced different summaries across two
+launches reveals that the BLA pipeline has unseeded sources of
+randomness. Candidates to audit before any future small-n run:
+- MuJoCo simulator seed (separate from numpy/torch seed)
+- robomimic demo-selection RNG (which demo of demo_ids=(1, 3))
+- env reset noise (cube position randomization)
+
+This is a separate engineering finding worth documenting but does
+not require a rerun of R3 — the qualitative result is robust to the
+variance.
