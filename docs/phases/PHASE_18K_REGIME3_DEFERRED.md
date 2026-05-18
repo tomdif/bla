@@ -39,6 +39,15 @@ Three potential approaches (any one):
    reliably grasp and lift. Substitute these for the FSM scripted
    prior in `rollout_scripted_lift_prior`.
 
+   **PARTIALLY ATTEMPTED 2026-05-18**: `rollout_demo_lift_prior` was
+   built (loads robomimic demo actions, replays in env-clone).
+   Verified 2/5 demos achieve +0.067m z-gain on fresh env when
+   applied directly. **NEW BLOCKER**: when wrapped in CEM
+   refinement (σ=0.12), the gripper-bit (a[6]) gets noise-
+   perturbed, breaking the grasp. Demo-replay-as-prior needs
+   CEM modifications (e.g., zero-noise on gripper dim, or per-
+   dim sigma masking) to be viable.
+
 2. **Carefully tune the FSM** with robosuite-specific gripper
    offsets, possibly using a published Panda Lift heuristic from
    robosuite examples.
@@ -48,6 +57,12 @@ Three potential approaches (any one):
    different cube mass/friction) — though those move away from
    the "vertical geometry" test the original R3 was specifically
    designed for.
+
+4. **(NEW) Per-dim sigma masking in CEM**: extend `cem_with_prior`
+   to accept a per-action-dim sigma vector. Set sigma=0 for the
+   gripper-bit (dim 6) to keep it deterministic, while still
+   exploring noise on motion dims (0-5). This would let the demo-
+   replay prior produce reliable grasps under CEM refinement.
 
 ## What this phase doesn't change
 

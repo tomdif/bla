@@ -44,7 +44,7 @@ from scripts.slot_jepa_robosuite_train import ActionConditionedOFJEPA
 from scripts.phase18k_r3_lift import (
     build_env_lift, sample_lift_goal, state_features_lift,
     lift_improvement, find_cube_slot_lift, scripted_lift_action,
-    rollout_scripted_lift_prior, closed_loop_gt_lift_step,
+    rollout_demo_lift_prior, closed_loop_gt_lift_step,
     TARGET_LIFT_HEIGHT,
 )
 
@@ -118,7 +118,7 @@ def collect_lift_dataset(env, model, args):
             geo_feat = state_features_lift(obs, goal_xy)
             slot_feat = slot_features_at_obs(model, obs)
             score_fn = build_score_fn_lift(env, model, obs, goal_xy)
-            mu = rollout_scripted_lift_prior(env, obs, goal_xy,
+            mu = rollout_demo_lift_prior(env, obs, goal_xy,
                                                args.plan_horizon, args.jepa_stride)
             plan, _ = cem_with_prior(
                 score_fn, mu, env.action_dim,
@@ -347,7 +347,7 @@ def run_episode(env, model_action, heads, adapters, mode, args, ep_id):
                                                   head_kind, adapter,
                                                   obs, goal_xy_world,
                                                   args.combined_lambda, args)
-            mu = rollout_scripted_lift_prior(env, obs, goal_xy_world,
+            mu = rollout_demo_lift_prior(env, obs, goal_xy_world,
                                                 args.plan_horizon, args.jepa_stride)
             plan, _ = cem_with_prior(score_fn, mu, env.action_dim,
                                        args.plan_horizon, args.eval_cem_iters,
