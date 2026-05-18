@@ -313,14 +313,19 @@ def main():
     model_a.load_state_dict(torch.load(args.model_action, map_location=args.device))
     model_a.eval()
 
-    # Train BC. Generous horizon: per-episode we use total_actions*stride=60 real
-    # steps PLUS up to 3 replans × plan_horizon*stride=120 simulated steps for
-    # prior rollouts (env-clone). 320 = 180 + margin.
+    # Train BC only if needed by selected modes. Generous horizon: per-episode
+    # we use total_actions*stride=60 real steps PLUS up to 3 replans ×
+    # plan_horizon*stride=120 simulated steps for prior rollouts (env-clone).
     env = build_env(args.image_size,
                     horizon=args.total_actions * args.jepa_stride
                             + 3 * args.plan_horizon * args.jepa_stride + 60)
-    bc_policy = train_bc(env, args, args.device)
-    torch.save(bc_policy.state_dict(), out / "bc_policy.pt")
+    needs_bc = any(m in args.modes for m in ("bc_prior_cem", "bc_only"))
+    if needs_bc and args.bc_episodes > 0:
+        bc_policy = train_bc(env, args, args.device)
+        torch.save(bc_policy.state_dict(), out / "bc_policy.pt")
+    else:
+        bc_policy = None
+        print("Skipping BC training (no BC-using modes selected or bc_episodes=0).", flush=True)
 
     # Oracle sanity gate
     print(f"\n=== Oracle sanity gate (n={args.oracle_sanity_n}) ===", flush=True)
