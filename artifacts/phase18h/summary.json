@@ -1,0 +1,123 @@
+{
+  "args": {
+    "model_action": "/workspace/phase17/model_action_finetuned.pt",
+    "out": "/workspace/phase18h_main",
+    "rollout_cache": null,
+    "value_head_ckpt": null,
+    "rebuild_rollouts": false,
+    "retrain": false,
+    "seed": 0,
+    "device": "cuda",
+    "image_size": 128,
+    "n_slots": 6,
+    "slot_dim": 128,
+    "action_dim": 7,
+    "jepa_stride": 4,
+    "plan_horizon": 10,
+    "total_actions": 15,
+    "replan_every": 5,
+    "rollout_episodes": 300,
+    "rollout_log_every": 20,
+    "train_K": 32,
+    "train_cem_iters": 1,
+    "train_sigma": 0.12,
+    "hidden": 256,
+    "n_hidden": 3,
+    "dropout": 0.0,
+    "train_steps": 2000,
+    "batch_size": 64,
+    "lr": 0.0003,
+    "weight_decay": 0.0001,
+    "val_split": 0.2,
+    "train_log_every": 200,
+    "n_eval_episodes": 30,
+    "eval_K": 32,
+    "eval_cem_iters": 1,
+    "eval_sigma": 0.12,
+    "naive_sigma": 0.5,
+    "combined_lambda": 0.5,
+    "elite_frac": 0.2,
+    "sigma_floor": 0.05,
+    "goal_dist_min": 0.05,
+    "goal_dist_max": 0.08,
+    "success_threshold": 0.04,
+    "modes": "gt_closed_loop,phase17_locked,value_only,combined_sum,combined_max,naive_cem"
+  },
+  "rollout_cache": "/workspace/phase18h_main/rollout_cache.npz",
+  "head_ckpt": "/workspace/phase18h_main/value_head.pt",
+  "head_stats": {
+    "initial_loss": 0.13614419102668762,
+    "final_loss": 2.864982707251329e-05,
+    "initial_val_loss": 0.16475489735603333,
+    "final_val_loss": 0.09869634360074997,
+    "n_train": 720,
+    "n_val": 180,
+    "steps": 2000
+  },
+  "results": [
+    {
+      "mode": "gt_closed_loop",
+      "n_episodes": 30,
+      "improvement": 0.14624364944991303,
+      "dir_score": 0.13727750358966878,
+      "contact_rate": 0.8,
+      "mean_displacement": 0.023584135834647964,
+      "success_rate": 0.16666666666666666
+    },
+    {
+      "mode": "phase17_locked",
+      "n_episodes": 30,
+      "improvement": 0.2675963349584459,
+      "dir_score": 0.27004060942069846,
+      "contact_rate": 0.9666666666666667,
+      "mean_displacement": 0.052103507883234174,
+      "success_rate": 0.3
+    },
+    {
+      "mode": "value_only",
+      "n_episodes": 30,
+      "improvement": 0.23203868058142,
+      "dir_score": 0.3808584203013972,
+      "contact_rate": 1.0,
+      "mean_displacement": 0.05321070171312283,
+      "success_rate": 0.3
+    },
+    {
+      "mode": "combined_sum",
+      "n_episodes": 30,
+      "improvement": 0.3180965426733444,
+      "dir_score": 0.5251736057250236,
+      "contact_rate": 0.9666666666666667,
+      "mean_displacement": 0.049085268782141846,
+      "success_rate": 0.4666666666666667
+    },
+    {
+      "mode": "combined_max",
+      "n_episodes": 30,
+      "improvement": 0.22812892281968536,
+      "dir_score": 0.27133823590649186,
+      "contact_rate": 1.0,
+      "mean_displacement": 0.04791546061405481,
+      "success_rate": 0.26666666666666666
+    },
+    {
+      "mode": "naive_cem",
+      "n_episodes": 30,
+      "improvement": 0.009891474664949414,
+      "dir_score": 0.033210259303674466,
+      "contact_rate": 0.3,
+      "mean_displacement": 0.0007336877691860529,
+      "success_rate": 0.0
+    }
+  ],
+  "gates": {
+    "locked_improvement": 0.2675963349584459,
+    "g1_value_only_beats_locked_by_0_02": false,
+    "value_only_improvement": 0.23203868058142,
+    "g2_best_combined_beats_locked_by_0_04": true,
+    "best_combined_mode": "combined_sum",
+    "best_combined_improvement": 0.3180965426733444,
+    "n_pass_main": 1,
+    "verdict": "1/2 partial \u2014 value head adds in one mode"
+  }
+}
