@@ -1,0 +1,104 @@
+{
+  "sanity_pass": true,
+  "teacher_cache": "/workspace/phase18b/teacher_plans.npz",
+  "teacher_meta": {
+    "teacher_episodes": 120,
+    "n_examples": 360,
+    "plan_horizon": 10,
+    "action_dim": 7,
+    "teacher_K": 128,
+    "teacher_cem_iters": 3,
+    "mean_teacher_score": -0.16358842454954153
+  },
+  "policy_path": "/workspace/phase18b/plan_policy.pt",
+  "policy_meta": {
+    "initial_loss": 0.24571777880191803,
+    "final_loss": 0.07176676392555237,
+    "n_examples": 360,
+    "steps": 2500
+  },
+  "results": [
+    {
+      "mode": "gt_closed_loop",
+      "n_episodes": 30,
+      "improvement": 0.10438427034517785,
+      "dir_score": 0.07399683335832186,
+      "contact_rate": 0.7,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 0.016659068557667033,
+      "success_rate": 0.1,
+      "mean_candidates": 0.0,
+      "pred_actual_corr": NaN
+    },
+    {
+      "mode": "scripted_prior_cem",
+      "n_episodes": 30,
+      "improvement": 0.21258895025481933,
+      "dir_score": 0.22366087245881136,
+      "contact_rate": 0.9333333333333333,
+      "overshoot_rate": 0.2,
+      "mean_displacement": 0.05049600811546383,
+      "success_rate": 0.23333333333333334,
+      "mean_candidates": 1152.0,
+      "pred_actual_corr": -0.2884078516896992
+    },
+    {
+      "mode": "learned_policy_only",
+      "n_episodes": 30,
+      "improvement": 0.1436140086118161,
+      "dir_score": 0.0763523898640606,
+      "contact_rate": 1.0,
+      "overshoot_rate": 0.03333333333333333,
+      "mean_displacement": 0.029976403099456275,
+      "success_rate": 0.13333333333333333,
+      "mean_candidates": 0.0,
+      "pred_actual_corr": NaN
+    },
+    {
+      "mode": "learned_policy_cem",
+      "n_episodes": 30,
+      "improvement": 0.15388444805958545,
+      "dir_score": 0.010196983252335087,
+      "contact_rate": 0.9333333333333333,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 0.03383449345518692,
+      "success_rate": 0.23333333333333334,
+      "mean_candidates": 96.0,
+      "pred_actual_corr": -0.5204503682644261
+    },
+    {
+      "mode": "scripted_prior_light_cem",
+      "n_episodes": 30,
+      "improvement": 0.24431553562580444,
+      "dir_score": 0.451482931805336,
+      "contact_rate": 0.9666666666666667,
+      "overshoot_rate": 0.2,
+      "mean_displacement": 0.05365139439258573,
+      "success_rate": 0.36666666666666664,
+      "mean_candidates": 96.0,
+      "pred_actual_corr": -0.1913080504718185
+    },
+    {
+      "mode": "naive_cem",
+      "n_episodes": 30,
+      "improvement": 0.0016585493359010987,
+      "dir_score": -0.014680289894689391,
+      "contact_rate": 0.4666666666666667,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 0.0023670610610796033,
+      "success_rate": 0.0,
+      "mean_candidates": 1152.0,
+      "pred_actual_corr": 0.2850783420562032
+    }
+  ],
+  "gates": {
+    "g1_policy_only_ratio_pass": false,
+    "g1_threshold": 0.1594417126911145,
+    "g2_policy_cem_matches_teacher_pass": false,
+    "g2_threshold": 0.19258895025481934,
+    "g3_compute_reduction_pass": true,
+    "policy_cem_compute_ratio": 0.08333333333333333,
+    "n_pass": 1,
+    "verdict": "1/3 weak learned-prior signal"
+  }
+}
