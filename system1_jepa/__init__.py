@@ -20,6 +20,11 @@ from .planning_policy import (
 )
 from .predictor import ActionConditionedPredictor
 from .sigreg import sigreg_epps_pulley, sigreg_lewm
+from .value_head import (
+    GoalProgressValueHead,
+    train_value_head_supervised,
+    combine_scores,
+)
 from .slot import SlotAttention, SlotAttentionConfig
 from .slot_predictor import (
     SlotDeltaPredictor,
@@ -61,6 +66,7 @@ __all__ = [
     "PatchMask",
     "PatchViTEncoder",
     "PlanProposalPolicy",
+    "GoalProgressValueHead",
     "SlotAttention",
     "SlotAttentionConfig",
     "SlotDeltaPredictor",
@@ -89,4 +95,6 @@ __all__ = [
     "sigreg_lewm",
     "slot_delta_loss",
     "train_plan_policy_supervised",
+    "train_value_head_supervised",
+    "combine_scores",
 ]
