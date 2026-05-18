@@ -85,38 +85,21 @@ def find_cube_slot_lift(model, slot_state, cube_xy_norm,
                           eef_xy_norm) -> int:
     """Identity-aware slot→cube matching for Lift (1 cube + 1 eef).
 
-    Reuses the Hungarian probe logic but with 2 entities instead of 3.
+    Reuses Stack's find_cubeA_slot pattern but with 2 entities
+    (cube + eef) instead of 3 (cubeA + cubeB + eef).
     Returns the index of the slot whose match is to entity 0 (cube).
     """
-    import torch
     from system1_jepa.identity_probe import hungarian_assign
 
-    # slot_state: [n_slots, slot_dim] tensor
-    # Extract predicted 2D positions for each slot from its first 2 dims
-    # of the state portion (matching the Stack convention used in
-    # find_cubeA_slot).
-    device = slot_state.device if hasattr(slot_state, "device") else "cpu"
-    cfg = getattr(model, "cfg", None)
-    if cfg is not None:
-        id_dim = cfg.id_dim
-    else:
-        id_dim = slot_state.shape[-1] // 2
-    # Slot's predicted 2D position is at indices [id_dim, id_dim+2)
-    pred_pos = slot_state[:, id_dim:id_dim + 2].detach().cpu().numpy()
-    n_slots = pred_pos.shape[0]
-
-    # Ground-truth entity positions in normalized 2D
-    gt = np.stack([cube_xy_norm, eef_xy_norm])  # [2, 2]
-    # Cost matrix: distance from each gt entity to each slot
-    cost = np.linalg.norm(gt[:, None, :] - pred_pos[None, :, :], axis=-1)
-    # Hungarian assignment (2 entities, n_slots slots)
-    assignment = hungarian_assign(cost)
-    # assignment is a list of (row, col) pairs; find the slot assigned
-    # to entity 0 (cube)
-    for row, col in assignment:
-        if row == 0:
-            return int(col)
-    return 0  # fallback
+    pred_pos = model.slot_to_pos_aux(slot_state.unsqueeze(0))[0].detach().cpu().numpy()
+    gt_pos = np.stack([cube_xy_norm, eef_xy_norm])  # [2, 2]
+    rows, cols, _ = hungarian_assign(pred_pos, gt_pos)
+    matches = list(zip(rows.tolist(), cols.tolist()))
+    for r, c in matches:
+        if c == 0:
+            return int(r)
+    # Fallback: closest slot to the cube
+    return int(np.argmin(np.linalg.norm(pred_pos - cube_xy_norm, axis=1)))
 
 
 # ---------- Scripted Lift prior (3-stage FSM) ----------
@@ -133,16 +116,20 @@ def _gripper_close(action_dim: int) -> np.ndarray:
 
 
 def scripted_lift_action(env, t: int, obs: dict, ep_state: dict,
-                          *, reach_height: float = 0.05,
-                          grasp_steps: int = 3) -> np.ndarray:
+                          *, reach_height: float = 0.10,
+                          grasp_steps: int = 8) -> np.ndarray:
     """3-stage FSM scripted prior for Lift.
 
-    Phase 1 (reach):    move EEF to position above the cube, gripper open
-    Phase 2 (grasp):    close gripper at the cube
-    Phase 3 (lift):     move EEF straight up
+    Phase 1 (reach):    descend to reach_height above cube center, gripper open
+    Phase 2 (grasp):    close gripper at reach height (don't descend further,
+                        fingers wrap cube from above), hold for grasp_steps steps
+    Phase 3 (lift):     gentle +z motion to keep cube in grasp
 
-    ep_state is a per-episode dict tracking phase + counters; must be
-    initialized to {} before the first call in an episode.
+    The default reach_height = 0.04 puts the Panda fingertips bracketing
+    the cube (cube center to top of fingers). grasp_steps = 8 gives the
+    gripper enough time to fully close.
+
+    ep_state is per-episode dict; initialized to {} before first call.
     """
     action_dim = env.action_dim
     if "phase" not in ep_state:
@@ -154,35 +141,34 @@ def scripted_lift_action(env, t: int, obs: dict, ep_state: dict,
     eef_xy = obs["robot0_eef_pos"][:2]
     eef_z = obs["robot0_eef_pos"][2]
     eef_to_cube_xy = cube_xy - eef_xy
-    horiz_close = float(np.linalg.norm(eef_to_cube_xy)) < 0.02
+    horiz_close = float(np.linalg.norm(eef_to_cube_xy)) < 0.015
+    target_grasp_z = cube_z + reach_height
 
     if ep_state["phase"] == "reach":
-        # Aim above the cube at reach_height
-        target_z = cube_z + reach_height
-        z_close = abs(eef_z - target_z) < 0.02
+        z_close = abs(eef_z - target_grasp_z) < 0.012
         if horiz_close and z_close:
             ep_state["phase"] = "grasp"
-            return _gripper_open(action_dim)
+            return _gripper_close(action_dim)
         a = _gripper_open(action_dim)
-        # OSC_POSE: a[0:3] is dx,dy,dz target (small steps)
-        a[0] = np.clip(eef_to_cube_xy[0] * 5.0, -1, 1)
-        a[1] = np.clip(eef_to_cube_xy[1] * 5.0, -1, 1)
-        a[2] = np.clip((target_z - eef_z) * 5.0, -1, 1)
+        a[0] = np.clip(eef_to_cube_xy[0] * 8.0, -1, 1)
+        a[1] = np.clip(eef_to_cube_xy[1] * 8.0, -1, 1)
+        a[2] = np.clip((target_grasp_z - eef_z) * 8.0, -1, 1)
         return a
 
     if ep_state["phase"] == "grasp":
-        # Close gripper at the cube; descend a bit so fingers wrap cube
+        # HOLD position; just close gripper. No further descent.
         a = _gripper_close(action_dim)
-        target_z = cube_z + 0.005  # slightly above cube center
-        a[2] = np.clip((target_z - eef_z) * 5.0, -1, 1)
+        a[2] = np.clip((target_grasp_z - eef_z) * 3.0, -0.3, 0.3)
+        a[0] = np.clip(eef_to_cube_xy[0] * 3.0, -0.3, 0.3)
+        a[1] = np.clip(eef_to_cube_xy[1] * 3.0, -0.3, 0.3)
         ep_state["grasp_counter"] += 1
         if ep_state["grasp_counter"] >= grasp_steps:
             ep_state["phase"] = "lift"
         return a
 
-    # Lift phase: maintain grasp, +z motion
+    # Lift phase: maintain grasp, gentle +z so cube follows
     a = _gripper_close(action_dim)
-    a[2] = 1.0  # max up
+    a[2] = 0.5  # gentle up; full 1.0 was too fast
     return a
 
 
