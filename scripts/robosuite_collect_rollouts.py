@@ -105,9 +105,58 @@ def _scripted_push_pick_target(ep_state: dict, t: int):
     ep_state["noise_sigma"] = float(np.random.uniform(_PERTURB["sigma_lo"], _PERTURB["sigma_hi"]))
 
 
+def _goal_directed_push_pick(ep_state: dict, t: int, obs):
+    cube_xy = obs["cubeA_pos"][:2]
+    theta = float(np.random.uniform(0, 2 * np.pi))
+    r = float(np.random.uniform(0.06, 0.10))
+    ep_state["goal_xy"] = cube_xy + r * np.array([np.cos(theta), np.sin(theta)])
+    ep_state["switch_step"] = t + int(np.random.randint(35, 60))
+
+
+def _goal_directed_push_action(env, t: int, ep_state: dict, obs) -> np.ndarray:
+    """Closed-loop goal-directed push: like Phase 15 oracle but with action noise.
+
+    Produces focused-contact, goal-directed trajectories for Phase 17
+    predictor fine-tuning. Cube gets pushed toward a sequence of random
+    goals over the episode horizon.
+    """
+    if "goal_xy" not in ep_state:
+        _goal_directed_push_pick(ep_state, t, obs)
+    if t >= ep_state["switch_step"]:
+        _goal_directed_push_pick(ep_state, t, obs)
+
+    goal_xy = ep_state["goal_xy"]
+    cube = obs["cubeA_pos"][:2]
+    cube_z = obs["cubeA_pos"][2]
+    eef = obs["robot0_eef_pos"][:2]
+    eef_z = obs["robot0_eef_pos"][2]
+    push_dir = goal_xy - cube
+    d = float(np.linalg.norm(push_dir))
+    a = np.zeros(env.action_dim, dtype=np.float32)
+    if d < 0.005:
+        return a + np.random.normal(0, _PERTURB["sigma_lo"], env.action_dim).astype(np.float32)
+    push_dir = push_dir / max(d, 1e-9)
+    horiz_to_cube = float(np.linalg.norm(cube - eef))
+    if horiz_to_cube > 0.04 or eef_z > cube_z + 0.025:
+        # Approach
+        approach_xy = cube - push_dir * 0.04
+        target = np.array([approach_xy[0], approach_xy[1], cube_z + 0.005])
+        delta = target - obs["robot0_eef_pos"]
+        a[:3] = np.clip(delta * 10.0, -1, 1)
+    else:
+        # Push
+        a[0:2] = push_dir
+        a[2] = -0.2
+    a[6] = +1.0
+    sigma = float(np.random.uniform(_PERTURB["sigma_lo"], _PERTURB["sigma_hi"]))
+    a = a + np.random.normal(0, sigma, env.action_dim).astype(np.float32)
+    return np.clip(a, -1, 1)
+
+
 _POLICIES = {
     "random": _random_action,
     "scripted_push": _scripted_push_action,
+    "goal_directed_push": _goal_directed_push_action,
 }
 
 
