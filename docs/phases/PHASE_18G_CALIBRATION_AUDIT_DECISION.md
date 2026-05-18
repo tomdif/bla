@@ -1,22 +1,26 @@
 # Phase 18γ — Predictor calibration audit (Decision document)
 
 **Date:** 2026-05-18.
-**Status:** ❌🌟 **1/3 precommit gates pass — but the audit reframed the
-whole question.** Predictor ranking quality and candidate quality are
-**orthogonal**; the "light = trust region, heavy = exploit" thesis is
-falsified in a specific way.
+**Status:** ❌🌟 **1/3 precommit gates pass — but the audit reframed
+the whole question.** Predictor calibration is **local and
+distribution-dependent**. Local rank quality, candidate quality, and
+episode-level goal-compounding are three separable bottlenecks; a
+planner can have positive local ranking yet still fail at episode
+level if the prior's local candidates do not compound toward the
+goal.
 
-> **Headline:** The predictor's ranking ability and the candidate
-> distribution's outcome quality are independent dimensions. Tight
-> noise balls around the scripted prior (D1/D2) produce the **best
-> realized outcomes** but the **worst ranking signal** — the predictor
-> goes mildly anti-correlated. Broader scripted CEM (D3) and policy
-> + light CEM (D5) produce **positive rank signal** but lower
-> candidate quality. Phase 18β's per-episode `corr = -0.52` on
-> policy+CEM was *not* a per-replan calibration failure — it was a
-> cross-replan policy-drift artifact. The locked planning recipe
-> (`scripted_prior + light CEM`) wins on **prior quality**, not on
-> predictor ranking.
+> **Headline (refined):** The planner has three separable variables:
+> (1) local rank quality, (2) candidate quality, (3) episode-level
+> compounding quality. Phase 18γ proves they can diverge. D5
+> (policy + light CEM) has positive local ranking (+0.015) and
+> moderate candidate quality (0.111 topK), yet Phase 18β showed it
+> fails at episode level (per-episode corr = -0.52, planner
+> improvement 0.154 vs teacher 0.213). Phase 18β's negative was
+> not per-replan miscalibration; it was cross-replan policy drift.
+> The locked planning recipe (`scripted_prior + light CEM`) wins
+> on prior quality, not on predictor ranking — and the next
+> architectural lever is **goal-progress / multi-step value**, not
+> a one-step outcome predictor.
 
 ## Setup
 
@@ -62,25 +66,47 @@ G3. D2 topK realized > D3 topK realized
 Verdict: 1/3.  But the *direction* of the failure is informative.
 ```
 
-## The reframe — two orthogonal axes
+## The reframe — three separable variables, not one
 
-User reframed during the run (2026-05-18). The decisive artifact is
-not "is predictor trustworthy here yes/no" but a 2-axis table:
+User reframed during the run (2026-05-18). The decisive observation
+is not "is the predictor trustworthy yes/no" but that the planner has
+**three independent quantities**, any of which can fail alone:
 
-```
-                    Negative-rank        Positive-rank
-                    (predictor misranks)  (predictor ranks)
-                    
-High candidate-q    D1, D2                D3, D5
-(mean_R > 0.10)     0.118, 0.145          0.101, 0.102
-                    breadth 0.018, 0.109  breadth 0.162, 0.115
-                    
-Mid candidate-q     —                     D4 (~neutral)
-                                          0.052, breadth 0.020
-                    
-Low candidate-q     —                     D6
-(mean_R < 0.02)                           0.003, breadth 0.411
-```
+1. **Local rank quality** — `top_vs_bot_gap` per replan boundary.
+   Can the predictor distinguish good from bad inside a candidate set
+   at a single state?
+2. **Candidate quality** — `mean_realized` per replan boundary. Does
+   the candidate generator (prior + sampler) produce trajectories
+   that move toward the goal in this short window?
+3. **Episode-level compounding** — does a sequence of locally good
+   choices, over multiple replans, accumulate into sustained
+   goal-direction over the full MPC episode? (Phase 18β's
+   per-episode corr / improvement metrics.)
+
+D5 (policy + light CEM) is the proof these diverge. It has positive
+local rank (+0.015) and decent candidate quality (0.111 topK), yet
+Phase 18β showed `learned_policy_cem` plans drift goal-direction
+across replans (per-episode corr = -0.52, planner improvement only
+0.154 vs teacher 0.213). The local-vs-episode gap is the failure
+mode.
+
+### Per-distribution classification
+
+| Dist | gap | topK | botK | mean_R | breadth | contact | 18β episode imp | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| D1 scripted+tiny | -0.017 | 0.113 | 0.129 | 0.118 | 0.018 | 0.77 | — | Good prior, too narrow to rank |
+| D2 scripted+light | -0.028 | 0.131 | 0.159 | 0.145 | 0.109 | 0.76 | **0.244** (best in 18β) | Strong candidates, weak local ranking, **best episode** |
+| D3 scripted+heavy | **+0.017** | 0.108 | 0.091 | 0.101 | 0.162 | 0.71 | 0.213 | Broader scripted, weak positive ranking, mid episode |
+| D4 policy+tiny | +0.003 | 0.053 | 0.050 | 0.052 | 0.020 | 0.77 | 0.144 | Poor candidate quality, neutral local ranking |
+| D5 policy+light | **+0.015** | 0.111 | 0.096 | 0.102 | 0.115 | 0.81 | 0.154 | **Positive local ranking, poor episode compounding** |
+| D6 naive | +0.004 | 0.005 | 0.000 | 0.003 | 0.411 | 0.18 | 0.002 | Weak positive rank, ~zero candidate quality |
+
+The D2 vs D5 contrast is the cleanest summary of the decoupling:
+
+- D5 has higher local rank quality than D2 (+0.015 vs -0.028).
+- D2 has higher episode-level result than D5 (0.244 vs 0.154).
+- The metric you optimize against determines which distribution
+  looks "better." Both are real, neither is wrong.
 
 The pattern that emerges:
 
@@ -158,18 +184,43 @@ Original framing: "constrain CEM updates to stay inside calibrated
 action manifold."
 
 Revised framing in light of 18γ:
-- The action manifold where predictor calibration is positive (D3, D5)
-  is BROADER than the manifold where candidate quality is high (D1,
-  D2).
-- A trust-region CEM that constrains via *prior distance* keeps
-  candidate quality high but limits ranking gain.
-- A trust-region CEM that constrains via *predictor confidence* might
-  expand search just enough to use the predictor's positive ranking,
-  but risks leaving the prior basin.
-- **The right knob is probably mean_realized of the elite set**, not
-  the predictor's score or prior distance. Use the predictor to rank
-  among candidates that have *passed* a realized-quality screen
-  (perhaps via short rollout proxy).
+- The "trust region" is the region where **candidate quality** is
+  preserved, NOT where the predictor's local ranking is best. D2 has
+  worse ranking than D3 yet better episode result — because it stays
+  inside the prior basin.
+- A trust-region CEM that constrains via *prior distance* (e.g.,
+  σ-anneal toward the prior) keeps candidate quality high but limits
+  any ranking gain available at wider σ.
+- **The right knob is candidate quality, not predictor confidence
+  and not prior distance per se.** Use the predictor only to rank
+  among candidates that have already *passed* a short-rollout
+  quality screen.
+
+### Phase 18η (next, highest leverage) — Goal-progress / multi-step value head
+
+Phase 18γ identifies the missing piece: a one-step outcome predictor
+cannot distinguish *locally-good actions* from *long-horizon-progressing
+actions*. D5 proves that local rank quality alone is not enough.
+
+The next architectural lever:
+
+```
+local dynamics predictor (current Phase 17 model)
++ goal-progress / value head over object-file state
+    (state, goal, action_sequence) → expected improvement
+                                      over full MPC episode
+```
+
+Training data: episode rollouts from `scripted_prior_light_cem`
+(the locked recipe), labeled with full-episode realized
+improvement. The value head learns *whether this local action
+sequence compounds toward the goal*, not *whether it produces
+immediate cube motion*.
+
+This converts the planning question from "what candidate looks good
+in the next replan-window" to "what candidate looks good
+*conditional on future replans being equally good*" — which is
+what episode-level success actually requires.
 
 ### Phase 18ε / 18ζ — Predictor refinement (deprioritized further)
 
@@ -183,14 +234,14 @@ Better: train the predictor to rank by **outcome-prediction quality**
 calibration generalizes from training-data candidate distributions to
 deployment-time tight neighborhoods.
 
-### Phase 18η (new) — Cross-replan drift instrumentation
+### Phase 18ζ' — Cross-replan drift instrumentation (diagnostic)
 
 Phase 18β's per-episode corr of -0.52 was driven by cross-replan
-drift, not per-replan miscalibration. Worth instrumenting: at each
-replan boundary, log the policy's *direction* relative to the goal,
-and the *change in direction* from the previous replan. Hypothesis:
-the policy drifts because it has no memory of "where we were
-heading" across replans.
+drift. Worth instrumenting: at each replan boundary, log the
+policy's *direction* relative to the goal, and the *change in
+direction* from the previous replan. Hypothesis: the policy drifts
+because it has no memory of "where we were heading" across replans —
+which is what the value head in Phase 18η is designed to address.
 
 ## Updated full claim stack
 
@@ -218,13 +269,22 @@ Artifacts: `/workspace/phase18g_main/{summary.json,
 per_state*.jsonl, log.txt}` on pod; `artifacts/phase18g/` in repo.
 
 ## What this phase establishes
-- Phase 18β's `corr = -0.52` is a per-episode aggregate effect,
-  not a per-replan calibration verdict.
+
+- The planner has **three separable variables**: local rank quality,
+  candidate quality, and episode-level compounding. They can
+  diverge — D5 proves it.
+- **Rank quality is necessary but not sufficient** for episode-level
+  planning success. Candidate prior and temporal compounding
+  dominate closed-loop behavior.
+- Phase 18β's `per-episode corr = -0.52` on policy+CEM is a
+  cross-replan drift artifact, NOT per-replan miscalibration. On the
+  same distribution, per-replan rank-corr is +0.015.
 - The Phase 17/18δ "planner ≥ oracle" win is driven by **prior
-  quality**, not by predictor calibration.
-- Distribution **breadth** alone is not enough for rankability — the
-  candidate distribution must also resemble training distribution
-  (D3 ≈ Phase 17 mixed-data shape; D1/D2 do not).
-- "Trust region" needs reframing: it's the region where candidate
-  *quality* is preserved, not where the predictor *thinks* it
+  quality** (D2's candidate quality 0.145, the highest), not by
+  predictor ranking (D2's gap is -0.028, the most negative).
+- "Trust region" reframed: it's the region where **candidate
+  quality** is preserved, not where the predictor thinks it
   knows best.
+- The architectural gap exposed by 18γ is **goal-progress
+  prediction over multi-step horizons**, not single-step outcome
+  ranking. Phase 18η is the right next lever.
