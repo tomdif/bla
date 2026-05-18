@@ -1,0 +1,74 @@
+{
+  "per_seed": [
+    {
+      "locked": 0.3380794072371643,
+      "geo": 0.3095031834639311,
+      "supervised": 0.2334482555335336,
+      "naive": 6.499731075525371e-12,
+      "adapter_spearman": 0.477553010895398,
+      "seed_label": "18\u03bb-s0"
+    },
+    {
+      "locked": 0.20563407673931108,
+      "geo": 0.2120770881925947,
+      "supervised": 0.1704643546199306,
+      "naive": 0.018809915995903037,
+      "adapter_spearman": 0.5415928475158698,
+      "seed_label": "18\u03bb-s1"
+    },
+    {
+      "locked": 0.2958956855471602,
+      "geo": 0.20357988518508444,
+      "supervised": 0.2177659137415687,
+      "naive": 4.719280406152338e-12,
+      "adapter_spearman": 0.4977038385958415,
+      "seed_label": "18\u03bb-s2"
+    },
+    {
+      "locked": 0.20469144782521745,
+      "geo": 0.2583188532341462,
+      "supervised": 0.3143101821418039,
+      "naive": 0.011863373204491679,
+      "adapter_spearman": 0.4431435126598558,
+      "seed_label": "18l2-s0"
+    },
+    {
+      "locked": 0.2854070823436167,
+      "geo": 0.23463067743934332,
+      "supervised": 0.2843848259206646,
+      "naive": 7.964325921222973e-12,
+      "adapter_spearman": 0.5418290687984196,
+      "seed_label": "18l2-s1"
+    },
+    {
+      "locked": 0.21640621607973543,
+      "geo": 0.28843021230091354,
+      "supervised": 0.2853461794715536,
+      "naive": 0.0014384126501212778,
+      "adapter_spearman": 0.5068018560243629,
+      "seed_label": "18l2-s2"
+    }
+  ],
+  "n_seeds": 6,
+  "means": {
+    "locked": 0.25768565262870086,
+    "geo": 0.2510899833026689,
+    "supervised": 0.2509532852381759,
+    "adapter_spearman": 0.5014373557482913
+  },
+  "stds": {
+    "supervised": 0.04864999334582531,
+    "geo": 0.03853304939209523,
+    "locked": 0.051499812682890916
+  },
+  "gates": {
+    "g1_sup_geq_0_95_geo": true,
+    "g1_ratio": 0.9994555813708895,
+    "g2_within_threshold_count": 4,
+    "g2_pass": true,
+    "g3_strong_sup_geq_locked_plus_0_02": false,
+    "g3_acceptable_sup_geq_locked_minus_0_02": true,
+    "g4_adapter_spearman_geq_0_45": true,
+    "verdict": "G1+G2+G3(acceptable)+G4 \u2192 ACCEPTABLE SWAP: supervised within 5% of geo and does not regress vs locked"
+  }
+}
