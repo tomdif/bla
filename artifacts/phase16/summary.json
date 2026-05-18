@@ -1,0 +1,77 @@
+{
+  "sanity_pass": true,
+  "results": [
+    {
+      "mode": "gt_closed_loop",
+      "n_episodes": 30,
+      "improvement": 0.179833722879171,
+      "dir_score": 0.10588252775822679,
+      "contact_rate": 0.6666666666666666,
+      "overshoot_rate": 0.03333333333333333,
+      "mean_displacement": 0.023779148605818135,
+      "success_rate": 0.23333333333333334,
+      "pred_actual_corr": NaN
+    },
+    {
+      "mode": "naive_cem",
+      "n_episodes": 30,
+      "improvement": 0.0002360563940867222,
+      "dir_score": -0.015083476418651192,
+      "contact_rate": 0.2,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 0.0036632235061667797,
+      "success_rate": 0.0,
+      "pred_actual_corr": -0.08969820912332274
+    },
+    {
+      "mode": "scripted_prior_cem",
+      "n_episodes": 30,
+      "improvement": 0.1425571579340603,
+      "dir_score": 0.06313797215967316,
+      "contact_rate": 0.9666666666666667,
+      "overshoot_rate": 0.13333333333333333,
+      "mean_displacement": 0.05152088175360966,
+      "success_rate": 0.13333333333333333,
+      "pred_actual_corr": -0.38732990349215707
+    },
+    {
+      "mode": "bc_prior_cem",
+      "n_episodes": 30,
+      "improvement": 0.03141238564066807,
+      "dir_score": 0.022838747183557995,
+      "contact_rate": 0.7666666666666667,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 0.012733006346188727,
+      "success_rate": 0.0,
+      "pred_actual_corr": 0.04143700349642281
+    },
+    {
+      "mode": "bc_only",
+      "n_episodes": 30,
+      "improvement": 0.0023283690361030687,
+      "dir_score": -0.017825006091609714,
+      "contact_rate": 0.6666666666666666,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 0.0031801731170703743,
+      "success_rate": 0.0,
+      "pred_actual_corr": NaN
+    },
+    {
+      "mode": "random",
+      "n_episodes": 30,
+      "improvement": 6.7854984678720385e-12,
+      "dir_score": 0.0,
+      "contact_rate": 0.23333333333333334,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 1.3169145764959837e-12,
+      "success_rate": 0.0,
+      "pred_actual_corr": NaN
+    }
+  ],
+  "g1_pass": true,
+  "g2_pass": false,
+  "g3_pass": false,
+  "n_pass": 1,
+  "verdict": "1/3 marginal",
+  "g3_diff": 0.031176329246581345
+}
