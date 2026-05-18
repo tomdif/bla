@@ -1,0 +1,311 @@
+{
+  "args": {
+    "model_action": "/workspace/phase17/model_action_finetuned.pt",
+    "rollout_cache": "/workspace/phase18t_main/rollout_cache.npz",
+    "out": "/workspace/phase18l_main",
+    "seed": 0,
+    "device": "cuda",
+    "image_size": 128,
+    "n_slots": 6,
+    "slot_dim": 128,
+    "action_dim": 7,
+    "jepa_stride": 4,
+    "plan_horizon": 10,
+    "total_actions": 15,
+    "replan_every": 5,
+    "adapter_hidden": 256,
+    "adapter_n_hidden": 3,
+    "adapter_dropout": 0.0,
+    "adapter_train_steps": 2000,
+    "adapter_batch_size": 64,
+    "adapter_lr": 0.0003,
+    "adapter_weight_decay": 0.0001,
+    "adapter_log_every": 200,
+    "vh_hidden": 256,
+    "vh_n_hidden": 3,
+    "vh_dropout": 0.0,
+    "vh_train_steps": 2000,
+    "vh_batch_size": 64,
+    "vh_lr": 0.0003,
+    "vh_weight_decay": 0.0001,
+    "vh_log_every": 200,
+    "val_split": 0.2,
+    "n_eval_episodes": 30,
+    "eval_K": 32,
+    "eval_cem_iters": 1,
+    "eval_sigma": 0.12,
+    "naive_sigma": 0.5,
+    "combined_lambda": 0.5,
+    "elite_frac": 0.2,
+    "sigma_floor": 0.05,
+    "goal_dist_min": 0.05,
+    "goal_dist_max": 0.08,
+    "success_threshold": 0.04,
+    "modes": "gt_closed_loop,phase17_locked,combined_sum_geo,combined_sum_adapter,naive_cem"
+  },
+  "rollout_cache": "/workspace/phase18t_main/rollout_cache.npz",
+  "adapter": {
+    "ckpt": "/workspace/phase18l_main/geometry_adapter.pt",
+    "stats": {
+      "initial_train_mse": 0.2535618841648102,
+      "final_train_mse": 0.07026395946741104,
+      "initial_val_mse": 0.24953606724739075,
+      "final_val_mse": 0.07321823388338089,
+      "per_feature_val_pearson": [
+        0.5582315965126473,
+        0.6603350317292526,
+        0.24114257372695252,
+        0.2841253313915121,
+        0.09472510152867958,
+        0.09471956249787523,
+        0.8666840554959688,
+        0.8831538073673262,
+        0.5933932198925782,
+        0.525608370846794
+      ],
+      "per_feature_val_spearman": [
+        0.5582723746617694,
+        0.6559688056215727,
+        0.21604576272930234,
+        0.29131146023025395,
+        0.13873473461115055,
+        0.03816578700988714,
+        0.8905254277395392,
+        0.8962231344588826,
+        0.5785322592261077,
+        0.5117503626655143
+      ],
+      "mean_val_pearson": 0.4802118650989587,
+      "mean_val_spearman": 0.477553010895398,
+      "n_train": 720,
+      "n_val": 180,
+      "steps": 2000
+    }
+  },
+  "value_heads": {
+    "geo": {
+      "ckpt": "/workspace/phase18l_main/value_head_geo.pt",
+      "stats": {
+        "initial_loss": 0.18654419481754303,
+        "final_loss": 1.8295217159902677e-05,
+        "initial_val_loss": 0.18324780464172363,
+        "final_val_loss": 0.09319226443767548,
+        "n_train": 720,
+        "n_val": 180,
+        "steps": 2000
+      }
+    },
+    "adapter": {
+      "ckpt": "/workspace/phase18l_main/value_head_adapter.pt",
+      "stats": {
+        "initial_loss": 0.16015370190143585,
+        "final_loss": 1.369464644085383e-05,
+        "initial_val_loss": 0.15706531703472137,
+        "final_val_loss": 0.09189359843730927,
+        "n_train": 720,
+        "n_val": 180,
+        "steps": 2000
+      }
+    }
+  },
+  "deciles": {
+    "geo": {
+      "pearson": 0.30011590953449585,
+      "spearman": 0.3348642447812175,
+      "deciles": [
+        {
+          "decile": 0,
+          "mean_pred": 0.6891699433326721,
+          "mean_actual": 0.37793025374412537,
+          "n": 18
+        },
+        {
+          "decile": 1,
+          "mean_pred": 0.5188232064247131,
+          "mean_actual": 0.32057440280914307,
+          "n": 18
+        },
+        {
+          "decile": 2,
+          "mean_pred": 0.42242196202278137,
+          "mean_actual": 0.40867024660110474,
+          "n": 18
+        },
+        {
+          "decile": 3,
+          "mean_pred": 0.33976393938064575,
+          "mean_actual": 0.35068967938423157,
+          "n": 18
+        },
+        {
+          "decile": 4,
+          "mean_pred": 0.2639882266521454,
+          "mean_actual": 0.22431908547878265,
+          "n": 18
+        },
+        {
+          "decile": 5,
+          "mean_pred": 0.21186158061027527,
+          "mean_actual": 0.2281455397605896,
+          "n": 18
+        },
+        {
+          "decile": 6,
+          "mean_pred": 0.1668638437986374,
+          "mean_actual": 0.2500309646129608,
+          "n": 18
+        },
+        {
+          "decile": 7,
+          "mean_pred": 0.09099890291690826,
+          "mean_actual": 0.163813054561615,
+          "n": 18
+        },
+        {
+          "decile": 8,
+          "mean_pred": 0.03580021858215332,
+          "mean_actual": 0.14384305477142334,
+          "n": 18
+        },
+        {
+          "decile": 9,
+          "mean_pred": -0.05938588082790375,
+          "mean_actual": 0.16617541015148163,
+          "n": 18
+        }
+      ],
+      "top_vs_bot_gap": 0.21175484359264374
+    },
+    "adapter": {
+      "pearson": 0.3068428983636613,
+      "spearman": 0.3106700824099509,
+      "deciles": [
+        {
+          "decile": 0,
+          "mean_pred": 0.6887650489807129,
+          "mean_actual": 0.4130590558052063,
+          "n": 18
+        },
+        {
+          "decile": 1,
+          "mean_pred": 0.5195439457893372,
+          "mean_actual": 0.43755805492401123,
+          "n": 18
+        },
+        {
+          "decile": 2,
+          "mean_pred": 0.4278561472892761,
+          "mean_actual": 0.3128047585487366,
+          "n": 18
+        },
+        {
+          "decile": 3,
+          "mean_pred": 0.3538118004798889,
+          "mean_actual": 0.23802773654460907,
+          "n": 18
+        },
+        {
+          "decile": 4,
+          "mean_pred": 0.28784528374671936,
+          "mean_actual": 0.32658371329307556,
+          "n": 18
+        },
+        {
+          "decile": 5,
+          "mean_pred": 0.2157776951789856,
+          "mean_actual": 0.1797500103712082,
+          "n": 18
+        },
+        {
+          "decile": 6,
+          "mean_pred": 0.15864066779613495,
+          "mean_actual": 0.21248072385787964,
+          "n": 18
+        },
+        {
+          "decile": 7,
+          "mean_pred": 0.09598620235919952,
+          "mean_actual": 0.21476367115974426,
+          "n": 18
+        },
+        {
+          "decile": 8,
+          "mean_pred": 0.024790070950984955,
+          "mean_actual": 0.12641620635986328,
+          "n": 18
+        },
+        {
+          "decile": 9,
+          "mean_pred": -0.04545314610004425,
+          "mean_actual": 0.17274779081344604,
+          "n": 18
+        }
+      ],
+      "top_vs_bot_gap": 0.24031126499176025
+    }
+  },
+  "results": [
+    {
+      "mode": "gt_closed_loop",
+      "n_episodes": 30,
+      "improvement": 0.07695992092008627,
+      "dir_score": 0.06479219006698103,
+      "contact_rate": 0.6666666666666666,
+      "mean_displacement": 0.01449988235337411,
+      "success_rate": 0.1
+    },
+    {
+      "mode": "phase17_locked",
+      "n_episodes": 30,
+      "improvement": 0.3380794072371643,
+      "dir_score": 0.40270755671054476,
+      "contact_rate": 0.9333333333333333,
+      "mean_displacement": 0.052639219232275616,
+      "success_rate": 0.4666666666666667
+    },
+    {
+      "mode": "combined_sum_geo",
+      "n_episodes": 30,
+      "improvement": 0.3095031834639311,
+      "dir_score": 0.4843613559778637,
+      "contact_rate": 0.9,
+      "mean_displacement": 0.0436654753012471,
+      "success_rate": 0.4
+    },
+    {
+      "mode": "combined_sum_adapter",
+      "n_episodes": 30,
+      "improvement": 0.2334482555335336,
+      "dir_score": 0.37268114670434455,
+      "contact_rate": 1.0,
+      "mean_displacement": 0.047744365845583926,
+      "success_rate": 0.26666666666666666
+    },
+    {
+      "mode": "naive_cem",
+      "n_episodes": 30,
+      "improvement": 6.499731075525371e-12,
+      "dir_score": 0.0,
+      "contact_rate": 0.3,
+      "mean_displacement": 1.2816819748524714e-12,
+      "success_rate": 0.0
+    }
+  ],
+  "gates": {
+    "g1_adapter_geo_recovery_mean_spearman_geq_0_50": false,
+    "adapter_mean_val_spearman": 0.477553010895398,
+    "g2_value_head_adapter_spearman_geq_0_25": true,
+    "value_head_adapter_spearman": 0.3106700824099509,
+    "g3_value_head_adapter_top_geq_2x_bot": true,
+    "value_head_adapter_top": 0.4130590558052063,
+    "value_head_adapter_bot": 0.17274779081344604,
+    "g4_combined_sum_adapter_beats_locked_by_0_02": false,
+    "combined_sum_adapter_improvement": 0.2334482555335336,
+    "phase17_locked_improvement": 0.3380794072371643,
+    "g5_combined_sum_adapter_within_10pct_of_geo": false,
+    "combined_sum_geo_improvement": 0.3095031834639311,
+    "n_pass_main": 2,
+    "g5_stretch_pass": false,
+    "verdict": "G1 fail \u2014 slots do NOT contain goal-relative geometry; need encoder retraining"
+  }
+}
