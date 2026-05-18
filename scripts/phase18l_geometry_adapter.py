@@ -335,8 +335,12 @@ def compute_value_decile(head, state_eval, goals, plans, labels, args):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model-action", required=True)
-    p.add_argument("--rollout-cache", required=True,
-                    help="Reuse Phase 18θ cache (must contain geo+slot)")
+    p.add_argument("--rollout-cache", default=None,
+                    help="Reuse Phase 18θ-style cache (must contain geo+slot). "
+                          "If absent, collect a fresh one at --seed.")
+    p.add_argument("--auto-collect-episodes", type=int, default=300,
+                    help="If no cache provided, collect this many episodes.")
+    p.add_argument("--auto-collect-log-every", type=int, default=20)
     p.add_argument("--out", required=True)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--device", default="cuda" if torch.cuda.is_available()
@@ -388,23 +392,65 @@ def main():
     torch.manual_seed(args.seed); np.random.seed(args.seed)
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
 
-    # Load cache
-    d = np.load(args.rollout_cache)
-    if "geo_features" in d.files:
+    if args.rollout_cache and Path(args.rollout_cache).exists():
+        d = np.load(args.rollout_cache)
+        if "geo_features" not in d.files:
+            raise SystemExit(f"Cache {args.rollout_cache} missing slot_features.")
         geo = d["geo_features"].astype(np.float32)
         slot = d["slot_features"].astype(np.float32)
+        goals = d["goals"].astype(np.float32)
+        plans = d["plans"].astype(np.float32)
+        labels = d["labels"].astype(np.float32)
+        cache_source = args.rollout_cache
+        print(json.dumps({"event": "loaded_cache", "path": cache_source,
+                           "n_samples": int(len(geo)),
+                           "geo_dim": int(geo.shape[1]),
+                           "slot_dim": int(slot.shape[1]),
+                           "mean_episode_imp": float(labels.mean())}),
+               flush=True)
     else:
-        # Pre-θ cache only had `features` (geo). Slot must be present for 18λ.
-        raise SystemExit(f"Cache {args.rollout_cache} missing slot_features. "
-                          "Re-collect with Phase 18θ script.")
-    goals = d["goals"].astype(np.float32)
-    plans = d["plans"].astype(np.float32)
-    labels = d["labels"].astype(np.float32)
-    print(json.dumps({"event": "loaded_cache", "n_samples": int(len(geo)),
-                       "geo_dim": int(geo.shape[1]),
-                       "slot_dim": int(slot.shape[1]),
-                       "mean_episode_imp": float(labels.mean())}),
-           flush=True)
+        # Auto-collect at this seed (no compatible cache provided)
+        print(json.dumps({"event": "auto_collect_start", "seed": args.seed,
+                           "n_episodes": args.auto_collect_episodes}),
+               flush=True)
+        # phase18t has its own module-level globals for planning helpers
+        # (encode_frame, state_features, etc.); initialize them too.
+        from scripts.phase18t_slot_value_head import (
+            collect_dataset as _collect,
+            load_planning_dependencies as _phase18t_load,
+        )
+        _phase18t_load()
+        # Build env + model for collection (matches phase18t configuration)
+        model_for_collect = load_action_model(args)
+        env = build_env(args.image_size,
+                         horizon=args.total_actions * args.jepa_stride
+                                 + 3 * args.plan_horizon * args.jepa_stride
+                                 + 60)
+        # phase18t's collect_dataset reads several args; map ours over
+        class CollectArgs:
+            pass
+        ca = CollectArgs()
+        for k, v in vars(args).items():
+            setattr(ca, k, v)
+        # phase18t names
+        ca.rollout_episodes = args.auto_collect_episodes
+        ca.rollout_log_every = args.auto_collect_log_every
+        ca.train_K = 32
+        ca.train_cem_iters = 1
+        ca.train_sigma = 0.12
+        geo, slot, goals, plans, labels = _collect(env, model_for_collect, ca)
+        env.close()
+        cache_source = str(out / "rollout_cache.npz")
+        np.savez_compressed(cache_source, geo_features=geo,
+                              slot_features=slot, goals=goals, plans=plans,
+                              labels=labels)
+        print(json.dumps({"event": "auto_collect_done", "path": cache_source,
+                           "n_samples": int(len(geo)),
+                           "geo_dim": int(geo.shape[1]),
+                           "slot_dim": int(slot.shape[1]),
+                           "mean_episode_imp": float(labels.mean())}),
+               flush=True)
+        del model_for_collect
 
     # 1. Train adapter (slot -> geo)
     adapter = ObjectFileGeometryAdapter(

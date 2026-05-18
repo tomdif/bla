@@ -323,6 +323,18 @@ def run_episode(env, model_action, heads, adapters, mode, args, ep_id):
         for _ in range(args.total_actions):
             action = closed_loop_gt_lift_step(env, obs, goal_xy_world)
             obs = step_and_track(env, obs, action, args)
+    elif mode == "demo_no_cem":
+        # Raw demo-replay prior, no CEM refinement. Baseline: what does
+        # the demo prior alone achieve on this seed's eval distribution?
+        actions_executed = 0
+        while actions_executed < args.total_actions:
+            mu = rollout_demo_lift_prior(env, obs, goal_xy_world,
+                                            args.plan_horizon, args.jepa_stride)
+            n_exec = min(args.replan_every,
+                          args.total_actions - actions_executed, len(mu))
+            for a in mu[:n_exec]:
+                obs = step_and_track(env, obs, a, args)
+            actions_executed += n_exec
     elif mode == "naive_cem":
         actions_executed = 0
         while actions_executed < args.total_actions:
