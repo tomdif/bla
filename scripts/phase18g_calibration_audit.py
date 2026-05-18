@@ -294,123 +294,165 @@ def distribution_breadth(candidates: np.ndarray) -> float:
 
 
 # ---------- driver ----------
-def collect_states(env, n_states: int, args) -> list[dict]:
-    """Reset env at distinct seeds, sample a goal, return state snapshots + obs."""
-    states = []
-    for i in range(n_states):
-        obs = env.reset()
-        rng = np.random.RandomState(args.seed * 10000 + i + 1)
-        theta = rng.uniform(0, 2 * np.pi)
-        r = rng.uniform(args.goal_dist_min, args.goal_dist_max)
-        cube_xy = obs["cubeA_pos"][:2].copy()
-        goal_xy = cube_xy + r * np.array([np.cos(theta), np.sin(theta)])
-        # Snapshot env state so we can restore later for each candidate exec
-        saved = env.sim.get_state()
-        states.append({"obs": obs, "goal_xy": goal_xy, "sim_state": saved,
-                        "cube_start": cube_xy})
-    return states
+def make_env_at_state(args, state_seed: int):
+    """Build a fresh env and reset deterministically at a state seed.
+
+    Pilot showed env.sim.set_state() degrades after ~128 cycles, so we build
+    a new env for each (state, distribution) pair to keep set_state cycles
+    well under the safety threshold.
+    """
+    import random as _py_random
+    np.random.seed(state_seed)
+    _py_random.seed(state_seed)
+    torch.manual_seed(state_seed)
+    # Use a very generous horizon so the env never auto-terminates during the
+    # audit's set_state-heavy candidate execution loop.
+    total_step_bound = args.M * args.exec_horizon * args.jepa_stride \
+                        + args.plan_horizon * args.jepa_stride + 5000
+    env_horizon = max(total_step_bound, 100_000)
+    env = build_env(args.image_size, horizon=env_horizon)
+    obs = env.reset()
+    return env, obs
 
 
-def run_distribution(env, model, policy, dist_id: str, states: list[dict], args) -> dict:
-    """Run a single candidate distribution across all N states; return metrics + raw data."""
-    print(json.dumps({"event": "dist_start", "dist": dist_id, "n_states": len(states),
+def sample_goal_for_state(obs: dict, state_seed: int, args) -> np.ndarray:
+    rng = np.random.RandomState(state_seed + 7)
+    theta = rng.uniform(0, 2 * np.pi)
+    r = rng.uniform(args.goal_dist_min, args.goal_dist_max)
+    cube_xy = obs["cubeA_pos"][:2].copy()
+    return cube_xy + r * np.array([np.cos(theta), np.sin(theta)])
+
+
+def run_state_distribution(model, policy, dist_id: str, s_idx: int, args) -> dict:
+    """Build fresh env at deterministic seed, sample candidates for one
+    distribution, score with predictor, ground-truth-execute the
+    top-K + bot-K + K random subset, return per-state record."""
+    state_seed = args.seed * 10000 + s_idx + 1
+    env, obs = make_env_at_state(args, state_seed)
+    goal_xy = sample_goal_for_state(obs, state_seed, args)
+    cube_start = obs["cubeA_pos"][:2].copy()
+    sim_state = env.sim.get_state()
+
+    needs_score_fn = dist_id in ("D2", "D3", "D5", "D6")
+    if needs_score_fn:
+        init_slot = encode_frame(model, obs["agentview_image"])
+        cubeA_idx = find_cubeA_slot(
+            model, init_slot,
+            norm_xy(obs["cubeA_pos"][:2]),
+            norm_xy(obs["cubeB_pos"][:2]),
+            norm_xy(obs["robot0_eef_pos"][:2]),
+        )
+        goal_xy_norm = norm_xy(goal_xy)
+        score_fn = lambda seq, _slot=init_slot, _i=cubeA_idx, _g=goal_xy_norm: \
+            predict_score_seq(model, _slot, seq, _i, _g, use_action=True)
+    else:
+        score_fn = None
+
+    # Sample candidates per distribution
+    if dist_id == "D1":
+        cands, mu = sample_d1_scripted_tiny_noise(env, model, policy, obs, goal_xy, args)
+    elif dist_id == "D4":
+        cands, mu = sample_d4_policy_tiny_noise(env, model, policy, obs, goal_xy, args)
+    elif dist_id == "D2":
+        cands, _, mu = sample_d2_scripted_light_cem(env, model, policy, obs, goal_xy, args, score_fn)
+    elif dist_id == "D3":
+        cands, _, mu = sample_d3_scripted_heavy_cem(env, model, policy, obs, goal_xy, args, score_fn)
+    elif dist_id == "D5":
+        cands, _, mu = sample_d5_policy_light_cem(env, model, policy, obs, goal_xy, args, score_fn)
+    elif dist_id == "D6":
+        cands, _, mu = sample_d6_naive(env, model, policy, obs, goal_xy, args, score_fn)
+    else:
+        env.close()
+        raise ValueError(f"unknown dist_id {dist_id}")
+
+    # Restore before predictor scoring (CEM may have left env stepped)
+    env.sim.set_state(sim_state); env.sim.forward()
+
+    # Score with predictor — uniform across distributions
+    if needs_score_fn:
+        pred = np.array([score_fn(c) for c in cands])
+    else:
+        init_slot = encode_frame(model, obs["agentview_image"])
+        cubeA_idx = find_cubeA_slot(
+            model, init_slot,
+            norm_xy(obs["cubeA_pos"][:2]),
+            norm_xy(obs["cubeB_pos"][:2]),
+            norm_xy(obs["robot0_eef_pos"][:2]),
+        )
+        goal_xy_norm = norm_xy(goal_xy)
+        pred = np.array([predict_score_seq(model, init_slot, c, cubeA_idx,
+                                             goal_xy_norm, use_action=True)
+                          for c in cands])
+
+    # Build GT execution subset: top-K, bot-K, K random
+    K = args.gt_k_per_extreme
+    order = np.argsort(pred)
+    bot_idx = order[:K].tolist()
+    top_idx = order[-K:][::-1].tolist()
+    remaining = [i for i in range(args.M) if i not in set(top_idx) | set(bot_idx)]
+    rng = np.random.RandomState(state_seed * 31 + 17)
+    rand_idx = rng.choice(remaining, size=min(K, len(remaining)), replace=False).tolist()
+    exec_idx = sorted(set(top_idx + bot_idx + rand_idx))
+
+    # Restore before execution
+    env.sim.set_state(sim_state); env.sim.forward()
+
+    real = np.full(args.M, float("nan"), dtype=np.float32)
+    contacts = np.zeros(args.M, dtype=bool)
+    for c_idx in exec_idx:
+        res = execute_plan_clone(env, cands[c_idx], args)
+        if np.isfinite(res["displacement"]) and res.get("cube_end") is not None:
+            real[c_idx] = realized_improvement(cube_start, res["cube_end"], goal_xy)
+        contacts[c_idx] = res["contact"]
+    env.close()
+
+    breadth = distribution_breadth(cands)
+    top1_idx = int(top_idx[0])
+    return {
+        "state_idx": s_idx,
+        "dist": dist_id,
+        "breadth": breadth,
+        "pred_mean": float(np.nanmean(pred)),
+        "pred_std": float(np.nanstd(pred)),
+        "real_mean_exec": float(np.nanmean(real[exec_idx])),
+        "real_std_exec": float(np.nanstd(real[exec_idx])),
+        "contact_rate_exec": float(np.mean(contacts[exec_idx])),
+        "top1_realized": float(real[top1_idx]) if np.isfinite(real[top1_idx]) else float("nan"),
+        "topK_realized_mean": float(np.nanmean(real[top_idx])),
+        "botK_realized_mean": float(np.nanmean(real[bot_idx])),
+        "randK_realized_mean": float(np.nanmean(real[rand_idx])) if rand_idx else float("nan"),
+        "top_vs_bot_gap": float(np.nanmean(real[top_idx]) - np.nanmean(real[bot_idx])),
+        "exec_pred": pred[exec_idx].tolist(),
+        "exec_real": real[exec_idx].tolist(),
+        "n_exec": len(exec_idx),
+    }
+
+
+def run_distribution(model, policy, dist_id: str, args) -> dict:
+    """Run a single candidate distribution across all N states; return metrics + raw data.
+
+    Builds a fresh env per state to avoid env.sim.set_state degradation
+    that the pilot caught (real_std=0 by ~cycle 128).
+    """
+    print(json.dumps({"event": "dist_start", "dist": dist_id, "n_states": args.N,
                        "M": args.M}), flush=True)
     t0 = time.time()
-    all_pred = []
-    all_real = []
-    all_breadth = []
-    all_contact = []
     per_state_records = []
-    needs_score_fn = dist_id in ("D2", "D3", "D5", "D6")
+    all_pred_exec = []
+    all_real_exec = []
+    all_breadth = []
+    all_contact_exec = []
 
-    for s_idx, st in enumerate(states):
-        # Restore state, build score function
-        env.sim.set_state(st["sim_state"]); env.sim.forward()
-        # Re-read obs from current env (state-restore doesn't return obs)
-        obs = env._get_observations()
-        goal_xy = st["goal_xy"]
-        cube_start = obs["cubeA_pos"][:2].copy()
-
-        if needs_score_fn:
-            init_slot = encode_frame(model, obs["agentview_image"])
-            cubeA_idx = find_cubeA_slot(
-                model, init_slot,
-                norm_xy(obs["cubeA_pos"][:2]),
-                norm_xy(obs["cubeB_pos"][:2]),
-                norm_xy(obs["robot0_eef_pos"][:2]),
-            )
-            goal_xy_norm = norm_xy(goal_xy)
-            score_fn = lambda seq, _slot=init_slot, _i=cubeA_idx, _g=goal_xy_norm: \
-                predict_score_seq(model, _slot, seq, _i, _g, use_action=True)
-        else:
-            score_fn = None
-
-        # Sample candidates
-        if dist_id == "D1":
-            cands, mu = sample_d1_scripted_tiny_noise(env, model, policy, obs, goal_xy, args)
-            # Restore — sample_d1 used rollout_scripted_prior which restores internally
-        elif dist_id == "D4":
-            cands, mu = sample_d4_policy_tiny_noise(env, model, policy, obs, goal_xy, args)
-        elif dist_id == "D2":
-            cands, _cem_scores, mu = sample_d2_scripted_light_cem(env, model, policy, obs, goal_xy, args, score_fn)
-        elif dist_id == "D3":
-            cands, _cem_scores, mu = sample_d3_scripted_heavy_cem(env, model, policy, obs, goal_xy, args, score_fn)
-        elif dist_id == "D5":
-            cands, _cem_scores, mu = sample_d5_policy_light_cem(env, model, policy, obs, goal_xy, args, score_fn)
-        elif dist_id == "D6":
-            cands, _cem_scores, mu = sample_d6_naive(env, model, policy, obs, goal_xy, args, score_fn)
-        else:
-            raise ValueError(f"unknown dist_id {dist_id}")
-
-        # Restore state before predictor scoring + execution
-        env.sim.set_state(st["sim_state"]); env.sim.forward()
-
-        # Score with predictor (uniform for all distributions)
-        if needs_score_fn:
-            pred = np.array([score_fn(c) for c in cands])
-        else:
-            init_slot = encode_frame(model, obs["agentview_image"])
-            cubeA_idx = find_cubeA_slot(
-                model, init_slot,
-                norm_xy(obs["cubeA_pos"][:2]),
-                norm_xy(obs["cubeB_pos"][:2]),
-                norm_xy(obs["robot0_eef_pos"][:2]),
-            )
-            goal_xy_norm = norm_xy(goal_xy)
-            pred = np.array([predict_score_seq(model, init_slot, c, cubeA_idx,
-                                                 goal_xy_norm, use_action=True)
-                              for c in cands])
-
-        # Restore before each candidate execution
-        env.sim.set_state(st["sim_state"]); env.sim.forward()
-
-        real = np.empty(args.M, dtype=np.float32)
-        contacts = np.empty(args.M, dtype=bool)
-        for c_idx, cand in enumerate(cands):
-            res = execute_plan_clone(env, cand, args)
-            if np.isfinite(res["displacement"]) and res.get("cube_end") is not None:
-                real[c_idx] = realized_improvement(cube_start, res["cube_end"], goal_xy)
-            else:
-                real[c_idx] = float("nan")
-            contacts[c_idx] = res["contact"]
-
-        breadth = distribution_breadth(cands)
-        per_state_records.append({
-            "state_idx": s_idx,
-            "breadth": breadth,
-            "pred_mean": float(np.nanmean(pred)),
-            "pred_std": float(np.nanstd(pred)),
-            "real_mean": float(np.nanmean(real)),
-            "real_std": float(np.nanstd(real)),
-            "contact_rate": float(np.mean(contacts)),
-            "best_pred_idx": int(np.argmax(pred)),
-            "best_real_idx": int(np.nanargmax(real)) if np.any(np.isfinite(real)) else -1,
-            "top1_realized": float(real[int(np.argmax(pred))]) if np.isfinite(real[int(np.argmax(pred))]) else float("nan"),
-        })
-        all_pred.append(pred)
-        all_real.append(real)
-        all_breadth.append(breadth)
-        all_contact.append(contacts)
+    for s_idx in range(args.N):
+        rec = run_state_distribution(model, policy, dist_id, s_idx, args)
+        per_state_records.append(rec)
+        exec_pred = np.array(rec["exec_pred"], dtype=np.float32)
+        exec_real = np.array(rec["exec_real"], dtype=np.float32)
+        all_pred_exec.append(exec_pred)
+        all_real_exec.append(exec_real)
+        all_breadth.append(rec["breadth"])
+        # Use exec contact rate
+        all_contact_exec.append(rec["contact_rate_exec"])
 
         if (s_idx + 1) % max(args.log_every, 1) == 0:
             print(json.dumps({
@@ -418,51 +460,56 @@ def run_distribution(env, model, policy, dist_id: str, states: list[dict], args)
                 "dist": dist_id,
                 "states_done": s_idx + 1,
                 "elapsed_s": round(time.time() - t0, 1),
-                "running_top1_realized": float(np.nanmean([p["top1_realized"] for p in per_state_records])),
+                "running_top1_realized": float(np.nanmean([p["top1_realized"]
+                                                              for p in per_state_records])),
+                "running_top_vs_bot_gap": float(np.nanmean([p["top_vs_bot_gap"]
+                                                                for p in per_state_records])),
+                "running_real_std_exec": float(np.nanmean([p["real_std_exec"]
+                                                               for p in per_state_records])),
             }), flush=True)
 
-    # Aggregate across all (state, candidate) pairs
-    pred_flat = np.concatenate(all_pred)
-    real_flat = np.concatenate(all_real)
+    # Aggregate across executed-candidate subsets (per-state, then pool)
+    pred_flat = np.concatenate(all_pred_exec)
+    real_flat = np.concatenate(all_real_exec)
     cal = calibration_metrics(pred_flat, real_flat)
 
-    # Per-state correlation, then average — more meaningful than pooled
-    per_state_corr = []
-    for p, r in zip(all_pred, all_real):
-        m = calibration_metrics(p, r)
-        per_state_corr.append(m)
+    per_state_corr = [calibration_metrics(p, r) for p, r in zip(all_pred_exec, all_real_exec)]
     mean_pearson_per_state = float(np.nanmean([m["pearson"] for m in per_state_corr]))
     mean_spearman_per_state = float(np.nanmean([m["spearman"] for m in per_state_corr]))
 
-    top5 = float(np.nanmean([top_k_precision(p, r, k=5)
-                               for p, r in zip(all_pred, all_real)]))
     top1 = float(np.nanmean([top_k_precision(p, r, k=1)
-                               for p, r in zip(all_pred, all_real)]))
-    top1_realized_mean = float(np.nanmean([rec["top1_realized"] for rec in per_state_records]))
-    all_realized_mean = float(np.nanmean(real_flat))
-    mean_realized_best = float(np.nanmean([np.nanmax(r) if np.any(np.isfinite(r)) else float("nan")
-                                              for r in all_real]))
-    contact_rate = float(np.mean(np.concatenate(all_contact)))
-    breadth_mean = float(np.mean(all_breadth))
+                               for p, r in zip(all_pred_exec, all_real_exec)]))
+    top5 = float(np.nanmean([top_k_precision(p, r, k=5)
+                               for p, r in zip(all_pred_exec, all_real_exec)]))
 
+    top1_realized = float(np.nanmean([rec["top1_realized"] for rec in per_state_records]))
+    topK_realized = float(np.nanmean([rec["topK_realized_mean"] for rec in per_state_records]))
+    botK_realized = float(np.nanmean([rec["botK_realized_mean"] for rec in per_state_records]))
+    randK_realized = float(np.nanmean([rec["randK_realized_mean"] for rec in per_state_records]))
+    top_vs_bot_gap = float(np.nanmean([rec["top_vs_bot_gap"] for rec in per_state_records]))
+    real_std_exec_mean = float(np.nanmean([rec["real_std_exec"] for rec in per_state_records]))
+    contact_rate = float(np.mean(all_contact_exec))
+    breadth_mean = float(np.mean(all_breadth))
     decile = per_decile_calibration(pred_flat, real_flat, n_bins=10)
     elapsed = time.time() - t0
 
     return {
         "dist": dist_id,
-        "n_states": len(states),
+        "n_states": args.N,
         "M": args.M,
+        "gt_k_per_extreme": args.gt_k_per_extreme,
         "pooled_pearson": cal["pearson"],
         "pooled_spearman": cal["spearman"],
         "mean_pearson_per_state": mean_pearson_per_state,
         "mean_spearman_per_state": mean_spearman_per_state,
         "top1_precision": top1,
         "top5_precision": top5,
-        "top1_realized_mean": top1_realized_mean,
-        "all_realized_mean": all_realized_mean,
-        "best_realized_mean": mean_realized_best,
-        "predictor_top1_gain_vs_mean": top1_realized_mean - all_realized_mean,
-        "oracle_best_gain_vs_mean": mean_realized_best - all_realized_mean,
+        "top1_realized_mean": top1_realized,
+        "topK_realized_mean": topK_realized,
+        "botK_realized_mean": botK_realized,
+        "randK_realized_mean": randK_realized,
+        "top_vs_bot_gap": top_vs_bot_gap,
+        "real_std_exec_mean": real_std_exec_mean,
         "contact_rate": contact_rate,
         "distribution_breadth": breadth_mean,
         "per_decile": decile,
@@ -495,6 +542,9 @@ def main():
     p.add_argument("--goal-dist-min", type=float, default=0.05)
     p.add_argument("--goal-dist-max", type=float, default=0.08)
     p.add_argument("--log-every", type=int, default=5)
+    p.add_argument("--gt-k-per-extreme", type=int, default=8,
+                    help="GT-execute top-K + bot-K + K random per state "
+                          "(default 8 → 24 execs/state).")
     args = p.parse_args()
 
     load_planning_dependencies()
@@ -510,49 +560,50 @@ def main():
     if any(d in ("D4", "D5") for d in dists) and policy is None:
         raise SystemExit("D4/D5 require --policy-ckpt")
 
-    env_horizon = max(args.N * 4, 1000)  # generous; we reset+restore a lot
-    env = build_env(args.image_size, horizon=env_horizon)
-
-    print(json.dumps({"event": "collecting_states", "n": args.N}), flush=True)
-    states = collect_states(env, args.N, args)
+    print(json.dumps({"event": "audit_start",
+                       "N": args.N, "M": args.M, "K": args.gt_k_per_extreme,
+                       "dists": dists, "fresh_env_per_state": True}), flush=True)
 
     all_dists = []
     for d in dists:
-        res = run_distribution(env, model, policy, d, states, args)
+        res = run_distribution(model, policy, d, args)
         # strip per_state from saved summary if large
         save_res = {**res}
         all_dists.append(save_res)
         print(json.dumps({"event": "dist_done", "dist": d,
-                           "pearson_per_state": save_res["mean_pearson_per_state"],
                            "spearman_per_state": save_res["mean_spearman_per_state"],
-                           "top1_realized": save_res["top1_realized_mean"],
-                           "best_realized": save_res["best_realized_mean"],
+                           "pearson_per_state": save_res["mean_pearson_per_state"],
+                           "top_vs_bot_gap": save_res["top_vs_bot_gap"],
+                           "topK_realized": save_res["topK_realized_mean"],
+                           "botK_realized": save_res["botK_realized_mean"],
+                           "real_std_exec": save_res["real_std_exec_mean"],
                            "breadth": save_res["distribution_breadth"],
                            "contact": save_res["contact_rate"],
                            "elapsed_s": round(save_res["elapsed_s"], 1)},
                           ), flush=True)
 
-    env.close()
-
-    # Gate evaluation
+    # Gate evaluation — uses top-vs-bot-gap (more robust than per-state corr at K=8)
     by_dist = {r["dist"]: r for r in all_dists}
     gates = {}
     if "D2" in by_dist:
         d2 = by_dist["D2"]
-        gates["g1_d2_spearman_gt_0_10"] = d2["mean_spearman_per_state"] > 0.10
-        gates["d2_mean_spearman"] = d2["mean_spearman_per_state"]
+        gates["d2_spearman"] = d2["mean_spearman_per_state"]
+        gates["d2_top_vs_bot_gap"] = d2["top_vs_bot_gap"]
+        # G1: predictor's top picks beat its bottom picks at least a little
+        gates["g1_d2_top_beats_bot"] = d2["top_vs_bot_gap"] > 0.02
     if "D2" in by_dist and "D3" in by_dist:
         d2, d3 = by_dist["D2"], by_dist["D3"]
-        gates["g2_d3_below_d2_by_0_10"] = (d2["mean_spearman_per_state"]
-                                            - d3["mean_spearman_per_state"]) >= 0.10
-        gates["d3_mean_spearman"] = d3["mean_spearman_per_state"]
-        gates["g3_d2_top1_beats_d3_top1"] = d2["top1_realized_mean"] > d3["top1_realized_mean"]
-        gates["d2_top1_realized"] = d2["top1_realized_mean"]
-        gates["d3_top1_realized"] = d3["top1_realized_mean"]
+        gates["d3_spearman"] = d3["mean_spearman_per_state"]
+        gates["d3_top_vs_bot_gap"] = d3["top_vs_bot_gap"]
+        # G2: predictor's top-vs-bot calibration degrades from light to heavy CEM
+        gates["g2_d3_gap_below_d2_gap"] = (d2["top_vs_bot_gap"] - d3["top_vs_bot_gap"]) > 0.02
+        gates["g3_d2_topK_beats_d3_topK"] = d2["topK_realized_mean"] > d3["topK_realized_mean"]
+        gates["d2_topK_realized"] = d2["topK_realized_mean"]
+        gates["d3_topK_realized"] = d3["topK_realized_mean"]
 
-    n_pass = int(gates.get("g1_d2_spearman_gt_0_10", False)) \
-              + int(gates.get("g2_d3_below_d2_by_0_10", False)) \
-              + int(gates.get("g3_d2_top1_beats_d3_top1", False))
+    n_pass = int(gates.get("g1_d2_top_beats_bot", False)) \
+              + int(gates.get("g2_d3_gap_below_d2_gap", False)) \
+              + int(gates.get("g3_d2_topK_beats_d3_topK", False))
     gates["n_pass"] = n_pass
     gates["verdict"] = (
         "3/3 thesis confirmed — predictor trust region is the scripted-prior manifold"
