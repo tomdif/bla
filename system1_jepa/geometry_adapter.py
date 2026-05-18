@@ -192,3 +192,150 @@ def build_adapter_from_config(cfg: dict) -> ObjectFileGeometryAdapter:
         hidden=int(cfg["hidden"]),
         n_hidden=int(cfg.get("n_hidden", 3)),
     )
+
+
+# ---------- Phase 18λ-v2: end-to-end adapter + value head ----------
+class End2EndAdapterValue(nn.Module):
+    """Joint adapter + value head trained on episode_imp directly.
+
+    The 10-dim "latent" is free — not constrained to match engineered
+    geometry. Loss is MSE on episode improvement; adapter and value
+    head are trained jointly.
+    """
+
+    def __init__(
+        self,
+        slot_dim: int,
+        goal_dim: int = 2,
+        latent_dim: int = 10,
+        action_dim: int = 7,
+        plan_horizon: int = 10,
+        adapter_hidden: int = 256,
+        adapter_n_hidden: int = 3,
+        value_hidden: int = 256,
+        value_n_hidden: int = 3,
+        dropout: float = 0.0,
+    ):
+        super().__init__()
+        # Import here to avoid circular at module top
+        from system1_jepa.value_head import GoalProgressValueHead
+        self.adapter = ObjectFileGeometryAdapter(
+            slot_dim=slot_dim, goal_dim=goal_dim, out_dim=latent_dim,
+            hidden=adapter_hidden, n_hidden=adapter_n_hidden,
+            dropout=dropout,
+        )
+        self.value_head = GoalProgressValueHead(
+            state_dim=latent_dim, action_dim=action_dim,
+            plan_horizon=plan_horizon, goal_dim=goal_dim,
+            hidden=value_hidden, n_hidden=value_n_hidden, dropout=dropout,
+        )
+
+    def forward(self, slot, goal, actions):
+        latent = self.adapter(slot, goal)
+        return self.value_head(latent, goal, actions)
+
+
+@dataclass
+class End2EndStats:
+    initial_loss: float
+    final_loss: float
+    initial_val_loss: float
+    final_val_loss: float
+    n_train: int
+    n_val: int
+    steps: int
+
+
+def train_end2end_supervised(
+    model: End2EndAdapterValue,
+    slots: torch.Tensor,
+    goals: torch.Tensor,
+    plans: torch.Tensor,
+    labels: torch.Tensor,
+    *,
+    val_split: float = 0.2,
+    steps: int = 2000,
+    batch_size: int = 64,
+    lr: float = 3e-4,
+    weight_decay: float = 1e-4,
+    grad_clip: float = 1.0,
+    seed: int = 0,
+    log_every: int = 0,
+) -> End2EndStats:
+    """Joint MSE training of adapter+value head on episode_imp."""
+    n = int(len(slots))
+    if n == 0:
+        raise ValueError("empty end2end dataset")
+    device = next(model.parameters()).device
+    slots = slots.float().to(device)
+    goals = goals.float().to(device)
+    plans = plans.float().to(device)
+    labels = labels.float().to(device)
+
+    g = torch.Generator(device="cpu"); g.manual_seed(seed)
+    perm = torch.randperm(n, generator=g)
+    n_val = max(1, int(val_split * n))
+    val_idx = perm[:n_val].to(device)
+    tr_idx = perm[n_val:].to(device)
+    n_train = int(tr_idx.numel())
+
+    def mse_on(idx):
+        with torch.no_grad():
+            pred = model(slots[idx], goals[idx], plans[idx])
+            return float(((pred - labels[idx]) ** 2).mean())
+
+    initial_tr = mse_on(tr_idx)
+    initial_val = mse_on(val_idx)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr,
+                              weight_decay=weight_decay)
+    gen = torch.Generator(device=device); gen.manual_seed(seed)
+    final_tr = initial_tr
+    for step in range(steps):
+        sel = tr_idx[torch.randint(0, n_train, (min(batch_size, n_train),),
+                                    generator=gen, device=device)]
+        pred = model(slots[sel], goals[sel], plans[sel])
+        loss = ((pred - labels[sel]) ** 2).mean()
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+        opt.step()
+        final_tr = float(loss.detach())
+        if log_every and (step + 1) % log_every == 0:
+            print(f"  end2end step {step+1}/{steps} loss={final_tr:.5f}",
+                   flush=True)
+
+    final_tr = mse_on(tr_idx)
+    final_val = mse_on(val_idx)
+    return End2EndStats(
+        initial_loss=initial_tr, final_loss=final_tr,
+        initial_val_loss=initial_val, final_val_loss=final_val,
+        n_train=n_train, n_val=int(val_idx.numel()), steps=steps,
+    )
+
+
+def end2end_config(model: End2EndAdapterValue) -> dict:
+    return {
+        "slot_dim": model.adapter.slot_dim,
+        "goal_dim": model.adapter.goal_dim,
+        "latent_dim": model.adapter.out_dim,
+        "action_dim": model.value_head.action_dim,
+        "plan_horizon": model.value_head.plan_horizon,
+        "adapter_hidden": model.adapter.hidden,
+        "adapter_n_hidden": model.adapter.n_hidden,
+        "value_hidden": model.value_head.hidden,
+        "value_n_hidden": model.value_head.n_hidden,
+    }
+
+
+def build_end2end_from_config(cfg: dict) -> End2EndAdapterValue:
+    return End2EndAdapterValue(
+        slot_dim=int(cfg["slot_dim"]),
+        goal_dim=int(cfg.get("goal_dim", 2)),
+        latent_dim=int(cfg.get("latent_dim", 10)),
+        action_dim=int(cfg.get("action_dim", 7)),
+        plan_horizon=int(cfg.get("plan_horizon", 10)),
+        adapter_hidden=int(cfg["adapter_hidden"]),
+        adapter_n_hidden=int(cfg.get("adapter_n_hidden", 3)),
+        value_hidden=int(cfg["value_hidden"]),
+        value_n_hidden=int(cfg.get("value_n_hidden", 3)),
+    )
