@@ -1,0 +1,44 @@
+{
+  "sanity_pass": true,
+  "results": [
+    {
+      "mode": "gt_closed_loop",
+      "n_episodes": 30,
+      "improvement": 0.24102041651303535,
+      "dir_score": 0.36200851518268706,
+      "contact_rate": 0.8333333333333334,
+      "overshoot_rate": 0.1,
+      "mean_displacement": 0.02760590913807393,
+      "success_rate": 0.3333333333333333,
+      "pred_actual_corr": NaN
+    },
+    {
+      "mode": "naive_cem",
+      "n_episodes": 30,
+      "improvement": 0.014968202987435335,
+      "dir_score": -0.006597186267399121,
+      "contact_rate": 0.26666666666666666,
+      "overshoot_rate": 0.0,
+      "mean_displacement": 0.0078449944438023,
+      "success_rate": 0.0,
+      "pred_actual_corr": -0.12982817234743527
+    },
+    {
+      "mode": "scripted_prior_cem",
+      "n_episodes": 30,
+      "improvement": 0.2358497524597123,
+      "dir_score": 0.3581746876484105,
+      "contact_rate": 0.9333333333333333,
+      "overshoot_rate": 0.16666666666666666,
+      "mean_displacement": 0.045887160735037465,
+      "success_rate": 0.26666666666666666,
+      "pred_actual_corr": 0.07406013455696107
+    }
+  ],
+  "g1_pass": false,
+  "g2_pass": false,
+  "g3_pass": false,
+  "n_pass": 0,
+  "verdict": "0/3 prior alone insufficient",
+  "g3_diff": null
+}

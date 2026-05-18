@@ -1,0 +1,320 @@
+{
+  "per_seed": {
+    "0": {
+      "gt_closed_loop": {
+        "mode": "gt_closed_loop",
+        "n_episodes": 30,
+        "improvement": 0.22356929249746338,
+        "dir_score": 0.2992999329455583,
+        "contact_rate": 0.7666666666666667,
+        "overshoot_rate": 0.06666666666666667,
+        "mean_displacement": 0.019960715968647503,
+        "success_rate": 0.23333333333333334,
+        "pred_actual_corr": NaN
+      },
+      "naive_cem": {
+        "mode": "naive_cem",
+        "n_episodes": 30,
+        "improvement": 0.004205854213750055,
+        "dir_score": 0.0,
+        "contact_rate": 0.23333333333333334,
+        "overshoot_rate": 0.0,
+        "mean_displacement": 0.00033548416098697054,
+        "success_rate": 0.0,
+        "pred_actual_corr": 0.12426931511337505
+      },
+      "scripted_prior_cem": {
+        "mode": "scripted_prior_cem",
+        "n_episodes": 30,
+        "improvement": 0.23475396201023113,
+        "dir_score": 0.36099034168260313,
+        "contact_rate": 0.9,
+        "overshoot_rate": 0.13333333333333333,
+        "mean_displacement": 0.046300075074122024,
+        "success_rate": 0.3,
+        "pred_actual_corr": 0.15615240036754544
+      }
+    },
+    "1": {
+      "gt_closed_loop": {
+        "mode": "gt_closed_loop",
+        "n_episodes": 30,
+        "improvement": 0.24102041651303535,
+        "dir_score": 0.36200851518268706,
+        "contact_rate": 0.8333333333333334,
+        "overshoot_rate": 0.1,
+        "mean_displacement": 0.02760590913807393,
+        "success_rate": 0.3333333333333333,
+        "pred_actual_corr": NaN
+      },
+      "naive_cem": {
+        "mode": "naive_cem",
+        "n_episodes": 30,
+        "improvement": 0.014968202987435335,
+        "dir_score": -0.006597186267399121,
+        "contact_rate": 0.26666666666666666,
+        "overshoot_rate": 0.0,
+        "mean_displacement": 0.0078449944438023,
+        "success_rate": 0.0,
+        "pred_actual_corr": -0.12982817234743527
+      },
+      "scripted_prior_cem": {
+        "mode": "scripted_prior_cem",
+        "n_episodes": 30,
+        "improvement": 0.2358497524597123,
+        "dir_score": 0.3581746876484105,
+        "contact_rate": 0.9333333333333333,
+        "overshoot_rate": 0.16666666666666666,
+        "mean_displacement": 0.045887160735037465,
+        "success_rate": 0.26666666666666666,
+        "pred_actual_corr": 0.07406013455696107
+      }
+    },
+    "2": {
+      "gt_closed_loop": {
+        "mode": "gt_closed_loop",
+        "n_episodes": 30,
+        "improvement": 0.12173466720964661,
+        "dir_score": 0.017608682785605175,
+        "contact_rate": 0.7333333333333333,
+        "overshoot_rate": 0.0,
+        "mean_displacement": 0.0170469852561394,
+        "success_rate": 0.13333333333333333,
+        "pred_actual_corr": NaN
+      },
+      "naive_cem": {
+        "mode": "naive_cem",
+        "n_episodes": 30,
+        "improvement": 0.0025214300819217474,
+        "dir_score": -0.050677592760701516,
+        "contact_rate": 0.3,
+        "overshoot_rate": 0.0,
+        "mean_displacement": 0.006298814050048824,
+        "success_rate": 0.0,
+        "pred_actual_corr": 0.11231361162096085
+      },
+      "scripted_prior_cem": {
+        "mode": "scripted_prior_cem",
+        "n_episodes": 30,
+        "improvement": 0.1311758833867412,
+        "dir_score": 0.13944119380096934,
+        "contact_rate": 0.9,
+        "overshoot_rate": 0.1,
+        "mean_displacement": 0.06057203111934631,
+        "success_rate": 0.13333333333333333,
+        "pred_actual_corr": -0.02642146617080586
+      }
+    }
+  },
+  "summary": {
+    "gt_closed_loop": {
+      "improvement": {
+        "per_seed": [
+          0.22356929249746338,
+          0.24102041651303535,
+          0.12173466720964661
+        ],
+        "mean": 0.19544145874004845,
+        "std": 0.05260325573340687
+      },
+      "dir_score": {
+        "per_seed": [
+          0.2992999329455583,
+          0.36200851518268706,
+          0.017608682785605175
+        ],
+        "mean": 0.22630571030461685,
+        "std": 0.14977522835458254
+      },
+      "contact_rate": {
+        "per_seed": [
+          0.7666666666666667,
+          0.8333333333333334,
+          0.7333333333333333
+        ],
+        "mean": 0.7777777777777778,
+        "std": 0.04157397096415493
+      },
+      "success_rate": {
+        "per_seed": [
+          0.23333333333333334,
+          0.3333333333333333,
+          0.13333333333333333
+        ],
+        "mean": 0.2333333333333333,
+        "std": 0.0816496580927726
+      },
+      "mean_displacement": {
+        "per_seed": [
+          0.019960715968647503,
+          0.02760590913807393,
+          0.0170469852561394
+        ],
+        "mean": 0.02153787012095361,
+        "std": 0.004452585750716403
+      },
+      "pred_actual_corr": {
+        "per_seed": [
+          NaN,
+          NaN,
+          NaN
+        ],
+        "mean": NaN,
+        "std": NaN
+      },
+      "overshoot_rate": {
+        "per_seed": [
+          0.06666666666666667,
+          0.1,
+          0.0
+        ],
+        "mean": 0.05555555555555556,
+        "std": 0.041573970964154904
+      }
+    },
+    "naive_cem": {
+      "improvement": {
+        "per_seed": [
+          0.004205854213750055,
+          0.014968202987435335,
+          0.0025214300819217474
+        ],
+        "mean": 0.007231829094369046,
+        "std": 0.0055134944710809085
+      },
+      "dir_score": {
+        "per_seed": [
+          0.0,
+          -0.006597186267399121,
+          -0.050677592760701516
+        ],
+        "mean": -0.01909159300936688,
+        "std": 0.022496477529903414
+      },
+      "contact_rate": {
+        "per_seed": [
+          0.23333333333333334,
+          0.26666666666666666,
+          0.3
+        ],
+        "mean": 0.26666666666666666,
+        "std": 0.02721655269759086
+      },
+      "success_rate": {
+        "per_seed": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "mean_displacement": {
+        "per_seed": [
+          0.00033548416098697054,
+          0.0078449944438023,
+          0.006298814050048824
+        ],
+        "mean": 0.004826430884946032,
+        "std": 0.0032377070395148352
+      },
+      "pred_actual_corr": {
+        "per_seed": [
+          0.12426931511337505,
+          -0.12982817234743527,
+          0.11231361162096085
+        ],
+        "mean": 0.03558491812896688,
+        "std": 0.11706651268179537
+      },
+      "overshoot_rate": {
+        "per_seed": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean": 0.0,
+        "std": 0.0
+      }
+    },
+    "scripted_prior_cem": {
+      "improvement": {
+        "per_seed": [
+          0.23475396201023113,
+          0.2358497524597123,
+          0.1311758833867412
+        ],
+        "mean": 0.20059319928556155,
+        "std": 0.04908749330956414
+      },
+      "dir_score": {
+        "per_seed": [
+          0.36099034168260313,
+          0.3581746876484105,
+          0.13944119380096934
+        ],
+        "mean": 0.28620207437732764,
+        "std": 0.103781979898796
+      },
+      "contact_rate": {
+        "per_seed": [
+          0.9,
+          0.9333333333333333,
+          0.9
+        ],
+        "mean": 0.9111111111111111,
+        "std": 0.01571348402636772
+      },
+      "success_rate": {
+        "per_seed": [
+          0.3,
+          0.26666666666666666,
+          0.13333333333333333
+        ],
+        "mean": 0.2333333333333333,
+        "std": 0.07200822998230955
+      },
+      "mean_displacement": {
+        "per_seed": [
+          0.046300075074122024,
+          0.045887160735037465,
+          0.06057203111934631
+        ],
+        "mean": 0.05091975564283527,
+        "std": 0.006827270853896539
+      },
+      "pred_actual_corr": {
+        "per_seed": [
+          0.15615240036754544,
+          0.07406013455696107,
+          -0.02642146617080586
+        ],
+        "mean": 0.06793035625123355,
+        "std": 0.07466139038909358
+      },
+      "overshoot_rate": {
+        "per_seed": [
+          0.13333333333333333,
+          0.16666666666666666,
+          0.1
+        ],
+        "mean": 0.13333333333333333,
+        "std": 0.02721655269759086
+      }
+    }
+  },
+  "gates": {
+    "g1": true,
+    "g2": true,
+    "g3": true,
+    "g4": true,
+    "consistency": true,
+    "n_main_pass": 3,
+    "verdict": "3/3 main + G4 positive \u2192 Phase 17 ROBUST"
+  },
+  "per_seed_oracle_gap": [
+    0.011184669512767753,
+    -0.00517066405332306,
+    0.009441216177094577
+  ]
+}
