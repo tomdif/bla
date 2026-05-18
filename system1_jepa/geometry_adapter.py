@@ -327,6 +327,130 @@ def end2end_config(model: End2EndAdapterValue) -> dict:
     }
 
 
+@dataclass
+class ScheduledAuxStats:
+    initial_value_loss: float
+    final_value_loss: float
+    initial_val_value_loss: float
+    final_val_value_loss: float
+    initial_geo_mse: float
+    final_geo_mse: float
+    n_train: int
+    n_val: int
+    total_steps: int
+    schedule_kind: str
+
+
+def train_end2end_with_aux_schedule(
+    model,                                  # End2EndAdapterValue
+    slots: torch.Tensor,
+    goals: torch.Tensor,
+    plans: torch.Tensor,
+    labels: torch.Tensor,
+    target_geo: torch.Tensor,
+    *,
+    schedule_kind: str = "linear_anneal",   # "linear_anneal" or "pretrain_ft"
+    steps: int = 2000,
+    pretrain_steps: int = 1000,
+    aux_weight_init: float = 1.0,
+    aux_weight_final: float = 0.0,
+    aux_residual_weight: float = 0.05,
+    val_split: float = 0.2,
+    batch_size: int = 64,
+    lr: float = 3e-4,
+    weight_decay: float = 1e-4,
+    grad_clip: float = 1.0,
+    seed: int = 0,
+    log_every: int = 0,
+) -> ScheduledAuxStats:
+    """Train End2EndAdapterValue with a scheduled geo-aux loss.
+
+    Total loss at each step = λ_geo(t) * MSE(adapter_out, target_geo)
+                            + λ_value(t) * MSE(model_out, labels)
+
+    Schedules:
+      linear_anneal: λ_geo linearly 1.0 → aux_weight_final over `steps`.
+                     λ_value = 1 - λ_geo, but always at least 0.1 so
+                     the value head also trains throughout.
+      pretrain_ft:   λ_geo = 1, λ_value = 0 for first `pretrain_steps`
+                     steps (adapter-only geo MSE), then λ_geo =
+                     aux_residual_weight, λ_value = 1.0 for the rest
+                     (joint fine-tuning with small geo regularizer).
+    """
+    if schedule_kind not in {"linear_anneal", "pretrain_ft"}:
+        raise ValueError(f"unknown schedule_kind: {schedule_kind}")
+    n = int(len(slots))
+    device = next(model.parameters()).device
+    slots = slots.float().to(device)
+    goals = goals.float().to(device)
+    plans = plans.float().to(device)
+    labels = labels.float().to(device)
+    target_geo = target_geo.float().to(device)
+
+    g = torch.Generator(device="cpu"); g.manual_seed(seed)
+    perm = torch.randperm(n, generator=g)
+    n_val = max(1, int(val_split * n))
+    val_idx = perm[:n_val].to(device)
+    tr_idx = perm[n_val:].to(device)
+    n_train = int(tr_idx.numel())
+
+    def metrics_on(idx):
+        with torch.no_grad():
+            pred = model(slots[idx], goals[idx], plans[idx])
+            value_loss = float(((pred - labels[idx]) ** 2).mean())
+            adapter_out = model.adapter(slots[idx], goals[idx])
+            geo_mse = float(((adapter_out - target_geo[idx]) ** 2).mean())
+            return value_loss, geo_mse
+
+    initial_val_val, initial_geo = metrics_on(val_idx)
+    initial_tr_val, _ = metrics_on(tr_idx)
+
+    def lambdas_at(step):
+        if schedule_kind == "linear_anneal":
+            frac = step / max(1, steps - 1)
+            lam_g = aux_weight_init + (aux_weight_final - aux_weight_init) * frac
+            lam_v = max(0.1, 1.0 - lam_g)
+            return float(lam_g), float(lam_v)
+        # pretrain_ft
+        if step < pretrain_steps:
+            return 1.0, 0.0
+        return float(aux_residual_weight), 1.0
+
+    opt = torch.optim.AdamW(model.parameters(), lr=lr,
+                              weight_decay=weight_decay)
+    gen = torch.Generator(device=device); gen.manual_seed(seed)
+    final_tr_val = initial_tr_val
+    for step in range(steps):
+        lam_g, lam_v = lambdas_at(step)
+        sel = tr_idx[torch.randint(0, n_train, (min(batch_size, n_train),),
+                                    generator=gen, device=device)]
+        adapter_out = model.adapter(slots[sel], goals[sel])
+        pred = model.value_head(adapter_out, goals[sel], plans[sel])
+        geo_loss = ((adapter_out - target_geo[sel]) ** 2).mean()
+        value_loss = ((pred - labels[sel]) ** 2).mean()
+        loss = lam_g * geo_loss + lam_v * value_loss
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+        opt.step()
+        final_tr_val = float(value_loss.detach())
+        if log_every and (step + 1) % log_every == 0:
+            print(f"  sched step {step+1}/{steps} "
+                  f"lam_g={lam_g:.2f} lam_v={lam_v:.2f} "
+                  f"value={final_tr_val:.5f}", flush=True)
+
+    final_val_val, final_geo = metrics_on(val_idx)
+    final_tr_val, _ = metrics_on(tr_idx)
+    return ScheduledAuxStats(
+        initial_value_loss=initial_tr_val, final_value_loss=final_tr_val,
+        initial_val_value_loss=initial_val_val,
+        final_val_value_loss=final_val_val,
+        initial_geo_mse=initial_geo, final_geo_mse=final_geo,
+        n_train=n_train, n_val=int(val_idx.numel()),
+        total_steps=steps, schedule_kind=schedule_kind,
+    )
+
+
 def build_end2end_from_config(cfg: dict) -> End2EndAdapterValue:
     return End2EndAdapterValue(
         slot_dim=int(cfg["slot_dim"]),
