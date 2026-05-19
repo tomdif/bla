@@ -173,6 +173,33 @@ def encode_full_rollout(model, frames_TWHC):
     return slot_states
 
 
+# ---------- rolling-window encode (D1b runtime ladder, Path 2) ----------
+@torch.no_grad()
+def encode_rolling_window(model, frames_TWHC, K: int):
+    """For each timestep t, encode frames[max(0, t-K+1) : t+1] in ONE
+    encode_video call, return the LAST timestep's slot state.
+
+    Returns slot_states [T, S, slot_dim] — one slot state per frame,
+    each derived from a K-frame temporal window ending at that frame.
+
+    This is the runtime mode between full-batched encode (v0; needs
+    the whole episode upfront) and a true stateful encode_step API
+    (v2; persistent slot_proto state across calls). It's the practical
+    near-live inference pattern for streaming object-file readout.
+    """
+    device = next(model.parameters()).device
+    T = frames_TWHC.shape[0]
+    out = []
+    for t in range(T):
+        start = max(0, t - K + 1)
+        window = frames_TWHC[start : t + 1]  # [k, H, W, 3], k <= K
+        video = (torch.from_numpy(window).permute(0, 3, 1, 2).float() / 255.0
+                  ).to(device)
+        slot_states, _ = model.encode_video(video)
+        out.append(slot_states[-1])
+    return torch.stack(out, dim=0)
+
+
 @torch.no_grad()
 def decode_positions_per_frame(model, slot_states):
     """slot_states [T, S, slot_dim] → [T, S, 2] normalized positions."""
@@ -301,6 +328,166 @@ def run_demo_a(env, model, args, out_dir):
         "mean_decode_err_m": {"cubeA": err_A, "cubeB": err_B, "eef": err_eef},
         "actual_cubeA_drift_m": actual_drift_A,
         "decoded_cubeA_drift_m": decoded_drift_A,
+        "png": str(out_png),
+    }
+
+
+# ---------- D1b: rolling-window comparison demo ----------
+def run_demo_a_compare(env, model, args, out_dir):
+    """Compare batched encode vs rolling-window K=5 / K=8 on the SAME
+    scene + plan. Decode error per entity per mode → side-by-side figure.
+
+    Pass criterion: rolling-window mean cubeA decode error within 1.5×
+    of batched encode's cubeA decode error.
+    """
+    obs = env.reset()
+    cubeA0 = get_cube_xy(obs, "cubeA")
+    push_dist = 0.12
+    goal_world = cubeA0 + np.array([0.0, +push_dist], dtype=np.float32)
+    plan_actions = rollout_scripted_prior(
+        env, obs, goal_world, args.plan_horizon, args.jepa_stride,
+    )
+    episode = collect_episode(env, plan_actions, args.jepa_stride)
+
+    # Encode three ways on the SAME frames
+    K5 = args.rolling_window_k_small
+    K8 = args.rolling_window_k_large
+    slot_batched = encode_full_rollout(model, episode["frames"])
+    slot_K5 = encode_rolling_window(model, episode["frames"], K=K5)
+    slot_K8 = encode_rolling_window(model, episode["frames"], K=K8)
+
+    dec_batched = decode_positions_per_frame(model, slot_batched)
+    dec_K5 = decode_positions_per_frame(model, slot_K5)
+    dec_K8 = decode_positions_per_frame(model, slot_K8)
+
+    # Identity-bind once at t=0 from the BATCHED encode (the v0 ground truth)
+    init_gt_norm = np.stack([
+        norm_xy(episode["gt"]["cubeA"][0]),
+        norm_xy(episode["gt"]["cubeB"][0]),
+        norm_xy(episode["gt"]["eef"][0]),
+    ])
+    slot_for = assign_slot_to_entity(dec_batched[0], init_gt_norm)
+    idx_A, idx_B, idx_eef = slot_for
+
+    def per_entity_err(dec):
+        traj_A = unnorm_xy(dec[:, idx_A])
+        traj_B = unnorm_xy(dec[:, idx_B])
+        traj_eef = unnorm_xy(dec[:, idx_eef])
+        return {
+            "cubeA": float(np.linalg.norm(traj_A - episode["gt"]["cubeA"],
+                                            axis=-1).mean()),
+            "cubeB": float(np.linalg.norm(traj_B - episode["gt"]["cubeB"],
+                                            axis=-1).mean()),
+            "eef": float(np.linalg.norm(traj_eef - episode["gt"]["eef"],
+                                           axis=-1).mean()),
+        }
+
+    err_batched = per_entity_err(dec_batched)
+    err_K5 = per_entity_err(dec_K5)
+    err_K8 = per_entity_err(dec_K8)
+
+    pass_ratio_K5 = err_K5["cubeA"] / max(err_batched["cubeA"], 1e-9)
+    pass_ratio_K8 = err_K8["cubeA"] / max(err_batched["cubeA"], 1e-9)
+    pass_K5 = pass_ratio_K5 <= 1.5
+    pass_K8 = pass_ratio_K8 <= 1.5
+
+    print(json.dumps({"event": "demo_a_compare_diag",
+                       "slot_indices": {"cubeA": idx_A, "cubeB": idx_B, "eef": idx_eef},
+                       "K_small": K5, "K_large": K8,
+                       "mean_err_cm_batched": {k: v * 100 for k, v in err_batched.items()},
+                       "mean_err_cm_K_small": {k: v * 100 for k, v in err_K5.items()},
+                       "mean_err_cm_K_large": {k: v * 100 for k, v in err_K8.items()},
+                       "pass_ratio_K_small_vs_batched_cubeA": pass_ratio_K5,
+                       "pass_ratio_K_large_vs_batched_cubeA": pass_ratio_K8,
+                       "pass_K_small_within_1p5x": bool(pass_K5),
+                       "pass_K_large_within_1p5x": bool(pass_K8)}),
+           flush=True)
+
+    # Per-step cubeA decode error over time
+    per_step_err_batched = np.linalg.norm(
+        unnorm_xy(dec_batched[:, idx_A]) - episode["gt"]["cubeA"], axis=-1) * 100
+    per_step_err_K5 = np.linalg.norm(
+        unnorm_xy(dec_K5[:, idx_A]) - episode["gt"]["cubeA"], axis=-1) * 100
+    per_step_err_K8 = np.linalg.norm(
+        unnorm_xy(dec_K8[:, idx_A]) - episode["gt"]["cubeA"], axis=-1) * 100
+
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, 3, figsize=(17, 5))
+
+    # Panel L: initial scene
+    axes[0].imshow(episode["frames"][0])
+    axes[0].set_title("Initial scene (t=0)")
+    axes[0].axis("off")
+
+    # Panel M: top-down with all three decoded cubeA trajectories
+    ax = axes[1]
+    ax.set_xlim(-0.25, 0.25); ax.set_ylim(-0.25, 0.25)
+    ax.set_aspect("equal"); ax.grid(True, alpha=0.3)
+    ax.plot(episode["gt"]["cubeA"][:, 0], episode["gt"]["cubeA"][:, 1],
+              color="black", lw=2.5, alpha=0.9, label="cubeA actual (env)")
+    for dec, color, label in [
+        (dec_batched, "tab:blue", "batched (v0)"),
+        (dec_K5, "tab:orange", f"rolling K={K5}"),
+        (dec_K8, "tab:green", f"rolling K={K8}"),
+    ]:
+        traj = unnorm_xy(dec[:, idx_A])
+        ax.plot(traj[:, 0], traj[:, 1], color=color, lw=1.5, ls="--",
+                  alpha=0.85, label=label)
+    ax.scatter(episode["gt"]["cubeA"][0, 0], episode["gt"]["cubeA"][0, 1],
+                c="black", marker="o", s=70)
+    ax.scatter(episode["gt"]["cubeA"][-1, 0], episode["gt"]["cubeA"][-1, 1],
+                c="black", marker="X", s=110)
+    ax.scatter(goal_world[0], goal_world[1],
+                c="orange", marker="*", s=220, edgecolors="black", linewidths=0.7,
+                label="goal")
+    ax.set_title("cubeA decoded trajectories (per encoding mode)")
+    ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
+    ax.legend(loc="lower left", fontsize=8)
+
+    # Panel R: per-step cubeA decode error
+    ax = axes[2]
+    timesteps = np.arange(len(per_step_err_batched))
+    ax.plot(timesteps, per_step_err_batched, color="tab:blue", lw=2,
+              label=f"batched (mean {err_batched['cubeA']*100:.1f}cm)")
+    ax.plot(timesteps, per_step_err_K5, color="tab:orange", lw=2,
+              label=f"rolling K={K5} (mean {err_K5['cubeA']*100:.1f}cm)")
+    ax.plot(timesteps, per_step_err_K8, color="tab:green", lw=2,
+              label=f"rolling K={K8} (mean {err_K8['cubeA']*100:.1f}cm)")
+    ax.axhline(err_batched["cubeA"] * 100 * 1.5, color="gray", ls=":",
+                  alpha=0.7, label="1.5× batched (pass line)")
+    ax.set_xlabel("timestep")
+    ax.set_ylabel("cubeA decode error (cm)")
+    ax.set_title(f"Per-step cubeA decode error\n"
+                  f"K={K5} ratio {pass_ratio_K5:.2f}× ({'PASS' if pass_K5 else 'FAIL'}),  "
+                  f"K={K8} ratio {pass_ratio_K8:.2f}× ({'PASS' if pass_K8 else 'FAIL'})")
+    ax.legend(loc="upper left", fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    out_png = Path(out_dir) / "demo_A_rolling_window_compare.png"
+    fig.suptitle(
+        "D1b: rolling-window encode vs full-batched encode "
+        "(runtime ladder step v0 → v1)",
+        fontsize=11,
+    )
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=140, bbox_inches="tight")
+    plt.close(fig)
+
+    return {
+        "demo": "A_compare_batched_vs_rolling",
+        "K_small": K5, "K_large": K8,
+        "mean_err_m": {
+            "batched": err_batched,
+            "K_small": err_K5,
+            "K_large": err_K8,
+        },
+        "pass_ratio_K_small": pass_ratio_K5,
+        "pass_ratio_K_large": pass_ratio_K8,
+        "pass_K_small_within_1p5x": bool(pass_K5),
+        "pass_K_large_within_1p5x": bool(pass_K8),
         "png": str(out_png),
     }
 
@@ -542,6 +729,14 @@ def main():
     # Demo C
     p.add_argument("--counterfactual-t-split", type=int, default=12)
     p.add_argument("--counterfactual-horizon", type=int, default=5)
+    # D1b: rolling-window comparison
+    p.add_argument("--mode", default="all",
+                    choices=["all", "compare_rolling"],
+                    help="all = run Demos A/B/C (D1a). "
+                          "compare_rolling = D1b: run Demo A with "
+                          "batched + rolling K_small + rolling K_large.")
+    p.add_argument("--rolling-window-k-small", type=int, default=5)
+    p.add_argument("--rolling-window-k-large", type=int, default=8)
     args = p.parse_args()
 
     torch.manual_seed(args.seed); np.random.seed(args.seed)
@@ -551,14 +746,21 @@ def main():
     _ = load_adapter(args, slot_dim_flat=args.n_slots * args.slot_dim)  # validation only
 
     big_horizon = max(args.plan_horizon, args.demo_b_horizon) * args.jepa_stride * 4 + 200
-    env_a = build_env(args.image_size, horizon=big_horizon)
-    sum_a = run_demo_a(env_a, model, args, out)
-    env_b = build_env(args.image_size, horizon=big_horizon)
-    sum_b = run_demo_b(env_b, model, args, out)
-    env_c = build_env(args.image_size, horizon=big_horizon)
-    sum_c = run_demo_c(env_c, model, args, out)
 
-    summary = {"demo_a": sum_a, "demo_b": sum_b, "demo_c": sum_c, "seed": args.seed}
+    if args.mode == "compare_rolling":
+        env_a = build_env(args.image_size, horizon=big_horizon)
+        sum_compare = run_demo_a_compare(env_a, model, args, out)
+        summary = {"demo_a_compare": sum_compare, "seed": args.seed}
+    else:
+        env_a = build_env(args.image_size, horizon=big_horizon)
+        sum_a = run_demo_a(env_a, model, args, out)
+        env_b = build_env(args.image_size, horizon=big_horizon)
+        sum_b = run_demo_b(env_b, model, args, out)
+        env_c = build_env(args.image_size, horizon=big_horizon)
+        sum_c = run_demo_c(env_c, model, args, out)
+        summary = {"demo_a": sum_a, "demo_b": sum_b, "demo_c": sum_c,
+                    "seed": args.seed}
+
     with open(Path(out) / "demo_summary.json", "w") as f:
         json.dump(summary, f, indent=2)
     print(json.dumps({"event": "all_done", "out": str(out)}), flush=True)

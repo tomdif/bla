@@ -131,23 +131,26 @@ on top of System-1.
 ### 3.1 The three runtime modes
 
 ```text
-Mode v0 (current, validated):    BATCHED ENCODE
+Mode v0 (validated, but DRIFTS with T):    BATCHED ENCODE
   collect full rollout
   → encode_video(T)          ← one call, whole video
   → bind slots once across the temporal window
   → decode trajectories from identity-bound slots
+  → cubeA decode err grows from ~2.7 cm at t=0 to ~8.4 cm at t=25.
 
-Mode v1 (planned, D1b):          ROLLING WINDOW
+Mode v1 (D1b STRONG PASS):                 ROLLING WINDOW   ← recommended
   each step:
     encode last K=5–8 frames in one encode_video(K) call
     use the FINAL timestep's slot states
-  → no architecture change; closer to live operation
+  → cubeA decode err: 1.5 cm at K=5 (3× BETTER than batched).
+  → flat over time — no long-horizon drift.
 
-Mode v2 (future, after D1b):     STATEFUL ENCODE_STEP
+Mode v2 (long-term target, less urgent):   STATEFUL ENCODE_STEP
   state = of_jepa.init_state()
   for frame in stream:
     object_files, state = of_jepa.encode_step(frame, state)
-  → true live operation; requires architecture change
+  → true streaming; lower per-step compute than v1.
+  → no longer urgent since v1 already beats v0 on fidelity.
 ```
 
 ### 3.2 What the planner uses
@@ -446,6 +449,7 @@ Selected milestones; full per-phase docs in `docs/phases/PHASE_*.md`.
 | **D3-main (2026-05-19)** | **Cross-task doctrine at scale?** | **STRONG PASS — PickPlaceCan 3 seeds × n=30, all 4 gates clear, Δ=+0.564 / +56.7pp success, demo_no_cem also LOWEST variance** |
 | **D4 (2026-05-19)** | **Second external task (precise insertion)?** | **STRONG PASS — NutAssemblySquare 3 seeds × n=30, all 4 gates clear, Δ=+0.400 / +38.6pp success, demo_no_cem σ_imp=0.022 (lowest variance yet)** |
 | **Scale-1 (2026-05-19)** | **Router accuracy on a 7-task suite?** | **STRONG PASS — 6/7 (85.7%) router matches, clears ≥80% threshold. ToolHang 3 seeds × n=30: Δ=+0.533 / +53.3pp. 4th cross-task demo-prior validation.** |
+| **D1b (2026-05-19)** | **Does rolling-window encode work?** | **STRONG PASS — rolling K=5 cubeA decode err 1.5 cm vs batched 4.7 cm (3× BETTER). v1 is a runtime upgrade over v0, not a compromise. v2 stateful encode_step less urgent.** |
 
 ## 9. Demo Artifacts
 
