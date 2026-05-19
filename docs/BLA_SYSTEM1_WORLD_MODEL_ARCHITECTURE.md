@@ -481,6 +481,7 @@ Selected milestones; full per-phase docs in `docs/phases/PHASE_*.md`.
 | **Scale-1 (2026-05-19)** | **Router accuracy on a 7-task suite?** | **STRONG PASS — 6/7 (85.7%) router matches, clears ≥80% threshold. ToolHang 3 seeds × n=30: Δ=+0.533 / +53.3pp. 4th cross-task demo-prior validation.** |
 | **D1b (2026-05-19)** | **Does rolling-window encode work?** | **STRONG PASS — rolling K=5 cubeA decode err 1.5 cm vs batched 4.7 cm (3× BETTER). v1 is a runtime upgrade over v0, not a compromise. v2 stateful encode_step less urgent.** |
 | **DR1 (2026-05-19)** | **Does NN demo retrieval scale Recipe E?** | **STRONG PASS — top-1 retrieval over 24-demo bank: 0.346 / 35% on PickPlaceCan (3 seeds × n=30) vs fixed-5-cycle 0.014 / 1% (a 35× scaling improvement). Matches oracle within seed noise. CEM-around-retrieval still hurts (10% success).** |
+| **DR2 (2026-05-19)** | **Better metric than geometry_top1?** | **Negative / clarifying — geometry_top1 (0.369 / 37%) is best; goal-relative didn't help, slot-state collapsed, unconstrained outcome rerank actively harmful. Sharpened doctrine: state match primary, outcome only as filtered tiebreaker. DR1's σ=0.135 was a small-n artifact (DR2 σ=0.088).** |
 
 ## 9. Demo Artifacts
 
