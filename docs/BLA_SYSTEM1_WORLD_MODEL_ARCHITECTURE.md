@@ -221,13 +221,31 @@ NutAssemblySquare / ToolHang) as of Phase Scale-1 close, 2026-05-19.
 The doctrine is no longer hedged — Recipe E is the deployment
 default for the demo-prior regime.
 
-**Recipe E's selection mechanism scales via NN retrieval** (Phase
-DR1, 2026-05-19): replace "replay one fixed demo" with "retrieve the
-closest useful demo from a bank". On PickPlaceCan, top-1 retrieval
-over a 24-demo bank hits 35% success vs 1% for fixed-5-demo
-cycling — a 35× scaling improvement. CEM around the retrieved demo
-still hurts (10% success), confirming search-budget-zero extends to
-retrieved demos.
+**Recipe E now reads (locked DR1, 2026-05-19):**
+
+> Recipe E = retrieve a state-matched demo from the demonstration
+> manifold and execute it without CEM.
+
+Two operational variants:
+
+```
+Recipe E2-FAST   = demo_retrieval_top1
+                   highest mean, higher variance
+                   (PickPlaceCan 3-seed: 0.346 ± 0.135 / 35% ± 14pp)
+
+Recipe E2-STABLE = demo_retrieval_top3_avg
+                   lower mean, better stability
+                   (PickPlaceCan 3-seed: 0.280 ± 0.052 / 28% ± 5pp)
+```
+
+Pick by deployment context: top-1 when peak performance matters,
+top-3-avg when reliability matters.
+
+**DR1 doctrine extension**: CEM around retrieved demos remains
+destructive (phase17_locked at 0.130 / 10% vs retrieval_top1 at
+0.346 / 35%). Search-budget-zero now spans **fixed demos AND
+retrieved demos** — the demonstration manifold should always be
+preserved, regardless of how the demo got to the planner.
 
 Recipe E has two engineering variants:
 - **E1 (Lift)**: demo replay on random fresh env reset (works when

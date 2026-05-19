@@ -17,6 +17,8 @@ class Recipe(str, Enum):
     D = "pretrain_ft"             # Phase 18ν
     E1 = "demo_no_cem_fresh_reset"      # Phase 18κ R3 (Lift)
     E2 = "demo_no_cem_state_matched"    # Phase D3/D4 (PickPlaceCan, Square)
+    E2_FAST = "demo_retrieval_top1"     # Phase DR1; highest mean, higher variance
+    E2_STABLE = "demo_retrieval_top3_avg"  # Phase DR1; lower mean, better stability
 
 
 @dataclass(frozen=True)
@@ -84,6 +86,25 @@ RECIPE_REGISTRY: dict[Recipe, RecipeConfig] = {
         notes=("PickPlaceCan / NutAssemblySquare regime",
                 "wide init-state distribution — env.sim.set_state_from_flattened "
                 "to demo.states[0] before replay"),
+    ),
+    Recipe.E2_FAST: RecipeConfig(
+        recipe=Recipe.E2_FAST,
+        prior_kind="demo_replay",
+        use_cem=False,
+        value_head_input="none",
+        notes=("Phase DR1: NN retrieval over a demo bank, top-1 chosen.",
+                "Highest mean (PickPlaceCan 0.346) but higher variance "
+                "(σ=0.135). Use when peak performance matters and seed-to-seed "
+                "variation is acceptable."),
+    ),
+    Recipe.E2_STABLE: RecipeConfig(
+        recipe=Recipe.E2_STABLE,
+        prior_kind="demo_replay",
+        use_cem=False,
+        value_head_input="none",
+        notes=("Phase DR1: NN retrieval over a demo bank, top-3 actions "
+                "averaged elementwise. Lower mean (PickPlaceCan 0.280) but "
+                "lower variance (σ=0.052). Use when reliability matters."),
     ),
 }
 
