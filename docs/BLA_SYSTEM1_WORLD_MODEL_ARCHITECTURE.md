@@ -1,6 +1,7 @@
 # BLA System-1: Object-File World Model — Architecture Spec
 
-**Status:** v0 architecture spec, locked 2026-05-19.
+**Status:** v0 architecture spec, locked 2026-05-19 (updated after
+D4 close).
 **Cross-references:** `docs/00_overview.md`, `docs/01_jepa.md`,
 `docs/BLA_SYSTEM1_JEPA_ARC_SUMMARY.md`, all `docs/phases/PHASE_*.md`.
 
@@ -17,11 +18,20 @@ predictor and a goal-progress value head.
 > memory, but it has a clear ladder to become one: batched encode →
 > rolling window → stateful encode_step.
 
+**Doctrine claim (locked after Phase D4, 2026-05-19):**
+
+> **Across Lift, PickPlaceCan, and NutAssemblySquare, `demo_no_cem`
+> is the highest-mean and lowest-variance mode. This validates
+> Recipe E as the default for contact-sensitive expert-demonstration
+> regimes. The transferable object is the demonstration manifold,
+> not CEM exploration around it.**
+
 The architecture has been validated on robosuite Stack (push) across
-Phases 14–18 and cross-task transferred to Lift (Phase 18κ R3) and
-distribution shift (Phase 18κ R2 and Phase 18ν). The legibility of
-the underlying object files was established in Phase D1 (2026-05-19)
-under the temporal-batching contract.
+Phases 14–18 (FSM-prior regime) and **cross-task transferred to three
+contact-sensitive tasks** (demo-prior regime) — Lift (Phase 18κ R3),
+PickPlaceCan (Phase D3-main), and NutAssemblySquare (Phase D4). The
+legibility of the underlying object files was established in Phase D1
+(2026-05-19) under the temporal-batching contract.
 
 What this doc covers:
 
@@ -184,11 +194,11 @@ score    : combined_sum = λ·predictor_score + (1−λ)·value_head_score
 | **E** | OF-JEPA v0 | n/a (no value head used) | **expert demo replay** | **no CEM** | expert demo prior; contact-sensitive |
 
 A/B/C/D are validated for **FSM-prior** regimes (Stack push). E is
-validated for **demo-prior** regimes (Lift, robomimic demos).
-**Phase D3-main (2026-05-19) extends Recipe E's validation to
-PickPlaceCan**, demonstrating cross-task transfer at Δ=+0.564
-improvement / +56.7pp success over `phase17_locked` across 3 seeds
-× 30 episodes. Recipe E has two engineering variants:
+validated for **demo-prior** regimes across **three independent
+contact-sensitive task families** (Lift / PickPlaceCan /
+NutAssemblySquare) as of Phase D4 close, 2026-05-19. The doctrine
+is no longer hedged — Recipe E is the deployment default for the
+demo-prior regime. Recipe E has two engineering variants:
 - **E1 (Lift)**: demo replay on random fresh env reset (works when
   the task's initial-state distribution is narrow enough that some
   demos succeed on fresh resets — Lift has 2-4 of 50 working).
@@ -243,10 +253,32 @@ them back. See `feedback_search_budget_zero_around_expert_demos.md`.
        └──────────────────┘                              └──────────────────┘
 ```
 
-**Locked applicability rule (strengthened by Phase D3-main, 2026-05-19):**
-"When the prior is an expert demonstration manifold, **`demo_no_cem`
-is the default**. Do not add CEM unless there is a calibrated
-trust-region reason to do so."
+**Locked applicability rule (strengthened by D4 close, 2026-05-19):**
+
+> **In contact-sensitive demo-prior regimes, the demonstration manifold
+> is the policy. Do not add action-space CEM by default.**
+
+Recipe E formal statement:
+
+```
+Recipe E — demo_no_cem
+
+Use for:
+  grasp-and-lift              (validated: Lift)
+  grasp-and-place             (validated: PickPlaceCan)
+  grasp-and-insert            (validated: NutAssemblySquare)
+  contact-sensitive expert-demo regimes (generally)
+
+Avoid:
+  CEM exploration around expert demos unless a trust-region
+  audit proves it helps in your specific regime.
+```
+
+The empirical basis: across three independent task families,
+`demo_no_cem` is **both the highest-mean AND the lowest-variance**
+nontrivial mode. The variance σ_imp actually *decreases* with each
+new task (0.054 on Lift → 0.043 on PickPlaceCan → 0.022 on Square)
+as the recipe's regime is mapped more precisely.
 
 **Cross-task evidence (out-of-sample, 2026-05-19):**
 
