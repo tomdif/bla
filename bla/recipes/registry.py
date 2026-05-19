@@ -102,9 +102,15 @@ RECIPE_REGISTRY: dict[Recipe, RecipeConfig] = {
         prior_kind="demo_replay",
         use_cem=False,
         value_head_input="none",
-        notes=("Phase DR1: NN retrieval over a demo bank, top-3 actions "
-                "averaged elementwise. Lower mean (PickPlaceCan 0.280) but "
-                "lower variance (σ=0.052). Use when reliability matters."),
+        notes=("Phase DR3-locked: NN retrieval over a demo bank, then "
+                "constrained top-k rerank — top-5 by L2, filter to ≤ 1.25× "
+                "nearest-neighbor distance, rerank within filter by "
+                "outcome_score. Implements state-match-primary-outcome-"
+                "tiebreaker. PickPlaceCan DR3: mean 0.178, σ 0.054 (~half "
+                "the variance of E2_FAST top1's σ=0.101, at ~16% lower "
+                "mean). Use when reliability matters more than peak "
+                "performance. Replaces DR1's ad-hoc top3_avg as the "
+                "canonical stable variant."),
     ),
 }
 

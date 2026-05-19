@@ -229,13 +229,17 @@ default for the demo-prior regime.
 Two operational variants:
 
 ```
-Recipe E2-FAST   = demo_retrieval_top1
+Recipe E2-FAST   = geometry_top1
                    highest mean, higher variance
-                   (PickPlaceCan 3-seed: 0.346 ± 0.135 / 35% ± 14pp)
+                   (DR1: 0.346 ± 0.135; DR2: 0.369 ± 0.088 / 37%)
 
-Recipe E2-STABLE = demo_retrieval_top3_avg
-                   lower mean, better stability
-                   (PickPlaceCan 3-seed: 0.280 ± 0.052 / 28% ± 5pp)
+Recipe E2-STABLE = geometry_constrained_rerank(k=5, filter=1.25× NN)
+                   ~half the variance at ~16% mean cost
+                   (DR3: 0.178 ± 0.054 vs top1 0.213 ± 0.101 on
+                    the harder full-100-demo reset protocol)
+                   Implements: state match primary,
+                              outcome tiebreaker only within
+                              ≤ 1.25× nearest-neighbor distance.
 ```
 
 Pick by deployment context: top-1 when peak performance matters,
@@ -482,6 +486,7 @@ Selected milestones; full per-phase docs in `docs/phases/PHASE_*.md`.
 | **D1b (2026-05-19)** | **Does rolling-window encode work?** | **STRONG PASS — rolling K=5 cubeA decode err 1.5 cm vs batched 4.7 cm (3× BETTER). v1 is a runtime upgrade over v0, not a compromise. v2 stateful encode_step less urgent.** |
 | **DR1 (2026-05-19)** | **Does NN demo retrieval scale Recipe E?** | **STRONG PASS — top-1 retrieval over 24-demo bank: 0.346 / 35% on PickPlaceCan (3 seeds × n=30) vs fixed-5-cycle 0.014 / 1% (a 35× scaling improvement). Matches oracle within seed noise. CEM-around-retrieval still hurts (10% success).** |
 | **DR2 (2026-05-19)** | **Better metric than geometry_top1?** | **Negative / clarifying — geometry_top1 (0.369 / 37%) is best; goal-relative didn't help, slot-state collapsed, unconstrained outcome rerank actively harmful. Sharpened doctrine: state match primary, outcome only as filtered tiebreaker. DR1's σ=0.135 was a small-n artifact (DR2 σ=0.088).** |
+| **DR3 (2026-05-19)** | **Is variance bank-coverage limited? Does constrained rerank help?** | **Negative/clarifying — H1 falsified (Spearman(nn,-imp) max 0.21, well below 0.3); H2 partial (rerank cuts σ 0.101→0.054 at 16% mean cost). E2_STABLE now locked as constrained rerank. Residual variance is execution stochasticity, not retrieval-metric or bank-coverage failure.** |
 
 ## 9. Demo Artifacts
 
