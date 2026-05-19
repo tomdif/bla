@@ -33,6 +33,15 @@ predictor and a goal-progress value head.
 recipe on 6 of 7 tasks (85.7%) — clearing the ≥80% strong-pass
 threshold from the Scale-1 precommit.
 
+**Scale-1 locked statement:**
+
+> Scale-1 validates the BLA recipe router as a deployment decision
+> system. Across seven tasks, the router selects the empirically
+> winning recipe with 85.7% accuracy, clearing the precommitted
+> ≥80% threshold. Recipe E, `demo_no_cem`, is now the default for
+> contact-sensitive expert-demo regimes, validated across Lift,
+> PickPlaceCan, NutAssemblySquare, and ToolHang.
+
 The architecture has been validated on robosuite Stack (push) across
 Phases 14–18 (FSM-prior regime) and **cross-task transferred to three
 contact-sensitive tasks** (demo-prior regime) — Lift (Phase 18κ R3),
