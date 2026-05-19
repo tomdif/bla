@@ -131,27 +131,29 @@ on top of System-1.
 ### 3.1 The three runtime modes
 
 ```text
-Mode v0 (validated, but DRIFTS with T):    BATCHED ENCODE
-  collect full rollout
-  → encode_video(T)          ← one call, whole video
-  → bind slots once across the temporal window
-  → decode trajectories from identity-bound slots
-  → cubeA decode err grows from ~2.7 cm at t=0 to ~8.4 cm at t=25.
+v0 offline:
+  full batched encode_video(T)
+  validated, but cubeA decode err drifts from ~2.7 cm to ~8.4 cm
+  over a 25-step rollout.
 
-Mode v1 (D1b STRONG PASS):                 ROLLING WINDOW   ← recommended
-  each step:
-    encode last K=5–8 frames in one encode_video(K) call
-    use the FINAL timestep's slot states
-  → cubeA decode err: 1.5 cm at K=5 (3× BETTER than batched).
-  → flat over time — no long-horizon drift.
+v1 near-live:                              ← current deployment runtime
+  rolling-window encode_video(K), K=5 preferred initial setting
+  cubeA decode err: 1.5 cm flat at K=5 (3× BETTER than batched).
+  No monotonic drift — old frames are forgotten.
 
-Mode v2 (long-term target, less urgent):   STATEFUL ENCODE_STEP
+v2 live:
+  stateful encode_step API, future work
   state = of_jepa.init_state()
   for frame in stream:
     object_files, state = of_jepa.encode_step(frame, state)
-  → true streaming; lower per-step compute than v1.
-  → no longer urgent since v1 already beats v0 on fidelity.
+  Lower per-step compute than v1; less urgent now that v1 is
+  already a runtime upgrade over v0.
 ```
+
+**Locked deployment statement (D1b, 2026-05-19):**
+
+> **Rolling temporal windows are the current deployment runtime
+> for OF-JEPA v0. K=5 is the recommended initial setting.**
 
 ### 3.2 What the planner uses
 
