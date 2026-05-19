@@ -250,13 +250,16 @@ trust-region reason to do so."
 
 **Cross-task evidence (out-of-sample, 2026-05-19):**
 
-| Task | Δ(demo_no_cem − phase17_locked) imp | Δ success | Reference |
-|---|---:|---:|---|
-| Lift (Phase 18κ R3) | +0.10 (4-run aggregate) | +10pp | `PHASE_18K_REGIME3_LIFT_DECISION.md` |
-| **PickPlaceCan (Phase D3-main)** | **+0.564** | **+56.7pp** | `PHASE_D3_MAIN_DECISION.md` |
+| Task | Constraint structure | Δ(demo_no_cem − phase17_locked) imp | Δ success | Reference |
+|---|---|---:|---:|---|
+| Lift (Phase 18κ R3) | grasp-and-lift | +0.10 (4-run agg) | +10pp | `PHASE_18K_REGIME3_LIFT_DECISION.md` |
+| PickPlaceCan (Phase D3-main) | grasp-and-place | **+0.564** | **+56.7pp** | `PHASE_D3_MAIN_DECISION.md` |
+| **NutAssemblySquare (Phase D4)** | **grasp-and-insert** | **+0.400** | **+38.6pp** | `PHASE_D4_DECISION.md` |
 
-The doctrine *strengthens* on PickPlaceCan vs Lift. Effect size is
-not a Lift-specific artifact.
+Three independent contact-sensitive task families. Zero falsification
+triggers across precommit predictions. demo_no_cem is BOTH the highest-
+performing AND lowest-variance mode on every task (σ_imp = 0.022
+on Square, lowest yet).
 
 **Sibling caveat:** same CLI seed is not necessarily the same run in
 robosuite/MuJoCo/demo pipelines unless all RNG sources are audited
@@ -393,6 +396,7 @@ Selected milestones; full per-phase docs in `docs/phases/PHASE_*.md`.
 | **D1 (2026-05-19)** | **OF-JEPA legibility?** | **PASS under batched encode; runtime ladder defined** |
 | **D3 pilot** | **Does the regime map predict on a NEW task?** | **YES — PickPlaceCan pilot Δ=+0.60 (n=5)** |
 | **D3-main (2026-05-19)** | **Cross-task doctrine at scale?** | **STRONG PASS — PickPlaceCan 3 seeds × n=30, all 4 gates clear, Δ=+0.564 / +56.7pp success, demo_no_cem also LOWEST variance** |
+| **D4 (2026-05-19)** | **Second external task (precise insertion)?** | **STRONG PASS — NutAssemblySquare 3 seeds × n=30, all 4 gates clear, Δ=+0.400 / +38.6pp success, demo_no_cem σ_imp=0.022 (lowest variance yet)** |
 
 ## 9. Demo Artifacts
 
