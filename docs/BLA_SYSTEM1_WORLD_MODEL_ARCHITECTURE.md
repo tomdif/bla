@@ -18,13 +18,20 @@ predictor and a goal-progress value head.
 > memory, but it has a clear ladder to become one: batched encode →
 > rolling window → stateful encode_step.
 
-**Doctrine claim (locked after Phase D4, 2026-05-19):**
+**Doctrine claim (locked after Phase Scale-1, 2026-05-19):**
 
-> **Across Lift, PickPlaceCan, and NutAssemblySquare, `demo_no_cem`
-> is the highest-mean and lowest-variance mode. This validates
-> Recipe E as the default for contact-sensitive expert-demonstration
-> regimes. The transferable object is the demonstration manifold,
-> not CEM exploration around it.**
+> **Across Lift, PickPlaceCan, NutAssemblySquare, AND ToolHang,
+> `demo_no_cem` is the highest-mean and lowest-variance mode. This
+> validates Recipe E as the default for contact-sensitive expert-
+> demonstration regimes — across grasp-and-lift, grasp-and-place,
+> grasp-and-insert, and long-horizon multi-stage tasks. The
+> transferable object is the demonstration manifold, not CEM
+> exploration around it.**
+
+**Router validation:** at `bla/routing/recipe_router.py` commit
+`668e02c`, the deployed router correctly predicts the winning
+recipe on 6 of 7 tasks (85.7%) — clearing the ≥80% strong-pass
+threshold from the Scale-1 precommit.
 
 The architecture has been validated on robosuite Stack (push) across
 Phases 14–18 (FSM-prior regime) and **cross-task transferred to three
@@ -282,16 +289,16 @@ as the recipe's regime is mapped more precisely.
 
 **Cross-task evidence (out-of-sample, 2026-05-19):**
 
-| Task | Constraint structure | Δ(demo_no_cem − phase17_locked) imp | Δ success | Reference |
-|---|---|---:|---:|---|
-| Lift (Phase 18κ R3) | grasp-and-lift | +0.10 (4-run agg) | +10pp | `PHASE_18K_REGIME3_LIFT_DECISION.md` |
-| PickPlaceCan (Phase D3-main) | grasp-and-place | **+0.564** | **+56.7pp** | `PHASE_D3_MAIN_DECISION.md` |
-| **NutAssemblySquare (Phase D4)** | **grasp-and-insert** | **+0.400** | **+38.6pp** | `PHASE_D4_DECISION.md` |
+| Task | Constraint structure | Δ(demo_no_cem − phase17_locked) imp | Δ success | σ_imp(demo) | Reference |
+|---|---|---:|---:|---:|---|
+| Lift (Phase 18κ R3) | grasp-and-lift | +0.10 (4-run agg) | +10pp | 0.054 | `PHASE_18K_REGIME3_LIFT_DECISION.md` |
+| PickPlaceCan (Phase D3-main) | grasp-and-place | **+0.564** | **+56.7pp** | 0.043 | `PHASE_D3_MAIN_DECISION.md` |
+| NutAssemblySquare (Phase D4) | grasp-and-insert | +0.400 | +38.6pp | 0.022 | `PHASE_D4_DECISION.md` |
+| **ToolHang (Phase Scale-1)** | **long-horizon grasp + hang** | **+0.533** | **+53.3pp** | **0.051** | `PHASE_SCALE1_DECISION.md` |
 
-Three independent contact-sensitive task families. Zero falsification
+Four independent contact-sensitive task families. Zero falsification
 triggers across precommit predictions. demo_no_cem is BOTH the highest-
-performing AND lowest-variance mode on every task (σ_imp = 0.022
-on Square, lowest yet).
+performing AND lowest-variance mode on every task.
 
 **Sibling caveat:** same CLI seed is not necessarily the same run in
 robosuite/MuJoCo/demo pipelines unless all RNG sources are audited
@@ -429,6 +436,7 @@ Selected milestones; full per-phase docs in `docs/phases/PHASE_*.md`.
 | **D3 pilot** | **Does the regime map predict on a NEW task?** | **YES — PickPlaceCan pilot Δ=+0.60 (n=5)** |
 | **D3-main (2026-05-19)** | **Cross-task doctrine at scale?** | **STRONG PASS — PickPlaceCan 3 seeds × n=30, all 4 gates clear, Δ=+0.564 / +56.7pp success, demo_no_cem also LOWEST variance** |
 | **D4 (2026-05-19)** | **Second external task (precise insertion)?** | **STRONG PASS — NutAssemblySquare 3 seeds × n=30, all 4 gates clear, Δ=+0.400 / +38.6pp success, demo_no_cem σ_imp=0.022 (lowest variance yet)** |
+| **Scale-1 (2026-05-19)** | **Router accuracy on a 7-task suite?** | **STRONG PASS — 6/7 (85.7%) router matches, clears ≥80% threshold. ToolHang 3 seeds × n=30: Δ=+0.533 / +53.3pp. 4th cross-task demo-prior validation.** |
 
 ## 9. Demo Artifacts
 
