@@ -12,7 +12,8 @@ from bla.recipes import DemoState, DemoRetriever
 
 
 def _make_demo(demo_id: int, key: list[float],
-                  T: int = 10, action_dim: int = 7) -> DemoState:
+                  T: int = 10, action_dim: int = 7,
+                  outcome_score: float = 0.0) -> DemoState:
     """Build a DemoState whose action_seq is a constant vector marked
     with demo_id in its first action dim, so we can verify which demo
     the retriever picked."""
@@ -21,6 +22,7 @@ def _make_demo(demo_id: int, key: list[float],
     return DemoState(
         key=np.asarray(key, dtype=np.float32),
         action_seq=actions, demo_id=demo_id,
+        outcome_score=outcome_score,
     )
 
 
@@ -135,3 +137,38 @@ def test_k_larger_than_bank_caps_at_bank_size():
     ])
     top = r.retrieve(np.array([0.0, 0.0]), k=10)
     assert len(top) == 2  # capped at bank size
+
+
+def test_retrieve_rerank_by_outcome_picks_highest_outcome_in_topk():
+    """Top-k by distance, then highest outcome_score wins (DR2)."""
+    r = DemoRetriever()
+    r.build_index([
+        _make_demo(0, [0.0, 0.0], outcome_score=0.05),
+        _make_demo(1, [0.1, 0.0], outcome_score=0.20),   # better outcome
+        _make_demo(2, [0.2, 0.0], outcome_score=0.15),
+        _make_demo(7, [10.0, 0.0], outcome_score=0.99),  # far away — excluded
+    ])
+    chosen = r.retrieve_rerank_by_outcome(np.array([0.0, 0.0]), k=3)
+    # Top-3 by distance are demos 0,1,2; among those, demo 1 has highest outcome
+    assert chosen.demo_id == 1
+
+
+def test_retrieve_rerank_by_outcome_ignores_far_high_outcome_demo():
+    """Reranking must NOT pull in demos outside the top-k distance set."""
+    r = DemoRetriever()
+    r.build_index([
+        _make_demo(0, [0.0, 0.0], outcome_score=0.10),
+        _make_demo(1, [0.05, 0.0], outcome_score=0.15),
+        _make_demo(7, [10.0, 0.0], outcome_score=1.0),  # high but far
+    ])
+    chosen = r.retrieve_rerank_by_outcome(np.array([0.0, 0.0]), k=2)
+    # Only demos 0 and 1 are in top-2; demo 7 excluded despite high outcome
+    assert chosen.demo_id == 1
+
+
+def test_outcome_score_defaults_to_zero():
+    """Demos without explicit outcome_score should default to 0.0,
+    so reranking falls back to top-1 by distance order."""
+    r = DemoRetriever()
+    d = _make_demo(0, [0.0, 0.0])
+    assert d.outcome_score == 0.0

@@ -40,12 +40,17 @@ class DemoState:
 
     demo_id (int): for debugging / tracking which demo was retrieved.
 
-    metadata (dict): task-specific extras (e.g. recorded outcome).
+    outcome_score (float, default 0.0): recorded utility of this demo
+        on its own init (e.g. z_gain). Higher = stronger demo. Used by
+        retrieve_rerank_by_outcome (Phase DR2).
+
+    metadata (dict): task-specific extras.
     """
     key: np.ndarray
     action_seq: np.ndarray
     init_state: np.ndarray | None = None
     demo_id: int = -1
+    outcome_score: float = 0.0
     metadata: dict = field(default_factory=dict)
 
 
@@ -89,6 +94,19 @@ class DemoRetriever:
         d = np.linalg.norm(self._keys - q[None, :], axis=1)
         order = np.argsort(d)[: min(k, len(self._bank))]
         return [self._bank[i] for i in order]
+
+    def retrieve_rerank_by_outcome(
+        self, query_key: np.ndarray, k: int = 5,
+    ) -> DemoState:
+        """Top-k by L2 distance, then return the one with highest outcome_score.
+
+        This is the Phase DR2 reranking proposal: get a candidate set
+        by similarity, then prefer demos that lifted reliably on their
+        own init over weakly-lifting neighbors. Avoids the "one bad
+        nearest neighbor" failure mode of pure top-1 NN.
+        """
+        candidates = self.retrieve(query_key, k=k)
+        return max(candidates, key=lambda d: d.outcome_score)
 
     def propose(self, query_key: np.ndarray, k: int = 1,
                   reduce: str = "top1", H: int | None = None) -> np.ndarray:
