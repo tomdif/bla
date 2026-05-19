@@ -185,6 +185,18 @@ score    : combined_sum = λ·predictor_score + (1−λ)·value_head_score
 
 A/B/C/D are validated for **FSM-prior** regimes (Stack push). E is
 validated for **demo-prior** regimes (Lift, robomimic demos).
+**Phase D3-main (2026-05-19) extends Recipe E's validation to
+PickPlaceCan**, demonstrating cross-task transfer at Δ=+0.564
+improvement / +56.7pp success over `phase17_locked` across 3 seeds
+× 30 episodes. Recipe E has two engineering variants:
+- **E1 (Lift)**: demo replay on random fresh env reset (works when
+  the task's initial-state distribution is narrow enough that some
+  demos succeed on fresh resets — Lift has 2-4 of 50 working).
+- **E2 (PickPlaceCan)**: demo replay with env-state-matched init
+  (`env.sim.set_state_from_flattened(demo.states[0])`) — needed
+  when the init distribution is wider than demo-bank coverage
+  (PickPlaceCan has 0 of 50 succeeding on fresh reset, 5 of 20 on
+  matched init).
 
 ### 4.3 Why Recipe E exists
 
@@ -231,11 +243,20 @@ them back. See `feedback_search_budget_zero_around_expert_demos.md`.
        └──────────────────┘                              └──────────────────┘
 ```
 
-**Locked applicability rule (2026-05-19):** "When the prior is an
-expert demonstration manifold, the correct search budget is zero or
-near-zero structured search. CEM may occasionally match the demo but
-is not reliable enough to be the default without a trust-region /
-seeded-control audit."
+**Locked applicability rule (strengthened by Phase D3-main, 2026-05-19):**
+"When the prior is an expert demonstration manifold, **`demo_no_cem`
+is the default**. Do not add CEM unless there is a calibrated
+trust-region reason to do so."
+
+**Cross-task evidence (out-of-sample, 2026-05-19):**
+
+| Task | Δ(demo_no_cem − phase17_locked) imp | Δ success | Reference |
+|---|---:|---:|---|
+| Lift (Phase 18κ R3) | +0.10 (4-run aggregate) | +10pp | `PHASE_18K_REGIME3_LIFT_DECISION.md` |
+| **PickPlaceCan (Phase D3-main)** | **+0.564** | **+56.7pp** | `PHASE_D3_MAIN_DECISION.md` |
+
+The doctrine *strengthens* on PickPlaceCan vs Lift. Effect size is
+not a Lift-specific artifact.
 
 **Sibling caveat:** same CLI seed is not necessarily the same run in
 robosuite/MuJoCo/demo pipelines unless all RNG sources are audited
@@ -370,6 +391,8 @@ Selected milestones; full per-phase docs in `docs/phases/PHASE_*.md`.
 | 18κ R3 | Cross-task to Lift | Recipe E (demo_no_cem) dominates; A/B/C/D do not extend |
 | 18ν | Scheduled aux loss | pretrain+ft locked as Recipe D |
 | **D1 (2026-05-19)** | **OF-JEPA legibility?** | **PASS under batched encode; runtime ladder defined** |
+| **D3 pilot** | **Does the regime map predict on a NEW task?** | **YES — PickPlaceCan pilot Δ=+0.60 (n=5)** |
+| **D3-main (2026-05-19)** | **Cross-task doctrine at scale?** | **STRONG PASS — PickPlaceCan 3 seeds × n=30, all 4 gates clear, Δ=+0.564 / +56.7pp success, demo_no_cem also LOWEST variance** |
 
 ## 9. Demo Artifacts
 
