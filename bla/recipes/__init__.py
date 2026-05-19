@@ -6,6 +6,7 @@ from bla.recipes.registry import (
     locked_predictor_path,
     locked_adapter_path,
 )
+from bla.recipes.demo_retrieval import DemoState, DemoRetriever
 
 __all__ = [
     "Recipe",
@@ -13,4 +14,6 @@ __all__ = [
     "RECIPE_REGISTRY",
     "locked_predictor_path",
     "locked_adapter_path",
+    "DemoState",
+    "DemoRetriever",
 ]
