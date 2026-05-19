@@ -102,11 +102,44 @@ class DemoRetriever:
 
         This is the Phase DR2 reranking proposal: get a candidate set
         by similarity, then prefer demos that lifted reliably on their
-        own init over weakly-lifting neighbors. Avoids the "one bad
-        nearest neighbor" failure mode of pure top-1 NN.
+        own init over weakly-lifting neighbors. DR2 falsified this as
+        a primary selector — see `retrieve_constrained_rerank` for the
+        corrected version with a state-distance filter.
         """
         candidates = self.retrieve(query_key, k=k)
         return max(candidates, key=lambda d: d.outcome_score)
+
+    def retrieve_constrained_rerank(
+        self, query_key: np.ndarray, k: int = 5,
+        filter_ratio: float = 1.25, eps: float = 1e-6,
+    ) -> DemoState:
+        """Top-k by L2, filter to within `filter_ratio × NN distance`,
+        then return highest outcome_score in the filtered set.
+
+        Phase DR3 design: makes state match the primary constraint
+        (filter step) and outcome a tiebreaker only when distances
+        are close (rerank step within filter). Implements the
+        `state-match-primary-outcome-tiebreaker` doctrine.
+
+        Edge cases:
+          * d_min = 0 (query exactly matches a bank entry) →
+            threshold = eps; only the matched demo passes the filter;
+            degenerates to top-1.
+          * Filter empties for any reason → fallback to top-1.
+        """
+        candidates = self.retrieve(query_key, k=k)
+        if not candidates:
+            raise RuntimeError("retrieve returned no candidates")
+        q = np.asarray(query_key, dtype=np.float32).reshape(-1)
+        dists = np.array([np.linalg.norm(c.key - q) for c in candidates],
+                              dtype=np.float32)
+        d_min = float(dists[0])
+        threshold = d_min * filter_ratio + eps
+        filtered = [c for c, d in zip(candidates, dists)
+                       if d <= threshold]
+        if not filtered:
+            return candidates[0]
+        return max(filtered, key=lambda c: c.outcome_score)
 
     def propose(self, query_key: np.ndarray, k: int = 1,
                   reduce: str = "top1", H: int | None = None) -> np.ndarray:

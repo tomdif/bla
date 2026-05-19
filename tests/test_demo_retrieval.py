@@ -172,3 +172,71 @@ def test_outcome_score_defaults_to_zero():
     r = DemoRetriever()
     d = _make_demo(0, [0.0, 0.0])
     assert d.outcome_score == 0.0
+
+
+# ---------- DR3: constrained rerank ----------
+
+def test_constrained_rerank_degenerates_to_top1_on_exact_match():
+    """When query exactly matches a bank entry (d_min = 0), only that
+    demo passes the 1.25× filter; constrained rerank = top-1."""
+    r = DemoRetriever()
+    r.build_index([
+        _make_demo(0, [0.0, 0.0], outcome_score=0.05),
+        _make_demo(1, [0.1, 0.0], outcome_score=0.99),   # higher outcome but farther
+        _make_demo(2, [0.2, 0.0], outcome_score=0.20),
+    ])
+    chosen = r.retrieve_constrained_rerank(
+        np.array([0.0, 0.0]), k=3, filter_ratio=1.25)
+    assert chosen.demo_id == 0  # exact match wins; demo 1's high outcome can't override
+
+
+def test_constrained_rerank_within_filter_picks_highest_outcome():
+    """When NN distance is positive and multiple candidates fall
+    within 1.25× of it, outcome breaks the tie."""
+    r = DemoRetriever()
+    # Query at [0.90, 0]; bank has 3 demos within tight band around 1.00
+    # plus a far demo with very high outcome that must NOT win.
+    r.build_index([
+        _make_demo(3, [1.00, 0.0], outcome_score=0.10),  # d=0.10 (NN)
+        _make_demo(5, [1.01, 0.0], outcome_score=0.50),  # d=0.11 (within 1.25× band)
+        _make_demo(7, [1.05, 0.0], outcome_score=0.30),  # d=0.15 (just outside 1.25× band)
+        _make_demo(99, [10.0, 0.0], outcome_score=0.99), # d=9.10 (far)
+    ])
+    chosen = r.retrieve_constrained_rerank(
+        np.array([0.90, 0.0]), k=4, filter_ratio=1.25)
+    # NN distance = 0.10 → threshold = 0.125
+    # Filter: demos with d ≤ 0.125 → demos 3 (d=0.10) and 5 (d=0.11)
+    # Among those, demo 5 has higher outcome (0.50 > 0.10) → demo 5 wins
+    assert chosen.demo_id == 5
+    # Demo 99 (very high outcome) must not be picked
+    assert chosen.demo_id != 99
+
+
+def test_constrained_rerank_filter_excludes_demos_outside_band():
+    """A demo just outside the 1.25× threshold must not win even
+    with the highest outcome."""
+    r = DemoRetriever()
+    # NN at d=1.00; second demo at d=1.30 (just over 1.25× threshold)
+    r.build_index([
+        _make_demo(0, [1.00, 0.0], outcome_score=0.10),
+        _make_demo(1, [1.30, 0.0], outcome_score=0.99),  # high outcome but excluded
+    ])
+    chosen = r.retrieve_constrained_rerank(
+        np.array([0.0, 0.0]), k=2, filter_ratio=1.25)
+    # threshold = 1.0 × 1.25 = 1.25; demo 1 at d=1.30 fails the filter
+    # Only demo 0 passes → it wins
+    assert chosen.demo_id == 0
+
+
+def test_constrained_rerank_caps_at_k():
+    """Filter operates over top-k, not the whole bank."""
+    r = DemoRetriever()
+    # 10 demos at distances 0, 0.1, 0.2, ..., 0.9
+    # With NN=0, threshold=eps, only demo at 0 passes regardless of k
+    demos = [_make_demo(i, [0.1 * i, 0.0],
+                            outcome_score=0.05 * (10 - i))
+                 for i in range(10)]
+    r.build_index(demos)
+    chosen = r.retrieve_constrained_rerank(
+        np.array([0.0, 0.0]), k=3, filter_ratio=1.25)
+    assert chosen.demo_id == 0  # exact match → only demo 0 in filter
