@@ -215,11 +215,21 @@ score    : combined_sum = λ·predictor_score + (1−λ)·value_head_score
 | **E** | OF-JEPA v0 | n/a (no value head used) | **expert demo replay** | **no CEM** | expert demo prior; contact-sensitive |
 
 A/B/C/D are validated for **FSM-prior** regimes (Stack push). E is
-validated for **demo-prior** regimes across **three independent
+validated for **demo-prior** regimes across **four independent
 contact-sensitive task families** (Lift / PickPlaceCan /
-NutAssemblySquare) as of Phase D4 close, 2026-05-19. The doctrine
-is no longer hedged — Recipe E is the deployment default for the
-demo-prior regime. Recipe E has two engineering variants:
+NutAssemblySquare / ToolHang) as of Phase Scale-1 close, 2026-05-19.
+The doctrine is no longer hedged — Recipe E is the deployment
+default for the demo-prior regime.
+
+**Recipe E's selection mechanism scales via NN retrieval** (Phase
+DR1, 2026-05-19): replace "replay one fixed demo" with "retrieve the
+closest useful demo from a bank". On PickPlaceCan, top-1 retrieval
+over a 24-demo bank hits 35% success vs 1% for fixed-5-demo
+cycling — a 35× scaling improvement. CEM around the retrieved demo
+still hurts (10% success), confirming search-budget-zero extends to
+retrieved demos.
+
+Recipe E has two engineering variants:
 - **E1 (Lift)**: demo replay on random fresh env reset (works when
   the task's initial-state distribution is narrow enough that some
   demos succeed on fresh resets — Lift has 2-4 of 50 working).
@@ -452,6 +462,7 @@ Selected milestones; full per-phase docs in `docs/phases/PHASE_*.md`.
 | **D4 (2026-05-19)** | **Second external task (precise insertion)?** | **STRONG PASS — NutAssemblySquare 3 seeds × n=30, all 4 gates clear, Δ=+0.400 / +38.6pp success, demo_no_cem σ_imp=0.022 (lowest variance yet)** |
 | **Scale-1 (2026-05-19)** | **Router accuracy on a 7-task suite?** | **STRONG PASS — 6/7 (85.7%) router matches, clears ≥80% threshold. ToolHang 3 seeds × n=30: Δ=+0.533 / +53.3pp. 4th cross-task demo-prior validation.** |
 | **D1b (2026-05-19)** | **Does rolling-window encode work?** | **STRONG PASS — rolling K=5 cubeA decode err 1.5 cm vs batched 4.7 cm (3× BETTER). v1 is a runtime upgrade over v0, not a compromise. v2 stateful encode_step less urgent.** |
+| **DR1 (2026-05-19)** | **Does NN demo retrieval scale Recipe E?** | **STRONG PASS — top-1 retrieval over 24-demo bank: 0.346 / 35% on PickPlaceCan (3 seeds × n=30) vs fixed-5-cycle 0.014 / 1% (a 35× scaling improvement). Matches oracle within seed noise. CEM-around-retrieval still hurts (10% success).** |
 
 ## 9. Demo Artifacts
 
