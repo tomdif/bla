@@ -39,6 +39,10 @@ from bla.forge.fiducials import (
     detections_to_json,
     detections_from_json,
 )
+from bla.forge.rolling_tracker import (
+    ObservationStep,
+    RollingObjectFileTracker,
+)
 
 __all__ = [
     # BF-0.1
@@ -62,4 +66,7 @@ __all__ = [
     "resolve_duplicate_ids",
     "detections_to_json",
     "detections_from_json",
+    # BF-0.3
+    "ObservationStep",
+    "RollingObjectFileTracker",
 ]
