@@ -70,6 +70,14 @@ from bla.forge.demo_bank import (
     build_mock_demo,
 )
 from bla.forge.deploy_loop import build_mock_deployment_loop
+from bla.forge.outcome import (
+    cube_xy_displacement_score,
+    no_safety_events_score,
+    episode_length_fraction_score,
+    combine_scores,
+    compute_outcome,
+    episode_to_demo,
+)
 
 __all__ = [
     # BF-0.1
@@ -121,4 +129,11 @@ __all__ = [
     "build_mock_demo",
     # BF-1.1
     "build_mock_deployment_loop",
+    # BF-1.2
+    "cube_xy_displacement_score",
+    "no_safety_events_score",
+    "episode_length_fraction_score",
+    "combine_scores",
+    "compute_outcome",
+    "episode_to_demo",
 ]
