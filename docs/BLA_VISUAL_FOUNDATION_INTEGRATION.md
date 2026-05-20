@@ -90,12 +90,16 @@ SANA-WM (NVIDIA)
 visual foundation improves Layer 2 without breaking it.
 
 ```
-Compare 4 visual encoders, holding Layers 2/3/4 fixed:
-  A. current OF-JEPA visual encoder (baseline)
-  B. Cosmos feature backbone OR Cosmos-pretrained encoder
-  C. V-JEPA 2 feature backbone (if model weights accessible)
-  D. (optional) SANA-WM-generated data augmentation only
-     (same encoder; the variation is in training data, not features)
+Updated 2026-05-20 after V0 feasibility memo. Compare 4 encoders,
+holding Layers 2/3/4 fixed:
+  A. current Phase-14 OF-JEPA visual encoder (baseline)
+  B. V-JEPA 2 ViT-L/16 fpc64-256          (primary candidate)
+  C. Cosmos-Tokenizer CV4x8x8, encoder only  (secondary)
+  D. V-JEPA 2 ViT-L fpc16 SSv2 finetune    (native 16-frame variant
+                                            for natural K=5 fit)
+
+SANA-WM removed from V1 (V0: wrong fit — camera-only conditioning,
+no robotics demos, CC-BY-NC-SA weight license).
 ```
 
 **Metrics (must all be reportable per encoder):**
