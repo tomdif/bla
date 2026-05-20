@@ -43,6 +43,18 @@ from bla.forge.rolling_tracker import (
     ObservationStep,
     RollingObjectFileTracker,
 )
+from bla.forge.episode import (
+    EpisodeRecord,
+    DemoRecord,
+    EpisodeLogger,
+    save_episode,
+    load_episode,
+    save_demo,
+    load_demo,
+    build_mock_episode_loop,
+    EPISODE_SCHEMA_VERSION,
+    DEMO_SCHEMA_VERSION,
+)
 
 __all__ = [
     # BF-0.1
@@ -69,4 +81,15 @@ __all__ = [
     # BF-0.3
     "ObservationStep",
     "RollingObjectFileTracker",
+    # BF-0.4
+    "EpisodeRecord",
+    "DemoRecord",
+    "EpisodeLogger",
+    "save_episode",
+    "load_episode",
+    "save_demo",
+    "load_demo",
+    "build_mock_episode_loop",
+    "EPISODE_SCHEMA_VERSION",
+    "DEMO_SCHEMA_VERSION",
 ]
