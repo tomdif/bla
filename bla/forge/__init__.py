@@ -55,6 +55,15 @@ from bla.forge.episode import (
     EPISODE_SCHEMA_VERSION,
     DEMO_SCHEMA_VERSION,
 )
+from bla.forge.safety import (
+    WorkspaceBounds,
+    VelocityLimits,
+    SafetyDecision,
+    SafetyMonitor,
+    mock_workspace_bounds,
+    mock_velocity_limits,
+    safety_decision_to_event,
+)
 
 __all__ = [
     # BF-0.1
@@ -92,4 +101,12 @@ __all__ = [
     "build_mock_episode_loop",
     "EPISODE_SCHEMA_VERSION",
     "DEMO_SCHEMA_VERSION",
+    # BF-0.5
+    "WorkspaceBounds",
+    "VelocityLimits",
+    "SafetyDecision",
+    "SafetyMonitor",
+    "mock_workspace_bounds",
+    "mock_velocity_limits",
+    "safety_decision_to_event",
 ]
