@@ -42,6 +42,20 @@ threshold from the Scale-1 precommit.
 > contact-sensitive expert-demo regimes, validated across Lift,
 > PickPlaceCan, NutAssemblySquare, and ToolHang.
 
+**Visual-foundation closure (locked 2026-05-20 after V0/V1-G0/V1a-G0/V1b/V1a-M2):**
+
+> **Foundation visual encoders are useful as augmentation or
+> context providers, but they are not substitutes for an
+> object-file encoder. BLA's canonical System-1 remains OF-JEPA
+> because object identity, assignment, and persistent state must
+> be trained directly, not recovered from generic reconstruction
+> or SSL tokens.**
+
+The admission test for any future Layer-1 encoder swap candidate
+is locked as G0a (positional/window stability) + G0b (content-
+change/object-identity stability) — pass requires BOTH. See
+`docs/BLA_VISUAL_FOUNDATION_INTEGRATION.md` §4.5.
+
 The architecture has been validated on robosuite Stack (push) across
 Phases 14–18 (FSM-prior regime) and **cross-task transferred to three
 contact-sensitive tasks** (demo-prior regime) — Lift (Phase 18κ R3),
