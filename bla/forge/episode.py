@@ -431,21 +431,42 @@ def build_mock_episode_loop(
     gantry_state_dim: int = 9,
     router_decision: Optional[dict] = None,
     retrieved_demo: Optional[dict] = None,
+    include_safety: bool = True,
+    safety_breach_at_step: Optional[int] = None,
 ) -> EpisodeRecord:
     """Run a fully synthetic camera/gantry/object-file loop.
 
     No real hardware, no real OF-JEPA encoder; everything is mock-backed
-    via the BF-0.1/0.2/0.3 mock modules. The point: produce an
-    EpisodeRecord of the EXACT shape the real hardware will produce.
+    via the BF-0.1/0.2/0.3/0.5 mock modules. The point: produce an
+    EpisodeRecord of the EXACT shape the real hardware will produce,
+    AND exercise the production-shape inner-loop pattern (perception →
+    safety check → log) end-to-end.
+
+    Args:
+      include_safety        wrap the loop in a SafetyMonitor — matches
+                            the real control-loop pattern. Default True.
+      safety_breach_at_step if set, inject an out-of-bounds gantry pose
+                            at this timestep so the SafetyMonitor halts
+                            the rollout. Useful for testing safety-event
+                            logging without real hardware. Ignored if
+                            include_safety=False.
 
     Hardware-arrival path: swap the mock_fiducials() call for
     detect_fiducials(real_image, family="aruco_4x4_50"), swap the
-    mock_static backend for "ofjepa", and swap the synthetic gantry
-    action/state for real motion-controller readbacks. The EpisodeRecord
-    contract is unchanged.
+    mock_static backend for "ofjepa", swap the synthetic gantry state
+    for real motion-controller readbacks, and swap SafetyMonitor(mode=
+    "mock") for SafetyMonitor(mode="hw"). The EpisodeRecord contract
+    and the inner-loop control flow are unchanged.
     """
+    # Local imports keep the safety dependency optional (and avoid
+    # circular imports during module init).
+    from bla.forge.calibration import mock_calibration
+    from bla.forge.safety import (
+        SafetyMonitor, mock_velocity_limits, mock_workspace_bounds,
+        safety_decision_to_event,
+    )
+
     if bundle is None:
-        from bla.forge.calibration import mock_calibration
         bundle = mock_calibration()
 
     tracker = RollingObjectFileTracker(
@@ -466,6 +487,14 @@ def build_mock_episode_loop(
         },
     )
 
+    monitor: Optional[SafetyMonitor] = None
+    if include_safety:
+        monitor = SafetyMonitor(
+            mock_workspace_bounds(),
+            mock_velocity_limits(),
+            deadman_timeout_s=60.0,   # generous so synthetic loop never trips it
+        )
+
     # Synthetic frame canvas size
     H, W = bundle.intrinsics.image_size_wh[1], bundle.intrinsics.image_size_wh[0]
     rng = np.random.RandomState(ep_id)
@@ -476,6 +505,7 @@ def build_mock_episode_loop(
     start_xy = np.array([-0.10, -0.05])
     end_xy = np.array([+0.10, +0.05])
 
+    halted = False
     for t in range(n_steps):
         frac = t / max(n_steps - 1, 1)
         cube_xy = start_xy + frac * (end_xy - start_xy)
@@ -487,19 +517,54 @@ def build_mock_episode_loop(
         )
         frame = rng.randint(0, 255, size=(H, W, 3), dtype=np.uint8)
         obs = tracker.step(frame, fids)
-        # Mocked gantry action / state — zeros plus small noise, just to
-        # exercise the shapes
+
+        # Synthetic gantry: end-effector hovers 10cm above the cube.
+        # First 3 dims of gantry_state are the [x,y,z] pose used by
+        # the SafetyMonitor; remaining dims are noise (joint readbacks
+        # etc — placeholder until real driver provides them).
+        ee_xyz = np.array([float(cube_xy[0]), float(cube_xy[1]), 0.10],
+                              dtype=np.float32)
+        # Inject a deliberate breach for testing
+        if safety_breach_at_step is not None and t == safety_breach_at_step:
+            ee_xyz = ee_xyz + np.array([0.30, 0.0, 0.0], dtype=np.float32)
+        gantry_state = np.zeros(gantry_state_dim, dtype=np.float32)
+        gantry_state[:3] = ee_xyz
+        gantry_state[3:] = rng.uniform(-0.5, 0.5,
+                                            size=gantry_state_dim - 3).astype(np.float32)
         action = rng.uniform(-0.05, 0.05, size=action_dim).astype(np.float32)
         action[6] = 1.0   # gripper close (per Phase 18κ R3 convention)
-        gantry_state = rng.uniform(-0.5, 0.5,
-                                            size=gantry_state_dim).astype(np.float32)
+
+        # Safety gate
+        if monitor is not None:
+            monitor.tick()
+            decision = monitor.decide(
+                timestep=t, pose_xyz=ee_xyz.astype(np.float64),
+            )
+            if decision.reason != "ok":
+                logger.log_safety_event(
+                    **safety_decision_to_event(decision))
+            if decision.action == "halt":
+                halted = True
+                # Record this step's observation, then exit the loop
+                logger.append_step(
+                    frame=frame, obs=obs,
+                    gantry_action=action, gantry_state=gantry_state,
+                )
+                break
+
         logger.append_step(
             frame=frame, obs=obs,
             gantry_action=action, gantry_state=gantry_state,
         )
 
-    logger.set_outcome(
-        success=True, improvement=1.0, metric_name="cube_z_gain",
-        notes="Synthetic mocked-loop episode; not real hardware.",
-    )
+    if halted:
+        logger.set_outcome(
+            success=False, improvement=0.0, metric_name="cube_z_gain",
+            notes="Synthetic mocked-loop episode halted by SafetyMonitor.",
+        )
+    else:
+        logger.set_outcome(
+            success=True, improvement=1.0, metric_name="cube_z_gain",
+            notes="Synthetic mocked-loop episode; not real hardware.",
+        )
     return logger.finalize()

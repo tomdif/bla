@@ -355,6 +355,43 @@ def test_mock_loop_with_custom_router_decision():
     assert rec.router_decision == custom
 
 
+def test_mock_loop_default_includes_safety_no_breach():
+    """With safety on but no injected breach, the loop runs to completion
+    with zero safety events (synthetic ee_xyz stays inside bounds)."""
+    rec = build_mock_episode_loop(ep_id=0, n_steps=20, include_safety=True)
+    assert rec.frames.shape[0] == 20
+    assert rec.safety_events == []
+    assert rec.outcome["success"] is True
+
+
+def test_mock_loop_safety_breach_halts():
+    """Injecting an out-of-bounds pose should halt + log a safety event."""
+    rec = build_mock_episode_loop(
+        ep_id=0, n_steps=30, include_safety=True,
+        safety_breach_at_step=5,
+    )
+    # Loop should terminate at step 5 (the breach step is included)
+    assert rec.frames.shape[0] == 6   # steps 0..5
+    assert len(rec.safety_events) == 1
+    ev = rec.safety_events[0]
+    assert ev["timestep"] == 5
+    assert ev["action"] == "halt"
+    assert ev["reason"] == "bounds_hard"
+    assert rec.outcome["success"] is False
+    assert "halt" in rec.outcome["notes"].lower()
+
+
+def test_mock_loop_include_safety_false_skips_monitor():
+    """include_safety=False: monitor is out of the loop entirely."""
+    rec = build_mock_episode_loop(
+        ep_id=0, n_steps=10, include_safety=False,
+        safety_breach_at_step=5,
+    )
+    assert rec.frames.shape[0] == 10   # full loop runs
+    assert rec.safety_events == []
+    assert rec.outcome["success"] is True
+
+
 # ---------- demo bank ↔ DemoRetriever bridge ----------
 def test_demo_record_drops_into_demo_retriever(tmp_path: Path):
     """The whole point of DemoRecord: produce demos that the existing
