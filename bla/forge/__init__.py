@@ -29,8 +29,19 @@ from bla.forge.calibration import (
     estimate_extrinsics_from_corners,
     mock_calibration,
 )
+from bla.forge.fiducials import (
+    FiducialDetection,
+    FiducialWorldPose,
+    detect_fiducials,
+    mock_fiducials,
+    fiducial_to_world,
+    resolve_duplicate_ids,
+    detections_to_json,
+    detections_from_json,
+)
 
 __all__ = [
+    # BF-0.1
     "CameraIntrinsics",
     "CameraExtrinsics",
     "CalibrationBundle",
@@ -42,4 +53,13 @@ __all__ = [
     "estimate_intrinsics_from_checkerboard",
     "estimate_extrinsics_from_corners",
     "mock_calibration",
+    # BF-0.2
+    "FiducialDetection",
+    "FiducialWorldPose",
+    "detect_fiducials",
+    "mock_fiducials",
+    "fiducial_to_world",
+    "resolve_duplicate_ids",
+    "detections_to_json",
+    "detections_from_json",
 ]
