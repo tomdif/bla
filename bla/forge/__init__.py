@@ -64,6 +64,11 @@ from bla.forge.safety import (
     mock_velocity_limits,
     safety_decision_to_event,
 )
+from bla.forge.demo_bank import (
+    DemoCollector,
+    DemoBank,
+    build_mock_demo,
+)
 
 __all__ = [
     # BF-0.1
@@ -109,4 +114,8 @@ __all__ = [
     "mock_workspace_bounds",
     "mock_velocity_limits",
     "safety_decision_to_event",
+    # BF-1.0
+    "DemoCollector",
+    "DemoBank",
+    "build_mock_demo",
 ]
