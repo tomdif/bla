@@ -69,6 +69,7 @@ from bla.forge.demo_bank import (
     DemoBank,
     build_mock_demo,
 )
+from bla.forge.deploy_loop import build_mock_deployment_loop
 
 __all__ = [
     # BF-0.1
@@ -118,4 +119,6 @@ __all__ = [
     "DemoCollector",
     "DemoBank",
     "build_mock_demo",
+    # BF-1.1
+    "build_mock_deployment_loop",
 ]
