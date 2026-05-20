@@ -171,6 +171,35 @@ Q3. Does the recipe_router choose the same recipe?
 The intent is to **front-load BLA-Forge's sim-to-real risks** in
 the cheaper synthetic regime before hardware exists.
 
+## §4.5 Locked admission tests (after V0/V1-G0/V1a-G0/V1a-M2)
+
+Any future foundation encoder considered for BLA's Layer 1 must
+pass BOTH of the following before any larger compute commitment:
+
+```
+G0a — positional / window stability:
+  Encode the same content at shifted temporal windows; cosine
+  per token ≥ 0.95 on overlapping positions.
+  Catches: RoPE-style position-bound representations.
+  Failed by: V-JEPA 2 ViT-L (Phase V1-G0).
+
+G0b — content-change / object-identity stability:
+  Encode a rollout with REAL object motion (≥ 0.5 m displacement
+  over the rollout). Find high-temporal-variance latent cells.
+  Their consecutive-frame cosine mean should be ≥ 0.70 (smooth
+  evolution as objects move through the cell), with no severe
+  inversions (cosine min ≥ 0).
+  Catches: reconstruction-bottleneck features that encode current
+  local pixel content rather than persistent object identity.
+  Failed by: Cosmos-Tokenizer CV4x8x8 (Phase V1a-M2).
+
+PASS REQUIRES BOTH. G0a alone is insufficient — it catches one
+mode of instability but misses the deeper object-centric question.
+```
+
+Locked rule, 2026-05-20: **No Layer-1 encoder swap proceeds to
+the full M1-M5 pipeline without first passing G0a AND G0b.**
+
 ## §5 What NOT to do (locked anti-patterns)
 
 ```
@@ -203,7 +232,56 @@ the cheaper synthetic regime before hardware exists.
    v1 rolling-window K=5 is the deployment runtime. Layer 1
    swap doesn't change that. v2 stateful encode_step remains
    deferred.
+
+7. (Locked 2026-05-20 after V1a-M2)
+   Don't try to fix a non-object-centric encoder by stacking
+   SlotAttention on top.
+   Object-centricity must be IN the encoder's training objective.
+   If the foundation was trained for reconstruction or generic
+   SSL, its per-cell or per-token features encode current local
+   appearance, not persistent object identity. A downstream slot
+   layer cannot retrofit identity onto chaotic per-cell features
+   (V1a-M2: Cosmos active-cell cosines flip from 0.99 to -0.76
+   when one object enters and another exits the same cell).
 ```
+
+## §5.5 Locked final role map (2026-05-20)
+
+After 5 negative findings on 3 candidates (V-JEPA 2, Cosmos, SANA-WM),
+the visual-foundation track has produced a sharp role assignment:
+
+```
+V-JEPA 2
+  per-token encoder swap: ❌ failed (V1-G0)
+  retrieval key in sim:   ❌ failed (V1b)
+  remaining role:         clip-summary real-world / context only
+
+Cosmos-Tokenizer
+  G0a positional stability:  ✅ passed
+  G0b content stability:     ❌ failed (V1a-M2)
+  per-token encoder swap:    ❌ failed
+  remaining role:            data augmentation / perturbation gen
+
+SANA-WM
+  not viable per V0 (camera-only conditioning, CC-BY-NC-SA)
+  remaining role:            none
+
+OF-JEPA (Phases 7–9)
+  CANONICAL. Its training objective is object-centric and
+  identity-aligned. Foundation models do not replace it.
+```
+
+## §5.6 The biggest architectural conclusion (locked)
+
+> **Object-centricity has to be trained into the encoder.**
+> **It is not recovered by placing SlotAttention on top of**
+> **reconstruction or generic SSL features.**
+
+This protects the BLA direction from "just use a bigger foundation
+model." Bigger features do not automatically provide the right
+state. Identity-as-address (Phase 8C's switch_rate 0.689 → 0.002)
+is a property of the **training objective**, not the **architecture
+size**.
 
 ## §6 The eventual hybrid (where this leads)
 
