@@ -28,7 +28,9 @@ from bla.forge.safety import (
     mock_workspace_bounds,
     safety_decision_to_event,
 )
-from bla.forge.sam_perception import SAMPerception, SAMSeed
+from bla.forge.sam_perception import (
+    SAMPerception, SAMSeed, FiducialFallbackFn,
+)
 from bla.recipes import DemoRetriever
 
 
@@ -52,6 +54,8 @@ def build_sam_deployment_loop(
     sam_backend: str = "sam2.1",
     sam_model: str = "facebook/sam2.1-hiera-tiny",
     world_plane_z: float = 0.0,
+    fiducial_fallback_fn: Optional[FiducialFallbackFn] = None,
+    silence_threshold: int = 3,
 ) -> EpisodeRecord:
     """Run the deployment cycle with SAM 2.1 perception and return an
     EpisodeRecord.
@@ -68,6 +72,14 @@ def build_sam_deployment_loop(
       world_plane_z   z-coordinate of the world plane the perception
                       projects pixels to. For BF-0.7 PickPlaceCan, set to
                       0.86 (can rest height); for a real gantry table, 0.
+      fiducial_fallback_fn  optional BF-0.11 watchdog callback:
+                      (frame_idx, obj_id) → (u, v) or None. When SAM's
+                      mask area drops to 0 for >= silence_threshold
+                      consecutive frames, SAMPerception will call this
+                      to obtain a fresh seed pixel and re-prompt itself.
+                      In real deployment this wraps BF-0.2 detect_fiducials.
+      silence_threshold  consecutive zero-mask frames before watchdog
+                      triggers a re-seed.
 
     Other args mirror build_mock_deployment_loop.
     """
@@ -81,10 +93,12 @@ def build_sam_deployment_loop(
     retriever = DemoRetriever()
     retriever.build_index(states)
 
-    # --- 2. Stand up SAM perception ---
+    # --- 2. Stand up SAM perception (with optional BF-0.11 watchdog) ---
     sam = SAMPerception(
         video_path=sam_video_path, seeds=seeds,
         backend=sam_backend, sam_model=sam_model,
+        fiducial_fallback_fn=fiducial_fallback_fn,
+        silence_threshold=silence_threshold,
     )
 
     # --- 3. Build query from frame 0 detections ---
