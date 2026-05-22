@@ -64,6 +64,25 @@ def test_sam_perception_rejects_unknown_backend():
                        backend="bogus")
 
 
+def test_sam_perception_accepts_watchdog_args():
+    """BF-0.11: SAMPerception takes fiducial_fallback_fn + silence_threshold
+    parameters; mock backend doesn't exercise them but the API surface
+    must be present for the sam2.1 backend to use."""
+    def fid_fn(frame_idx, obj_id):
+        return (100.0, 200.0)
+    sam = SAMPerception(
+        video_path="",
+        seeds=[SAMSeed(obj_id=1, pixel_uv=(50.0, 50.0))],
+        backend="mock_static",
+        fiducial_fallback_fn=fid_fn,
+        silence_threshold=5,
+    )
+    assert sam.fiducial_fallback_fn is fid_fn
+    assert sam.silence_threshold == 5
+    # Reseed events list initializes empty
+    assert sam.reseed_events == []
+
+
 # ---------- build_sam_deployment_loop end-to-end (mock backend) ----------
 
 def _build_bank_with_one_demo(tmp_path: Path) -> DemoBank:

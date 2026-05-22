@@ -70,7 +70,7 @@ from bla.forge.demo_bank import (
     build_mock_demo,
 )
 from bla.forge.deploy_loop import build_mock_deployment_loop
-from bla.forge.sam_perception import SAMPerception, SAMSeed
+from bla.forge.sam_perception import SAMPerception, SAMSeed, FiducialFallbackFn
 from bla.forge.deploy_loop_sam import build_sam_deployment_loop
 from bla.forge.outcome import (
     cube_xy_displacement_score,
@@ -131,9 +131,10 @@ __all__ = [
     "build_mock_demo",
     # BF-1.1
     "build_mock_deployment_loop",
-    # BF-1.5
+    # BF-1.5 / BF-0.11
     "SAMPerception",
     "SAMSeed",
+    "FiducialFallbackFn",
     "build_sam_deployment_loop",
     # BF-1.2
     "cube_xy_displacement_score",

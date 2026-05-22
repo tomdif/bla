@@ -171,6 +171,36 @@ ingredients.
 ## §5 Software interface (binds to simulator artifacts)
 
 ```
+5.0  Perception layer (BF-0.7 / BF-0.8 / BF-0.9 / BF-0.10 / BF-0.11 locked):
+
+     Canonical pipeline:
+       BF-0.2 fiducial detection (AprilTag / Charuco on table)
+         → initial SAM 2.1 click seed at fiducial-projected pixel
+         → SAM 2.1 Hiera-Tiny video predictor (27 FPS on H100,
+           ~2 cm 3D pose accuracy, identity-aware mask propagation)
+         → mask centroid + plane projection (or RGB-D unprojection)
+         → if mask_area == 0 for >= silence_threshold consecutive
+           frames AND fiducial visible at current pose:
+              re-seed SAM via add_new_points_or_box(clear_old_points=True)
+              at fiducial-projected pixel for current frame
+         → FiducialDetection-shaped output feeds §5.1 OF-JEPA wrapper
+         → reset SAM state at episode boundary (memory grows
+           ~0.75 MB/frame in current sam2 release; cap by re-init
+           between picks, NOT one session across all episodes)
+
+     Implementation: bla.forge.SAMPerception
+       backends: "mock_static" (CPU dev, deterministic) | "sam2.1"
+       fiducial_fallback_fn: Callable[[int, int], Optional[(u, v)]]
+         enables the watchdog pattern; defaults to None (vanilla
+         tracking, no re-seed).
+
+     LOCKED CLAUSE (2026-05-22, post BF-0.11):
+       Fiducials are MANDATORY for initial identity seeding and
+       recovery until learned identity re-acquisition is validated.
+       SAM 2.1 alone cannot reassociate when the target moves
+       significantly during occlusion (BF-0.10 failure mode); the
+       fiducial channel provides the rescue anchor (BF-0.11 fix).
+
 5.1  OF-JEPA runtime (D1b locked):
        Mode: rolling-window K=5.
        Input: 128x128 RGB crops from the overhead camera, scaled

@@ -26,11 +26,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 
 from bla.forge.fiducials import FiducialDetection
+
+
+# Type alias: given (frame_idx, obj_id) return a (u, v) pixel for re-seeding,
+# or None if no fiducial is currently available for that object.
+FiducialFallbackFn = Callable[[int, int], Optional[tuple[float, float]]]
 
 
 @dataclass
@@ -72,6 +77,8 @@ class SAMPerception:
         sam_model: str = "facebook/sam2.1-hiera-tiny",
         family: str = "sam2_track",
         device: str = "cuda",
+        fiducial_fallback_fn: Optional[FiducialFallbackFn] = None,
+        silence_threshold: int = 3,
     ):
         if not seeds:
             raise ValueError("SAMPerception requires at least one seed")
@@ -85,11 +92,15 @@ class SAMPerception:
         self.sam_model = sam_model
         self.family = family
         self.device = device
+        self.fiducial_fallback_fn = fiducial_fallback_fn
+        self.silence_threshold = int(silence_threshold)
 
         self._mock_box_half = 15.0  # px — half-side of synthetic box
 
         # Pre-computed: {frame_idx: {obj_id: mask uint8 H x W}}
         self._masks: dict[int, dict[int, np.ndarray]] = {}
+        # Re-seed events (when watchdog fires): {obj_id: list[frame_idx]}
+        self.reseed_events: list[dict] = []
         # For mock backend: we don't have a real video; emit seeds as-is
         # for all frame_idx requested. Confidence is always 1.0 there.
         self._mock_mode = backend == "mock_static"
@@ -98,7 +109,16 @@ class SAMPerception:
             self._build_sam_session()
 
     def _build_sam_session(self):
-        """Load SAM 2.1, init the video session, seed clicks, batch-propagate."""
+        """Load SAM 2.1, init the video session, seed clicks, batch-propagate.
+
+        If `fiducial_fallback_fn` is set, propagation runs with the
+        fiducial-as-watchdog pattern (BF-0.11):
+          - count consecutive zero-mask frames per object
+          - when count crosses `silence_threshold`, query the fallback fn
+            for a fresh (u, v) at the next frame; if returned, re-seed
+            that object via add_new_points_or_box at that frame and
+            resume propagation from there.
+        """
         import torch
         from sam2.sam2_video_predictor import SAM2VideoPredictor
         if not torch.cuda.is_available() and self.device == "cuda":
@@ -115,15 +135,75 @@ class SAMPerception:
                                   dtype=np.float32),
                 labels=np.array([1], dtype=np.int32),
             )
-        with torch.inference_mode():
-            for frame_idx, obj_ids, mask_logits in predictor.propagate_in_video(state):
-                frame_masks = {}
-                for i, oid in enumerate(obj_ids):
-                    m = mask_logits[i]
-                    if m.ndim == 3: m = m[0]
-                    m_np = (m.float() > 0).cpu().numpy().astype(np.uint8)
-                    frame_masks[int(oid)] = m_np
-                self._masks[int(frame_idx)] = frame_masks
+        n_frames_total = state["num_frames"] if isinstance(state, dict) \
+                              and "num_frames" in state \
+                          else getattr(state, "num_frames",
+                                       len(getattr(state, "processed_frames", {})))
+
+        if self.fiducial_fallback_fn is None:
+            # Vanilla batch propagation — pre-BF-0.11 behavior
+            with torch.inference_mode():
+                for frame_idx, obj_ids, mask_logits in predictor.propagate_in_video(state):
+                    frame_masks = {}
+                    for i, oid in enumerate(obj_ids):
+                        m = mask_logits[i]
+                        if m.ndim == 3: m = m[0]
+                        m_np = (m.float() > 0).cpu().numpy().astype(np.uint8)
+                        frame_masks[int(oid)] = m_np
+                    self._masks[int(frame_idx)] = frame_masks
+            return
+
+        # Watchdog propagation (BF-0.11)
+        silence: dict[int, int] = {seed.obj_id: 0 for seed in self.seeds}
+        start_frame = 0
+        while start_frame < n_frames_total:
+            broke_for_reseed = False
+            with torch.inference_mode():
+                for frame_idx, obj_ids, mask_logits in predictor.propagate_in_video(
+                        state, start_frame_idx=start_frame):
+                    frame_masks: dict[int, np.ndarray] = {}
+                    reseed_this_step: Optional[tuple[int, tuple[float, float]]] = None
+                    for i, oid in enumerate(obj_ids):
+                        oid = int(oid)
+                        m = mask_logits[i]
+                        if m.ndim == 3: m = m[0]
+                        m_np = (m.float() > 0).cpu().numpy().astype(np.uint8)
+                        frame_masks[oid] = m_np
+                        if int(m_np.sum()) > 0:
+                            silence[oid] = 0
+                        else:
+                            silence[oid] = silence.get(oid, 0) + 1
+                            if (silence[oid] >= self.silence_threshold
+                                    and frame_idx + 1 < n_frames_total
+                                    and reseed_this_step is None):
+                                fid = self.fiducial_fallback_fn(
+                                    int(frame_idx + 1), oid)
+                                if fid is not None:
+                                    reseed_this_step = (oid, fid)
+                    self._masks[int(frame_idx)] = frame_masks
+                    if reseed_this_step is not None:
+                        oid, (u_r, v_r) = reseed_this_step
+                        reseed_at = int(frame_idx + 1)
+                        predictor.add_new_points_or_box(
+                            inference_state=state,
+                            frame_idx=reseed_at, obj_id=oid,
+                            points=np.array([[u_r, v_r]], dtype=np.float32),
+                            labels=np.array([1], dtype=np.int32),
+                            clear_old_points=True,
+                        )
+                        self.reseed_events.append({
+                            "frame_idx": reseed_at, "obj_id": oid,
+                            "fiducial_pixel": [float(u_r), float(v_r)],
+                            "silence_before_reseed": silence[oid],
+                        })
+                        silence[oid] = 0
+                        start_frame = reseed_at
+                        broke_for_reseed = True
+                        break
+                else:
+                    start_frame = n_frames_total
+            if not broke_for_reseed:
+                start_frame = n_frames_total
 
     def detect(self, frame_idx: int) -> list[FiducialDetection]:
         """Emit per-step detections (drop-in shape for mock_fiducials)."""
