@@ -110,6 +110,7 @@ class RollingObjectFileTracker:
         slot_dim: int = 128,
         backend: str = "mock_static",
         missing_policy: str = "nan",
+        world_plane_z: float = 0.0,
     ):
         if K < 1:
             raise ValueError(f"K must be ≥ 1, got {K}")
@@ -128,6 +129,7 @@ class RollingObjectFileTracker:
         self.slot_dim = slot_dim
         self.backend = backend
         self.missing_policy = missing_policy
+        self.world_plane_z = float(world_plane_z)
 
         self._frame_buf: deque = deque(maxlen=K)
         self._fid_buf: deque = deque(maxlen=K)
@@ -228,7 +230,7 @@ class RollingObjectFileTracker:
             if f.id not in self._id_to_slot:
                 continue  # dropped (no free slot at binding time)
             s = self._id_to_slot[f.id]
-            pose = fiducial_to_world(f, self.bundle)
+            pose = fiducial_to_world(f, self.bundle, world_plane_z=self.world_plane_z)
             decoded[s] = pose.world_xy
             slot_to_id[s] = f.id
             confidence[s] = f.confidence
