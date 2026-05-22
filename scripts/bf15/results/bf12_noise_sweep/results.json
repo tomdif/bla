@@ -1,0 +1,110 @@
+{
+  "results": [
+    {
+      "sigma": 0,
+      "elapsed_s": 9.310749769210815,
+      "n_frames": 100,
+      "n_valid": 97,
+      "mean_err_cm": 0.400969563555074,
+      "median_err_cm": 0.24132588884559592,
+      "max_err_cm": 2.6246720445453797,
+      "n_reseed_events": 1,
+      "reseed_events": [
+        {
+          "frame_idx": 63,
+          "obj_id": 1,
+          "fiducial_pixel": [
+            254.72009397424566,
+            253.29959848823128
+          ],
+          "silence_before_reseed": 3
+        }
+      ]
+    },
+    {
+      "sigma": 5,
+      "elapsed_s": 7.198247909545898,
+      "n_frames": 100,
+      "n_valid": 97,
+      "mean_err_cm": 0.4012959137341889,
+      "median_err_cm": 0.24593888673419773,
+      "max_err_cm": 2.5639911698519118,
+      "n_reseed_events": 1,
+      "reseed_events": [
+        {
+          "frame_idx": 63,
+          "obj_id": 1,
+          "fiducial_pixel": [
+            254.72009397424566,
+            253.29959848823128
+          ],
+          "silence_before_reseed": 3
+        }
+      ]
+    },
+    {
+      "sigma": 10,
+      "elapsed_s": 6.827928066253662,
+      "n_frames": 100,
+      "n_valid": 97,
+      "mean_err_cm": 0.38264814030248073,
+      "median_err_cm": 0.23906565998645696,
+      "max_err_cm": 2.646773425922236,
+      "n_reseed_events": 1,
+      "reseed_events": [
+        {
+          "frame_idx": 63,
+          "obj_id": 1,
+          "fiducial_pixel": [
+            254.72009397424566,
+            253.29959848823128
+          ],
+          "silence_before_reseed": 3
+        }
+      ]
+    },
+    {
+      "sigma": 20,
+      "elapsed_s": 6.828746318817139,
+      "n_frames": 100,
+      "n_valid": 97,
+      "mean_err_cm": 0.4383852693370322,
+      "median_err_cm": 0.2802862768894866,
+      "max_err_cm": 2.6391052519342586,
+      "n_reseed_events": 1,
+      "reseed_events": [
+        {
+          "frame_idx": 63,
+          "obj_id": 1,
+          "fiducial_pixel": [
+            254.72009397424566,
+            253.29959848823128
+          ],
+          "silence_before_reseed": 3
+        }
+      ]
+    },
+    {
+      "sigma": 40,
+      "elapsed_s": 8.05509877204895,
+      "n_frames": 100,
+      "n_valid": 97,
+      "mean_err_cm": 0.4805030376299572,
+      "median_err_cm": 0.32654742944345505,
+      "max_err_cm": 2.336398280056381,
+      "n_reseed_events": 1,
+      "reseed_events": [
+        {
+          "frame_idx": 62,
+          "obj_id": 1,
+          "fiducial_pixel": [
+            252.6482271967898,
+            252.31361108529345
+          ],
+          "silence_before_reseed": 3
+        }
+      ]
+    }
+  ],
+  "gate_passed": true
+}

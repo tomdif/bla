@@ -1,0 +1,72 @@
+{
+  "results": [
+    {
+      "model_id": "facebook/sam2.1-hiera-tiny",
+      "init_state_s": 4.079005241394043,
+      "seed_pixel": [
+        76.74120411040772,
+        251.039406099215
+      ],
+      "steady_mean_ms": 37.180994873616235,
+      "steady_p95_ms": 37.984466552734375,
+      "steady_max_ms": 38.172245025634766,
+      "sustained_fps_mean": 26.895461065502676,
+      "mean_err_cm": 2.072281133076224,
+      "median_err_cm": 2.0219678253702584,
+      "max_err_cm": 2.329253465846298,
+      "n_valid": 135,
+      "n_frames": 135
+    },
+    {
+      "model_id": "facebook/sam2.1-hiera-small",
+      "init_state_s": 3.321624517440796,
+      "seed_pixel": [
+        76.74120411040772,
+        251.039406099215
+      ],
+      "steady_mean_ms": 39.925836805087414,
+      "steady_p95_ms": 40.32520055770874,
+      "steady_max_ms": 53.97820472717285,
+      "sustained_fps_mean": 25.0464380967609,
+      "mean_err_cm": 2.0737093324428577,
+      "median_err_cm": 2.025448220721047,
+      "max_err_cm": 2.335862090350621,
+      "n_valid": 135,
+      "n_frames": 135
+    },
+    {
+      "model_id": "facebook/sam2.1-hiera-base-plus",
+      "init_state_s": 4.4664647579193115,
+      "seed_pixel": [
+        76.74120411040772,
+        251.039406099215
+      ],
+      "steady_mean_ms": 51.72070460533028,
+      "steady_p95_ms": 51.909780502319336,
+      "steady_max_ms": 134.18936729431152,
+      "sustained_fps_mean": 19.33461671937356,
+      "mean_err_cm": 2.098636093983247,
+      "median_err_cm": 2.0540848259258095,
+      "max_err_cm": 2.347327503104123,
+      "n_valid": 135,
+      "n_frames": 135
+    },
+    {
+      "model_id": "facebook/sam2.1-hiera-large",
+      "init_state_s": 4.278860092163086,
+      "seed_pixel": [
+        76.74120411040772,
+        251.039406099215
+      ],
+      "steady_mean_ms": 86.91434362041416,
+      "steady_p95_ms": 87.52912282943726,
+      "steady_max_ms": 87.81814575195312,
+      "sustained_fps_mean": 11.505580763140266,
+      "mean_err_cm": 2.1041989136579695,
+      "median_err_cm": 2.0554983544660765,
+      "max_err_cm": 2.326104026311278,
+      "n_valid": 135,
+      "n_frames": 135
+    }
+  ]
+}
