@@ -25,7 +25,22 @@ from .value_head import (
     train_value_head_supervised,
     combine_scores,
 )
+from .causal_relations import (
+    CausalRelationConfig,
+    CausalRelationHead,
+    EdgeAnnotations,
+    causal_edge_loss,
+)
 from .slot import SlotAttention, SlotAttentionConfig
+from .slot_existence import (
+    SceneContentHead,
+    SlotExistenceHead,
+    binding_mass,
+    scene_content_signal,
+    scene_content_surprise,
+    slot_existence_loss,
+    visibility_disagreement_surprise,
+)
 from .slot_predictor import (
     SlotDeltaPredictor,
     SlotPredictorConfig,
@@ -52,8 +67,11 @@ from .vit import PatchViTEncoder
 __all__ = [
     "ActionConditionedPredictor",
     "BLAJEPAModel",
+    "CausalRelationConfig",
+    "CausalRelationHead",
     "CEMConfig",
     "CIFAR10Loader",
+    "EdgeAnnotations",
     "ImageBatchSpec",
     "JEPAConfig",
     "MovingPatchSpec",
@@ -67,9 +85,11 @@ __all__ = [
     "PatchViTEncoder",
     "PlanProposalPolicy",
     "GoalProgressValueHead",
+    "SceneContentHead",
     "SlotAttention",
     "SlotAttentionConfig",
     "SlotDeltaPredictor",
+    "SlotExistenceHead",
     "SlotPredictorConfig",
     "STMask",
     "SpatiotemporalConfig",
@@ -79,6 +99,10 @@ __all__ = [
     "SyntheticImageLoader",
     "TemporalConfig",
     "TemporalPredictor",
+    "binding_mass",
+    "causal_edge_loss",
+    "scene_content_signal",
+    "scene_content_surprise",
     "cem_plan",
     "collapse_regularizer",
     "copy_baseline",
@@ -94,7 +118,9 @@ __all__ = [
     "sigreg_epps_pulley",
     "sigreg_lewm",
     "slot_delta_loss",
+    "slot_existence_loss",
     "train_plan_policy_supervised",
+    "visibility_disagreement_surprise",
     "train_value_head_supervised",
     "combine_scores",
 ]

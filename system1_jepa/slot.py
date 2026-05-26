@@ -74,12 +74,19 @@ class SlotAttention(nn.Module):
         return mu + sigma * noise
 
     def forward(self, inputs: torch.Tensor,
-                init_slots: torch.Tensor | None = None) -> torch.Tensor:
+                init_slots: torch.Tensor | None = None,
+                return_attention: bool = False):
         """Bind `inputs` [B, N, input_dim] into `n_slots` [B, S, slot_dim].
 
         `init_slots` lets the caller seed the iteration from a previous
         timestep's slot state instead of fresh samples — that's how the
         slot system carries memory across frames.
+
+        If `return_attention`, also returns the final-iteration `attn`
+        tensor of shape [B, N, S] — the per-input slot competition
+        distribution. `attn.sum(dim=1)` gives per-slot binding mass and
+        is the source of truth for whether a slot has anything to bind
+        to in the current observation.
         """
         b, _, _ = inputs.shape
         d = self.cfg.slot_dim
@@ -93,6 +100,7 @@ class SlotAttention(nn.Module):
             slots = init_slots
 
         scale = d ** -0.5
+        attn = None
         for _ in range(self.cfg.n_iters):
             slots_prev = slots
             q = self.proj_q(self.norm_slots(slots))
@@ -111,4 +119,6 @@ class SlotAttention(nn.Module):
                 slots_prev.reshape(b * self.cfg.n_slots, d),
             ).reshape(b, self.cfg.n_slots, d)
             slots = slots + self.mlp(self.norm_pre_mlp(slots))
+        if return_attention:
+            return slots, attn
         return slots
