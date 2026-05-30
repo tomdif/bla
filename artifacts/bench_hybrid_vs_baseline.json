@@ -1,0 +1,106 @@
+{
+  "model": "claude-haiku-4-5",
+  "n_questions": 8,
+  "summary": {
+    "baseline_mean_score": 0.875,
+    "hybrid_mean_score": 0.6875,
+    "delta": -0.1875,
+    "baseline_false_hits_total": 2,
+    "hybrid_false_hits_total": 5,
+    "baseline_wins": 3,
+    "hybrid_wins": 0,
+    "ties": 5,
+    "baseline_mean_latency_s": 2.527687907218933,
+    "hybrid_mean_latency_s": 14.004174500703812
+  },
+  "rows": [
+    {
+      "id": "Q1_18l_g1_result",
+      "base_score": 0.5,
+      "hyb_score": 0.5,
+      "base_false_hits": 1,
+      "hyb_false_hits": 1,
+      "base_t": 3.608487844467163,
+      "hyb_t": 13.460168838500977,
+      "base_out": "Phase 18l G1 failed single-seed (gate_18l_g1_strong). The observed Spearman correlation was 0.478, falling short of the 0.50 threshold required to pass.",
+      "hyb_out": "**Phase 18l G1 failed.** Observed Spearman: **0.478** (threshold 0.50).\n\nPhase 18\u03bc (6-seed variant) passed all gates by contrast. The gap suggests seed variance or initialization sensitivity, but confidence is moderate (0.55) pending diagnostic data.\n\n**Recommendation:** Investigate the 18l vs. 18\u03bc divergence to isolate whether the failure was deterministic (architecture/hyperparameters) or stochastic (seed-dependent). Phase 19 should lock the 18\u03bc recipe as baseline while this analysis runs."
+    },
+    {
+      "id": "Q2_18mu_verdict",
+      "base_score": 1.0,
+      "hyb_score": 0.5,
+      "base_false_hits": 0,
+      "hyb_false_hits": 1,
+      "base_t": 5.3098719120025635,
+      "hyb_t": 11.562412023544312,
+      "base_out": "Phase 18\u03bc (phase_18mu) received a verdict of **ACCEPTABLE SWAP** with confidence 1.0. This outcome was supported by all three gates: 18\u03bc G1 (supervised \u2265 0.95 \u00d7 geo), 18\u03bc G3 (acceptable performance relative to locked baseline), and 18\u03bc G4 (adapter mean Spearman \u2265 0.45 with observed 0.501).",
+      "hyb_out": "**Phase 18\u03bc multi-seed verdict: ACCEPTABLE SWAP** (confidence 1.0).\n\nAll three gates passed with the multi-seed (6-seed) configuration:\n- **G1, G3, G4** \u2014 all green\n\nThis represents a clear generalization improvement over phase_18l (single-seed), which failed G1 threshold. The geometry adapter swap is approved for integration."
+    },
+    {
+      "id": "Q3_gate_18mu_g4",
+      "base_score": 1.0,
+      "hyb_score": 0.5,
+      "base_false_hits": 0,
+      "hyb_false_hits": 1,
+      "base_t": 1.2774417400360107,
+      "hyb_t": 18.983217000961304,
+      "base_out": "Yes, gate_18mu_g4 passed. The observed adapter mean Spearman was 0.501, exceeding the threshold of 0.45.",
+      "hyb_out": "**Yes, gate_18mu_g4 passed.** Observed Spearman: **0.501** (threshold 0.45). Phase 18\u03bc (6-seed geometry adapter) met acceptance criteria across all three primary gates.\n\nHowever, there's a stark contrast worth investigating: Phase 18l (single-seed variant) failed its primary gate (G1: 0.478 vs 0.50 threshold), while 18\u03bc passed comfortably. **Recommended next action: analyze whether this gap is systematic (architecture sensitivity) or stochastic (seed/initialization variance).** This directly determines whether to pursue single-seed trials going forward.\n\nConfidence in the recommendation: **0.72**, though we're flagged as missing root-cause analysis on the 18l failure."
+    },
+    {
+      "id": "Q4_locked_recipe",
+      "base_score": 1.0,
+      "hyb_score": 1.0,
+      "base_false_hits": 0,
+      "hyb_false_hits": 0,
+      "base_t": 1.5008940696716309,
+      "hyb_t": 12.112426996231079,
+      "base_out": "The locked recipe is **E: demo_no_cem** (search budget 0 around demos), defined in `decision_locked_recipe`. It was validated on **4 tasks**.",
+      "hyb_out": "The locked recipe is **decision_locked_recipe** (\"demo_no_cem\", search budget 0 around demos), validated on **4 tasks** with confidence 0.95.\n\nHowever, the record has gaps: we lack details on which tasks, their validation criteria, and why confidence stops at 0.95 despite locked status. The recipe also lacks explicit gate or validation references supporting the lock decision.\n\n**Next step:** Query decision_locked_recipe for the detailed task list and validation evidence (confidence 0.72)."
+    },
+    {
+      "id": "Q5_hallucination_resistance",
+      "base_score": 1.0,
+      "hyb_score": 0.5,
+      "base_false_hits": 0,
+      "hyb_false_hits": 1,
+      "base_t": 1.9978740215301514,
+      "hyb_t": 13.07223105430603,
+      "base_out": "I don't have any information about `gate_18l_g7_phantom` in the current project state. That object doesn't exist in the state store. The Phase 18l gates present are: `gate_18l_g1_strong`, `gate_18l_g2_g3`, and `gate_18l_g4_locked`.",
+      "hyb_out": "**gate_18l_g7_phantom does not exist in the current state.** I have no record of this object\u2014no definition, threshold, result, or pass/fail status.\n\nTo help you, I need:\n- What is this gate measuring?\n- What was the pass/fail threshold?\n- What value did it observe?\n- What was the outcome?\n\nPhase 18l currently documents gates G1, G2+G3, and G4 from the geometry adapter experiments. If G7 is a planned but unmeasured gate, or a reference from external logs, clarify that too. Confidence on this request is very low (0.15) until you provide more detail."
+    },
+    {
+      "id": "Q6_open_questions_count",
+      "base_score": 0.5,
+      "hyb_score": 0.5,
+      "base_false_hits": 1,
+      "hyb_false_hits": 1,
+      "base_t": 1.6781649589538574,
+      "hyb_t": 13.112988948822021,
+      "base_out": "The object `hyp_jepa_llm_state` lists 2 open questions:\n1. \"Does structured state actually improve reasoning over RAG?\"\n2. \"Does JSON-packet bridge generalize to embedding bridge?\"",
+      "hyb_out": "**hyp_jepa_llm_state lists 2 open_questions.**\n\nHowever, the predictor flags high-severity gaps: phase_18mu produced passing gates (3/3) but isn't linked as supporting evidence, and one of those open questions\u2014whether structured state improves reasoning over RAG\u2014remains experimentally untested. The hypothesis confidence sits at 0.65; linking phase_18mu results could raise it to ~0.80, but that evidence linkage is currently missing."
+    },
+    {
+      "id": "Q7_relations",
+      "base_score": 1.0,
+      "hyb_score": 1.0,
+      "base_false_hits": 0,
+      "hyb_false_hits": 0,
+      "base_t": 3.3364098072052,
+      "hyb_t": 11.991002082824707,
+      "base_out": "Only one gate contradicts `phase_18l`: **gate_18l_g1_strong**. This gate failed its threshold (observed 0.478 vs. required \u2265 0.50), which led to the phase verdict of \"G1 fail single-seed.\"",
+      "hyb_out": "**gate_18l_g1_strong** contradicts phase_18l.\n\nThis gate measured Spearman correlation at 0.478, falling below the 0.50 threshold, and directly falsified the phase verdict. Phase 18l is marked complete with verdict \"G1 fail single-seed,\" which aligns with this gate failure."
+    },
+    {
+      "id": "Q8_calibration",
+      "base_score": 1.0,
+      "hyb_score": 1.0,
+      "base_false_hits": 0,
+      "hyb_false_hits": 0,
+      "base_t": 1.5123589038848877,
+      "hyb_t": 17.738949060440063,
+      "base_out": "No. The hypothesis `hyp_jepa_llm_state` has a confidence of 0.65, which is moderate at best\u2014not high-confidence. It remains in \"active\" status with two open questions and no supporting evidence yet.",
+      "hyb_out": "No. The hypothesis `hyp_jepa_llm_state` is currently at confidence **0.65**, which is moderate\u2014not high. More importantly, it remains **unsupported**: Phase 18\u03bc and 18\u03bb validated geometry adapter correlations, not LLM reasoning quality. Two critical open questions are unresolved (\"Does structured state actually improve reasoning over RAG?\" and \"Does JSON-packet bridge generalize?\"), and no gate yet directly measures downstream task performance.\n\n**Next step:** Run a head-to-head benchmark comparing LLM reasoning accuracy/F1 with Object-JEPA latent state vs. RAG baseline. This has the highest information gain (0.85) and would either substantiate the hypothesis or expose it as incomplete. Confidence should remain cautious until that experiment completes."
+    }
+  ]
+}

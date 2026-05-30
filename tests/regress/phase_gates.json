@@ -1,0 +1,100 @@
+{
+  "_schema": {
+    "version": "1.0",
+    "doc": "Pinned phase-gate values. Each entry references a metrics file under artifacts/ and a list of assertions against fields in that file. The harness in test_phase_gates.py loads each entry, walks the dotted `path`, applies `op` against `value`, and fails if the live artifact disagrees. If the artifact file is missing entirely (fresh clone), the case is SKIPPED — fresh clones must still produce a green test run.",
+    "ops": ["==", "!=", "<", "<=", ">", ">=", "approx"],
+    "approx_uses": "tol (relative tolerance, default 0.05)"
+  },
+
+  "phases": {
+    "8c_of_jepa": {
+      "metrics_path": "artifacts/phase8c_run1/seed_0/summary.json",
+      "claim": "OF-JEPA v0 on MOVi-A: identity switch rate ~0.002, ~300x better than slot_delta baseline. Joint (mse, switch) gate passed (STATUS.md, PHASE_8C_JEPA_DECISION.md).",
+      "assertions": [
+        {
+          "label": "OF-JEPA v0 switch_rate at-or-below 0.005",
+          "path": "of_jepa_v0.identity_switch_rate.mean",
+          "op": "<=",
+          "value": 0.005
+        },
+        {
+          "label": "OF-JEPA v0 switch_rate >= 100x lower than slot_delta",
+          "path": "of_jepa_v0.identity_switch_rate.mean",
+          "op": "<=",
+          "value_from": "slot_delta.identity_switch_rate.mean",
+          "scale": 0.01
+        },
+        {
+          "label": "OF-JEPA v0 visible_position_mse stays sub-1e-4 (content not broken)",
+          "path": "of_jepa_v0.visible_position_mse.mean",
+          "op": "<=",
+          "value": 0.0001
+        }
+      ]
+    },
+
+    "18l_geometry_adapter": {
+      "metrics_path": "artifacts/phase18l/summary.json",
+      "claim": "Phase 18l (single-seed): G1 STRONG gate (adapter recovers geo with mean Spearman >= 0.50) FAILED. Verdict: G1 fail — slots do NOT contain goal-relative geometry. Multi-seed (18mu) later showed an ACCEPTABLE swap; this single-seed record stands as the original strong-gate falsification.",
+      "assertions": [
+        {
+          "label": "G1 strong-recovery gate failed (single seed)",
+          "path": "gates.g1_adapter_geo_recovery_mean_spearman_geq_0_50",
+          "op": "==",
+          "value": false
+        },
+        {
+          "label": "G4 combined_sum_adapter does NOT beat locked by 0.02 (single seed)",
+          "path": "gates.g4_combined_sum_adapter_beats_locked_by_0_02",
+          "op": "==",
+          "value": false
+        },
+        {
+          "label": "G2 value-head adapter Spearman >= 0.25 holds",
+          "path": "gates.g2_value_head_adapter_spearman_geq_0_25",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+
+    "18mu_multi_seed": {
+      "metrics_path": "artifacts/phase18mu/aggregate.json",
+      "claim": "Phase 18mu (6 seeds): supervised geometry within 5pct of geo-VH, acceptable swap, adapter mean Spearman >= 0.45. Verdict: G1+G2+G3(acceptable)+G4 -> ACCEPTABLE SWAP.",
+      "assertions": [
+        {
+          "label": "G1 supervised >= 0.95 x geo",
+          "path": "gates.g1_sup_geq_0_95_geo",
+          "op": "==",
+          "value": true
+        },
+        {
+          "label": "G3 acceptable: supervised within 0.02 of locked",
+          "path": "gates.g3_acceptable_sup_geq_locked_minus_0_02",
+          "op": "==",
+          "value": true
+        },
+        {
+          "label": "G4 adapter mean Spearman >= 0.45",
+          "path": "gates.g4_adapter_spearman_geq_0_45",
+          "op": "==",
+          "value": true
+        },
+        {
+          "label": "mean adapter Spearman within 5pct of 0.5014",
+          "path": "means.adapter_spearman",
+          "op": "approx",
+          "value": 0.5014373557482913,
+          "tol": 0.05
+        }
+      ]
+    },
+
+    "18l2_multi_seed": {
+      "metrics_path": "artifacts/phase18l2_multi/aggregate.json",
+      "claim": "Phase 18l2 multi-seed end-to-end aggregate. Pinned via the artifact's own gates block.",
+      "optional": true,
+      "assertions": []
+    }
+  }
+}

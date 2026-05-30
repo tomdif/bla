@@ -389,7 +389,8 @@ def main():
     args = p.parse_args()
 
     load_planning_dependencies()
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    from bla.reproducibility import set_all_seeds
+    set_all_seeds(args.seed)
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
 
     if args.rollout_cache and Path(args.rollout_cache).exists():

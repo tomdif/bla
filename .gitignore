@@ -16,3 +16,10 @@ runs/
 venv/
 env/
 
+# Local secrets — NEVER commit
+.bla_secrets.json
+.env
+.env.*
+*.secret
+*.secrets.json
+

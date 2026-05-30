@@ -1,0 +1,351 @@
+{
+  "model": "claude-haiku-4-5",
+  "summary": {
+    "baseline_mean_score": 0.75,
+    "hybrid_mean_score": 0.75,
+    "baseline_false_hits": 2,
+    "hybrid_false_hits": 1,
+    "baseline_wins": 2,
+    "hybrid_wins": 2,
+    "ties": 6,
+    "hybrid_ge_baseline_turns": 8,
+    "baseline_total_tokens": 27327,
+    "hybrid_total_tokens": 73442,
+    "hybrid_token_savings_pct": -168.75251582683794,
+    "g1_pass": false,
+    "g2_pass": false,
+    "hybrid_wins_overall": false
+  },
+  "per_turn": [
+    {
+      "i": 1,
+      "kind": "UPDATE",
+      "depends_on": [],
+      "hybrid": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "**0.52 mean Spearman clears phase_18\u03bc (0.45 threshold).** Recommend marking phase_19 complete with verdict EXCEEDS_18MU and formalizing a deployment gate.\n\nNext priorities:\n\n- **Phase 20**: cross-domain validation on held-out task distribution (information gain 0.25, risk 0.15)\n- **Adapter vs. RAG ablation**: test whether structured state actually beats retrieval-augmented reasoning (information gain 0.35, risk 0.2) \u2014 this addresses a core open question in hyp_jepa_llm_state\n\nConfidence 0.8 overall, but three caveats:\n1. Only 3 seeds \u2014 variance across runs may matter for a production gate\n2. Need explicit pass/fail criteria for phase_19 before locking the verdict\n3. Clarify how phase_19's multi-seed 0.52 relates to phase_18l's single-seed failure at 0.478 \u2014 they may not be directly comparable",
+        "latency": 23.880404949188232,
+        "usage": {
+          "input_tokens": 5802,
+          "output_tokens": 1696,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "Good news\u2014that 0.52 exceeds both the 18l G1 threshold (0.50, which failed at 0.478) and the 18\u03bc G4 threshold (0.45, which passed at 0.501). Should I add a new phase-19 entry to track this, or is it still exploratory?",
+        "latency": 3.3381927013397217,
+        "usage": {
+          "input_tokens": 2217,
+          "output_tokens": 80,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 2,
+      "kind": "QUERY",
+      "depends_on": [
+        1
+      ],
+      "hybrid": {
+        "score": 0.5,
+        "false_hits": 1,
+        "answer": "**Yes, Phase 19 beats Phase 18\u03bc on raw Spearman: 0.52 vs 0.501.**\n\nHowever, confidence is moderate (0.75) because the comparison has gaps:\n- Phase 19 used 3 seeds; Phase 18\u03bc used 6. Without error bars or a statistical test, we can't rule out that this difference is noise.\n- No confirmation that both used identical gate definitions, adapter architecture, dataset, and task.\n\n**Before locking this as the new best geometry adapter, I'd recommend:**\n1. Add observed SEM or 95% CI to phase_19 (run bootstrap or t-test if feasible).\n2. Confirm experimental parity (gate threshold, adapter type, data pipeline).\n\nIf those check out, Phase 19 is a solid incremental win (~1.9% lift). If not, the claim weakens considerably.",
+        "latency": 15.300909757614136,
+        "usage": {
+          "input_tokens": 5301,
+          "output_tokens": 1208,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 0.5,
+        "false_hits": 1,
+        "answer": "Phase 18\u03bc G4 observed 0.501 mean Spearman across 6 seeds, so your phase-19 result at 0.52 across 3 seeds is slightly higher. However, note the difference in seed counts\u201418\u03bc used 6, phase-19 used 3. Do you want to run phase-19 with more seeds to confirm the improvement is stable?",
+        "latency": 1.9049673080444336,
+        "usage": {
+          "input_tokens": 2317,
+          "output_tokens": 93,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 3,
+      "kind": "UPDATE_CORRECTION",
+      "depends_on": [
+        1
+      ],
+      "hybrid": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "**Audit the eval bug first.** The correction from 0.52 to 0.48 is material, and we need to know:\n- What was the bug's root cause?\n- Which phases/gates ran under the buggy code?\n- Is phase_18\u03bc's 0.501 also affected?\n\nThis has the highest information gain (0.6) and lowest risk. Once we've audited, we can decide whether phase_19 needs a 6-seed retry to match phase_18\u03bc's statistical power.\n\nIn parallel, phase_3 JEPA predictor is stuck at zero confidence and needs a design spec before work begins\u2014scope training data, supervision signal, and embedding scheme. Low friction to move forward there.\n\nConfidence: 0.72.",
+        "latency": 18.189835786819458,
+        "usage": {
+          "input_tokens": 5890,
+          "output_tokens": 1638,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 0.5,
+        "false_hits": 0,
+        "answer": "Understood\u2014phase-19 at 0.48 falls below both 18\u03bc G4 (0.501) and the 18l G1 threshold (0.50). The bug fix moves it back into the \"needs improvement\" range. Should I create a phase-19 entry recording this result and the bug discovery?",
+        "latency": 2.550615072250366,
+        "usage": {
+          "input_tokens": 2446,
+          "output_tokens": 76,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 4,
+      "kind": "QUERY",
+      "depends_on": [
+        1,
+        3
+      ],
+      "hybrid": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "**Not yet.** Phase 19's corrected score (0.48) trails Phase 18\u03bc's gate-pass threshold (0.501), but we can't call it settled without running Phase 19 through the same gates (G1, G3, G4).\n\n**The blocker:** Phase 19 has only the raw Spearman metric; Phase 18\u03bc has gate verdicts. Apples-to-apples requires evaluating Phase 19 against that same gate suite\u2014expected information gain 0.85, low risk.\n\n**Secondary concern:** Phase 19 used 3 seeds vs. Phase 18\u03bc's 6. Before committing to Phase 19\u03bc as the next step, document that seed-count difference so we know whether variance explains the score gap.\n\nRecommendation: run Phase 19 through gates, then decide whether Phase 19\u03bc (6 seeds) is warranted.",
+        "latency": 15.158681869506836,
+        "usage": {
+          "input_tokens": 5313,
+          "output_tokens": 1189,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "No\u2014phase 18\u03bc G4 observed 0.501, and phase-19 is now 0.48, so 18\u03bc still leads by ~0.021.",
+        "latency": 1.3661491870880127,
+        "usage": {
+          "input_tokens": 2542,
+          "output_tokens": 44,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 5,
+      "kind": "UPDATE",
+      "depends_on": [],
+      "hybrid": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "Your hypothesis is testable but hasn't been validated yet. The correlation is backwards from typical overfitting\u2014Phase 18\u03bc (720 samples, 6 seeds) scored 0.501, while Phase 19 (800 samples, 3 seeds) scored 0.48\u2014so sample count alone doesn't explain the drop.\n\n**Recommended next steps:**\n\n1. **Retrain Phase 19-refit** with 720 samples and the same 3 seeds as Phase 19. If this outperforms 0.48, sample count is a factor; if not, seed variance or other mechanisms dominate.\n2. **Parse Phase 19 training logs** for loss divergence (train/val separation) or validation plateau. This will rule out overfitting vs. convergence issues.\n\nConfidence: 0.7. The real culprit may be seed variance (3 vs 6 seeds) or a different failure mode in the 800-sample regime rather than classical overfitting.",
+        "latency": 20.247833728790283,
+        "usage": {
+          "input_tokens": 6195,
+          "output_tokens": 1952,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "Noted. Should I add this as an open question or contradiction tied to phase-19, or do you want to run a follow-up phase (say, phase-19b with 720 samples) to test the overfitting hypothesis before recording it?",
+        "latency": 2.9638512134552,
+        "usage": {
+          "input_tokens": 2615,
+          "output_tokens": 57,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 6,
+      "kind": "QUERY",
+      "depends_on": [
+        5
+      ],
+      "hybrid": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "**Active hypothesis involving overfitting: hyp_jepa_llm_state (0.65 confidence).**\n\nPhase 19 shows a potential overfitting signal (800 vs 720 samples), but the claim lacks supporting evidence\u2014no train/val loss divergence, per-seed variance, or generalization gap metrics yet.\n\n**Next step:** Compare phase_19 adapter generalization against phase_18mu baseline (train/val curves, coefficient of variation across seeds). This has the highest information gain (0.45) and low risk (0.1).\n\nSeparately, hyp_jepa_llm_state itself needs either experimental validation or a confidence downgrade; the open questions have been unresolved since May.",
+        "latency": 15.481290817260742,
+        "usage": {
+          "input_tokens": 5620,
+          "output_tokens": 1296,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "Looking at the state, only one active hypothesis is tracked: \"Object-JEPA gives LLM a better latent state for reasoning\" (hyp_jepa_llm_state). It doesn't mention overfitting. Your phase-19 overfitting observation is new\u2014should I add it as a separate hypothesis or open question?",
+        "latency": 2.5919811725616455,
+        "usage": {
+          "input_tokens": 2686,
+          "output_tokens": 77,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 7,
+      "kind": "UPDATE_RETRACTION",
+      "depends_on": [
+        5
+      ],
+      "hybrid": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "Good catch. Your correction invalidates the sample-count hypothesis entirely.\n\n**Next move:** Check phase_19 gate results. If they exist, we can see whether the 3-seed run actually missed acceptance criteria or performed within bounds\u2014that tells us if we have a real anomaly or a false alarm. Simultaneously, retire the two stale open_questions in phase_19 (both premised on the 800-sample error) and replace them with a question about seed-count effects or other training dynamics.\n\nThe core uncertainty now shifts: we don't know yet whether phase_19 underperformed relative to phase_18\u03bc in any meaningful way. Once we have gate data, we can either close this line of inquiry or pivot to investigating what *actually* caused any divergence.\n\n**Expected gain from gates query: 0.85.** Do you have phase_19 gate artifacts, or should we flag that as a missing measurement?",
+        "latency": 19.38859272003174,
+        "usage": {
+          "input_tokens": 5982,
+          "output_tokens": 1762,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 0.0,
+        "false_hits": 0,
+        "answer": "Got it\u2014phase-19 used 720 samples like the standard. The overfitting hypothesis doesn't hold then. The 0.48 result stands without that explanation; back to square one on why it underperformed 18\u03bc.",
+        "latency": 1.6976521015167236,
+        "usage": {
+          "input_tokens": 2799,
+          "output_tokens": 56,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 8,
+      "kind": "QUERY",
+      "depends_on": [
+        5,
+        7
+      ],
+      "hybrid": {
+        "score": 0.0,
+        "false_hits": 0,
+        "answer": "**Status: unresolved, sample-count confounder now controlled.**\n\nWith phase 19's sample count corrected to 720, your overfit hypothesis (hyp_jepa_llm_state) is at a decision point. The recommended next step is direct: **compare phase 19 adapter performance against phase 18mu baseline under identical sample counts.** If the performance gap persists, overfitting is unlikely the root cause. If it closes, sample count was the confound.\n\nThe hypothesis itself remains at low confidence (0.5) because it currently lacks grounded performance metrics and a gate verdict. Once you run the aligned comparison, you should update hyp_jepa_llm_state.confidence and resolve or reframe the open question.\n\nIf you want faster signal, analyze phase 19's learning curves and weight distributions for overfitting signatures (validation divergence, high magnitudes) independent of sample count\u2014this gives 0.4 information gain with moderate risk. Full replication with seed variance analysis would be most conclusive (0.45 gain) but carries higher cost.",
+        "latency": 17.99948024749756,
+        "usage": {
+          "input_tokens": 5621,
+          "output_tokens": 1532,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "There is no recorded overfit hypothesis in the state. You just proposed it, I flagged it as needing validation, and you've now disproven its premise (sample counts matched). It never entered the project record, so there's nothing to update.",
+        "latency": 2.3877129554748535,
+        "usage": {
+          "input_tokens": 2876,
+          "output_tokens": 56,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 9,
+      "kind": "UPDATE",
+      "depends_on": [],
+      "hybrid": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "**Good news: Phase 18l G1 passes.** Your 5-seed retest (0.51 Spearman) clears the 0.50 threshold and outperforms the single-seed baseline.\n\n**Next move: run Phase 19 with a fixed 720-sample count to separate seed/sample effects from adapter quality.** Phase 19 has unresolved questions about sample variance, and a controlled re-run will clarify whether the earlier results hold under uniform conditions. This has the highest information gain (0.55) among near-term options.\n\n**Secondary issue: reconcile Phase 18l vs. Phase 18\u03bc.** With 18l now at 0.51 and 18\u03bc at 0.501, you need to decide which geometry adapter becomes the canonical approval\u2014this affects the locked recipe support chain.\n\n**Minor cleanup:** There's a contradiction flag on phase_18l tied to gate_18l_g1_strong; that gate now passes, so the state needs a housekeeping update.\n\nConfidence: 0.72. The Phase 19 investigation is the best next step to de-risk downstream modeling work.",
+        "latency": 19.392931938171387,
+        "usage": {
+          "input_tokens": 6266,
+          "output_tokens": 1952,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 1.0,
+        "false_hits": 0,
+        "answer": "That's a significant shift\u20140.51 now exceeds the 0.50 threshold, so gate_18l_g1_strong should flip to `result: true`. Should I update that gate, and does this change phase_18l's verdict from \"G1 fail single-seed\" to passing?",
+        "latency": 1.6764168739318848,
+        "usage": {
+          "input_tokens": 2978,
+          "output_tokens": 71,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    },
+    {
+      "i": 10,
+      "kind": "QUERY_SYNTHESIS",
+      "depends_on": [
+        1,
+        3,
+        5,
+        7,
+        9
+      ],
+      "hybrid": {
+        "score": 0.0,
+        "false_hits": 0,
+        "answer": "You haven't shared any updates with me yet in this conversation. This is our first exchange. The packet you've received is a predictive analysis of the current BLA project state\u2014it identifies gaps and recommends next actions, but it doesn't reflect updates you've given me. If you'd like me to summarize updates you've provided, please share them now and I'll track them in order with specifics.",
+        "latency": 18.00302529335022,
+        "usage": {
+          "input_tokens": 5833,
+          "output_tokens": 1394,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 3
+        }
+      },
+      "baseline": {
+        "score": 0.5,
+        "false_hits": 1,
+        "answer": "You ran phase-19 and initially reported 0.52 mean Spearman across 3 seeds, which I noted beat phase 18\u03bc's 0.501; you then corrected it to 0.48 due to an eval bug, falling below 18\u03bc. You hypothesized phase-19 overfit because it used 800 samples instead of 720, but you corrected that too\u2014phase-19 also used 720 samples, invalidating the overfitting premise. Finally, you retested phase 18l G1 with 5 seeds and found it now passes at 0.51 mean Spearman, up from the original single-seed 0.478 failure.",
+        "latency": 2.558526039123535,
+        "usage": {
+          "input_tokens": 3078,
+          "output_tokens": 163,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "n_calls": 1
+        }
+      }
+    }
+  ]
+}

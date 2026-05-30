@@ -31,7 +31,10 @@ from bla.forge.calibration import (
 )
 from bla.forge.fiducials import (
     FiducialDetection,
+    FiducialDetector,
     FiducialWorldPose,
+    MockFiducialDetector,
+    OpenCVArucoDetector,
     detect_fiducials,
     mock_fiducials,
     fiducial_to_world,
@@ -96,7 +99,10 @@ __all__ = [
     "mock_calibration",
     # BF-0.2
     "FiducialDetection",
+    "FiducialDetector",
     "FiducialWorldPose",
+    "MockFiducialDetector",
+    "OpenCVArucoDetector",
     "detect_fiducials",
     "mock_fiducials",
     "fiducial_to_world",

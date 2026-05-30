@@ -19,10 +19,11 @@ The pixel → world handoff goes through BF-0.1's CalibrationBundle:
 """
 from __future__ import annotations
 
+import abc
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional, Sequence
 
 import numpy as np
 
@@ -354,3 +355,176 @@ def detect_fiducials(
             confidence=1.0,   # opencv aruco doesn't expose a confidence score
         ))
     return detections
+
+
+# ---------- streaming detector ABC ----------
+class FiducialDetector(abc.ABC):
+    """Streaming detector interface: frame in, detections out.
+
+    The existing module-level `detect_fiducials` / `mock_fiducials`
+    functions are stateless and one-shot. Real-time deployment wants a
+    detector that can hold per-stream state (tag-family selection, frame
+    counter, smoothing, lost-and-reacquired logic). Tests + BF-0
+    development want a deterministic mock that produces a SCRIPTED
+    sequence of detection sets, not a single static snapshot.
+
+    Pattern (matches the BF-0.3 RollingObjectFileTracker backend swap):
+
+        detector: FiducialDetector = MockFiducialDetector(...)  # for dev
+        # detector = OpenCVArucoDetector(family="aruco_4x4_50")  # hardware
+
+        for frame in camera_stream:
+            fids = detector.step(frame)
+            obs = tracker.step(frame, fids)
+
+    Subclasses MUST implement `step`. `reset` defaults to a no-op.
+    """
+
+    @abc.abstractmethod
+    def step(self, frame: np.ndarray) -> list[FiducialDetection]:
+        """Consume one frame; emit zero or more detections."""
+
+    def reset(self) -> None:
+        """Clear any per-stream state (frame counter, smoothing buffer)."""
+
+
+class OpenCVArucoDetector(FiducialDetector):
+    """Thin streaming wrapper around `detect_fiducials`.
+
+    Holds an OpenCV ArucoDetector across frames (so the detector object
+    is constructed once, not per-frame) and tracks a monotonic step
+    counter for diagnostics. Behaviorally identical to calling
+    `detect_fiducials(frame, family=...)` per frame.
+    """
+
+    def __init__(self, family: str = "aruco_4x4_50"):
+        if family not in ARUCO_DICT_NAMES:
+            raise ValueError(
+                f"Unknown family '{family}'. Known: {sorted(ARUCO_DICT_NAMES)}")
+        self.family = family
+        self._step_idx = -1
+        # Lazy-construct on first step so import doesn't require cv2.
+        self._detector = None
+
+    def _build_detector(self):
+        try:
+            import cv2
+        except ImportError:
+            raise RuntimeError(
+                "OpenCVArucoDetector requires opencv-contrib-python; install "
+                "with `pip install opencv-contrib-python` or use "
+                "MockFiducialDetector for testing.")
+        aruco_dict = cv2.aruco.getPredefinedDictionary(
+            getattr(cv2.aruco, ARUCO_DICT_NAMES[self.family]))
+        params = cv2.aruco.DetectorParameters()
+        return cv2.aruco.ArucoDetector(aruco_dict, params), cv2
+
+    def step(self, frame: np.ndarray) -> list[FiducialDetection]:
+        if self._detector is None:
+            self._detector, self._cv2 = self._build_detector()
+        self._step_idx += 1
+
+        cv2 = self._cv2
+        gray = (cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                if frame.ndim == 3 else frame)
+        corners_list, ids, _rejected = self._detector.detectMarkers(gray)
+        if ids is None or len(ids) == 0:
+            return []
+        out: list[FiducialDetection] = []
+        for corners, tag_id in zip(corners_list, ids.flatten()):
+            c = corners.reshape(4, 2).astype(np.float64)
+            out.append(FiducialDetection(
+                id=int(tag_id),
+                family=self.family,
+                pixel_corners=c,
+                center_px=c.mean(axis=0),
+                confidence=1.0,
+            ))
+        return out
+
+    def reset(self) -> None:
+        self._step_idx = -1
+
+    @property
+    def step_count(self) -> int:
+        return self._step_idx + 1
+
+
+# Type alias for the scripted-mock per-step generator.
+# Given (step_idx, frame) → list of (id, world_xy) the mock should emit
+# this step. Use to encode temporal patterns like "tag 2 disappears at
+# step 30" or "all four tags drift along a trajectory".
+StepScript = Callable[[int, np.ndarray], "list[tuple[int, tuple[float, float]]]"]
+
+
+class MockFiducialDetector(FiducialDetector):
+    """Deterministic mock detector producing scripted detection streams.
+
+    Two modes:
+      - static layout: same set of (id, world_xy) on every step.
+      - scripted: caller supplies a `script(step_idx, frame) → [(id, xy)...]`
+        function. Use this to simulate occlusion, motion, new objects
+        entering the scene, etc.
+
+    Requires a CalibrationBundle so world (x, y) is projected into pixel
+    coords for the FiducialDetection (matches `mock_fiducials` behavior).
+
+    Args:
+      bundle:          calibration for world→pixel projection.
+      static_layout:   {id: (x, y)} in world meters. Used as the every-step
+                       layout when `script` is None.
+      script:          optional callable returning per-step (id, (x, y))
+                       pairs. Overrides static_layout when given.
+      tag_size_m:      physical tag edge length, for pixel-corner synthesis.
+      family:          family string carried on each emitted detection.
+      confidence:      passthrough confidence on each detection.
+    """
+
+    def __init__(
+        self,
+        *,
+        bundle,  # CalibrationBundle; not imported at top to avoid cycle
+        static_layout: Optional[dict[int, tuple[float, float]]] = None,
+        script: Optional[StepScript] = None,
+        tag_size_m: float = 0.04,
+        family: str = "mock_aruco_4x4_50",
+        confidence: float = 1.0,
+    ):
+        if static_layout is None and script is None:
+            raise ValueError(
+                "MockFiducialDetector requires either `static_layout` or "
+                "`script`. Pass at least one.")
+        self.bundle = bundle
+        self.static_layout = dict(static_layout) if static_layout else None
+        self.script = script
+        self.tag_size_m = float(tag_size_m)
+        self.family = family
+        self.confidence = float(confidence)
+        self._step_idx = -1
+
+    def step(self, frame: np.ndarray) -> list[FiducialDetection]:
+        self._step_idx += 1
+        if self.script is not None:
+            entries = list(self.script(self._step_idx, frame))
+        else:
+            entries = list(self.static_layout.items())  # type: ignore[union-attr]
+
+        if not entries:
+            return []
+        ids = tuple(int(e[0]) for e in entries)
+        layout = {int(i): (float(x), float(y)) for i, (x, y) in entries}
+        return mock_fiducials(
+            ids=ids,
+            world_xy_per_id=layout,
+            bundle=self.bundle,
+            tag_size_m=self.tag_size_m,
+            family=self.family,
+            confidence=self.confidence,
+        )
+
+    def reset(self) -> None:
+        self._step_idx = -1
+
+    @property
+    def step_count(self) -> int:
+        return self._step_idx + 1
