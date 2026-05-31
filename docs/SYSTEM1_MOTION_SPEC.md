@@ -67,17 +67,23 @@ where $p_t$ is ground-truth agent position (available in simulated envs), $D_\et
 
 The role: this is a *training-time Gate 0 estimator*. If after 5k training steps the auxiliary decode is still at chance level, the substrate isn't learning position even with action conditioning, and we should stop and reconsider rather than burn another 95k steps. This is the cheapest possible early-stopping diagnostic. **Evidence-driven correction.** The detached gradient is critical — without it we'd be teaching to the test.
 
-### Auxiliary 3: Temporal-contrastive at multiple scales (speculative)
+### Auxiliary 3: Temporal-contrastive at multiple scales — CUT (v2)
 
-In addition to single-step prediction, add a multi-scale temporal-contrastive loss: $f_\theta(x_t)$ should be more similar to $f_\theta(x_{t+k})$ than to $f_\theta(x_{t'})$ for unrelated $t'$, for $k \in \{1, 4, 16\}$.
-
-$$\mathcal{L}_\text{temp-con}(\theta) = -\sum_{k \in \{1,4,16\}} \mathbb{E}\left[\log \frac{\exp(\langle f_\theta(x_t), f_\theta(x_{t+k})\rangle/\tau)}{\sum_{t'} \exp(\langle f_\theta(x_t), f_\theta(x_{t'})\rangle/\tau)}\right]$$
-
-The argument for including this: action-conditioned prediction rewards encoding action-relevant motion. But the agent might move in ways that aren't fully predictable from action (sensor noise, contact dynamics, slight stochasticity). Temporal contrast at multiple horizons rewards encoding motion in general, including the non-action-conditioned components.
-
-The argument against: this might dilute the action-conditioning signal and produce a substrate that tracks motion broadly but doesn't specifically expose what the agent is doing. The multi-scale aspect is what makes me think it's worth trying — the $k=1$ scale anchors short-term continuity, $k=4$ rewards action-scale motion, $k=16$ rewards trajectory-scale structure. This is closer to what biological motion perception does (multi-scale temporal integration) than a single-step objective.
-
-**Speculative, worth testing.** I'd run this with weight 0 initially and ablate it in by adding weight 0.3 after the base objective is stable. If position-decode improves with it on, that's the substrate-level evidence for keeping it. If not, cut it.
+**CUT in v2.** The original motivation was that single-scale prediction might miss
+non-action-conditioned motion components, and multi-scale contrast at $k\in\{1,4,16\}$
+would catch them. Korchinski, Favero & Wyart (2026), *"Learn from your own latents
+and not from tokens: A sample-complexity theory"* (arXiv:2605.27734), remove that
+motivation directly: on data with hierarchical latent structure, a **single-level**
+latent-prediction objective (data2vec-style, EMA target) **already performs implicit
+level-by-level latent clustering** and recovers the full hierarchy at sample
+complexity $\sim m^3$ — *constant in tree depth $L$* — vs $m^{L+1}$ for token-level
+SSL. So a single-scale objective is already implicitly multi-scale on hierarchically-
+structured data; the explicit multi-scale term is redundant work, not insurance.
+Reacher dynamics (joint angle → pose → trajectory → task) are hierarchically
+structured, so the qualitative prediction applies (with the caveat in §9 that the
+exact $m^3$ bound is proven only on RHM data, which Reacher only approximately
+satisfies). This is a *cut*, not a "speculative, ablate later" — the theory and its
+data2vec evidence are direct. The ablation matrix (§8) loses its `+temp` row.
 
 ### Auxiliary 4: Per-dimension VICReg variance hinge (evidence-driven correction)
 
@@ -205,18 +211,17 @@ The substrate loss and decoder loss are computed jointly but back-propagated thr
 
 ## 8. Ablation plan
 
-The spec includes four auxiliaries. Each one needs to earn its place. The ablation matrix:
+After cutting Aux 3 (v2), the matrix is three auxiliaries; each must earn its place:
 
-| Run | Primary | Aux 1 (env preflight) | Aux 2 (decode diag) | Aux 3 (temp contrast) | Aux 4 (var hinge) |
-|---|---|---|---|---|---|
-| A1 (base) | ✓ | ✓ (env passes leverage) | ✓ (diagnostic only) | ✗ | ✗ |
-| A2 (+temp) | ✓ | ✓ | ✓ | ✓ | ✗ |
-| A3 (+hinge) | ✓ | ✓ | ✓ | ✗ | ✓ |
-| A4 (full) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| B1 (low leverage) | ✓ | ✗ (env fails leverage) | ✓ | ✗ | ✗ |
-| B2 (no decode diag) | ✓ | ✓ | ✗ | ✓ | ✓ |
+| Run | Primary | Aux 1 (env preflight) | Aux 2 (decode diag) | Aux 4 (var hinge) |
+|---|---|---|---|---|
+| A1 (base) | ✓ | ✓ (env passes leverage) | ✓ (diagnostic only) | ✗ |
+| A3 (+hinge) | ✓ | ✓ | ✓ | ✓ |
+| B1 (low leverage) | ✓ | ✗ (env fails leverage) | ✓ | ✗ |
+| B2 (no decode diag) | ✓ | ✓ | ✗ | ✓ |
 
-A1 is the minimum viable run. If A1 passes Gate 0, the speculative auxiliaries (A2, A3, A4) need to show *additional* improvement to be kept.
+A1 is the minimum viable run. If A1 passes Gate 0, `+hinge` (A3) needs to show
+*additional* improvement to be kept. (The `+temp` rows are removed — Aux 3 cut, §3.)
 
 B1 is the negative control — running on an env that fails the leverage preflight to verify that the preflight is actually predictive of Gate 0 failure. This validates the methodology lesson from the experimental arc.
 
@@ -230,13 +235,17 @@ The ablation matrix is what turns "we built a substrate" into "we identified whi
 - A minimum viable substrate that the four-fix-arc evidence says should pass Gate 0
 - A methodology (env preflight + training-time decode diagnostic + standalone precommit harness) that prevents the failure mode the arc demonstrated
 - An ablation matrix that produces publishable findings regardless of which auxiliaries earn their place
+- **A single-level objective by design — and that choice is now theory-backed, not just simpler.** Korchinski, Favero & Wyart (2026, arXiv:2605.27734) prove that a single-level data2vec-style latent-prediction objective with an EMA target implicitly performs hierarchical, level-by-level latent clustering, recovering the full latent tree at sample complexity $\sim m^3$ — *constant in depth* — vs $m^{L+1}$ for token-level SSL. We chose single-level not for simplicity but because the theory says a well-targeted single-level objective is *already implicitly hierarchical* on hierarchically-structured data. (Caveat: proven on RHM data; see §11.)
 
 **What it isn't:**
 - A claim to be "best in class." It's a claim to be the right next move given the evidence. Best in class is a comparison the field hasn't done and that requires baseline runs we haven't scoped.
 - A complete BLA roadmap. This is the substrate rewrite. The bicameral roadmap (System 2, router, RAM, etc.) sits downstream of this passing.
 - A novel objective. Action-conditioned latent prediction is V-JEPA 2-AC. The novelty is in the methodology around it (env preflight, training-time decode diagnostic as detached signal, precommit harness as a hard gate), not in the loss function.
+- **A claim about *hierarchical representation learning* — and this must not be conflated with BLA's bicameral *planning* claim.** Korchinski et al. weaken the case for *naive stacked H-JEPA* (one encoder per scale, independent losses); they explicitly put multi-scale-teacher variants (V-JEPA 2.1, Bootleg) out of scope. BLA's System 2 is a **latent-diffusion bidirectional planner**, not a coarser-scale JEPA — the redundancy result does not reach it, nor the router/RAM/prefetcher. The correct reading: keep System 1 a **single-scale** substrate (the paper says stacking it buys little), and justify the bicameral *planning* split separately. Any future BLA writeup must keep "single-level representation is sufficient (per Korchinski)" distinct from "bicameral planning is valuable (justified on planning semantics)."
 
-The discipline I'm trying to enforce is: every design choice traces to either standard recipe, evidence from the four-fix arc, or a flagged speculative test. No design choice that's there because it sounds good. The arc cost real GPU time to surface the lesson about objectives-vs-regularizers; this spec is what honoring that lesson looks like.
+**Optional post-hoc diagnostic (stronger than Gate 0 alone).** Korchinski et al.'s Figure 5 gives a synonym-clustering probe that tests whether a trained substrate is doing the *level-by-level latent clustering* the theory predicts. Our EMA target encoder is exactly the data2vec mechanism their analysis covers, so the probe applies. Gate 0 tells you position is recoverable; the clustering probe tells you *whether the implicit-hierarchy mechanism is operating* — running both gives a much stronger story. Worth adding after A1 passes Gate 0; not a blocker.
+
+The discipline I'm trying to enforce is: every design choice traces to either standard recipe, evidence from the four-fix arc, published theory, or a flagged speculative test. No design choice that's there because it sounds good. The arc cost real GPU time to surface the lesson about objectives-vs-regularizers; this spec is what honoring that lesson looks like.
 
 ## 10. Order of operations
 
@@ -258,15 +267,16 @@ Two weeks to a result, positive or negative. If the result is positive, the bica
 
 ## 11. The honest assessment
 
-I think A1 will pass Gate 0 on DMControl Reacher. Action-conditioned prediction is a well-established objective and Reacher has the leverage to make it informative. My probability estimate: 70%.
+I think A1 will pass Gate 0 on DMControl Reacher. Action-conditioned prediction is a well-established objective, Reacher has the leverage to make it informative ($r_\text{action}=0.996$, measured), and Korchinski et al. (2026) give theory that a single-level latent-prediction objective is implicitly hierarchical on hierarchically-structured data. Probability estimate, bumped from 70% to **75–80%** on that theoretical backing.
 
-The interesting question isn't whether A1 passes — it's what the ablations show. My prediction:
+**The caveat that keeps it at 75–80% and not higher:** the $m^3$ guarantee is proven only on **RHM data** (fixed tree topology, non-recursive, unambiguous grammar). Reacher dynamics are continuous, contact-aware, and only *approximately* hierarchical — the exact bound does not literally apply. What transfers is the *mechanism* (EMA-target single-level prediction → implicit level-by-level clustering), and there is **no experimental evidence in that paper that the result transfers off RHM** (their data2vec experiments are all RHM-distributed). So this is a stronger prior, not a guarantee.
 
-- A1 passes Gate 0 at roughly 3-4px on Reacher (60% probability)
-- A1 passes but only barely (4-5px) (20%)
-- A1 fails (20%) — in which case the auxiliary 3 (temporal contrast) is what gets you over the line, and the result becomes "action-conditioning alone is insufficient on smooth video; temporal contrast at multiple scales is the substantive addition."
+My prediction:
+- A1 passes Gate 0 at roughly 3–4px on Reacher (~60%)
+- A1 passes but only barely, 4–5px (~20%)
+- A1 fails (~20%) — and because Aux 3 is now **cut**, the failure branch is *not* "add temporal contrast." It becomes the genuinely interesting question: **does the RHM implicit-hierarchy result fail to transfer to non-RHM (robotics) data, and what additional machinery does real-world data require?** That negative result is publishable (Option B framing): "the single-level theory holds on RHM but needs X on continuous contact dynamics."
 
-The 80% probability of passing is high because the objective is well-targeted. The 20% probability of failing is the interesting branch because it would surface the next-level question about what's required when action-conditioning isn't enough.
+Either branch is publishable. Positive: a substrate-methodology result whose single-level choice is theory-backed. Negative: the first empirical test of whether the Korchinski et al. implicit-hierarchy mechanism transfers off RHM — a question that paper explicitly leaves open.
 
 Either branch produces a publishable result. The positive branch is a methodology paper: "Gate-driven substrate development for embodied JEPA, with preflight and decode-diagnostic harness." The negative branch is "Action-conditioning alone fails on smooth manipulation video; here's the ablation showing what works." Both are useful to the field. Both are honest.
 

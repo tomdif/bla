@@ -29,6 +29,12 @@ from dm_control import suite
 
 
 def collect(env_name, task, n_transitions, episode_len, seed):
+    # GUARD (lesson from the EGL hang): the preflight is physics-only. Refuse to
+    # run if a render backend is configured — render config belongs at the
+    # dataloader level when pixels are actually needed, never here.
+    if os.environ.get("MUJOCO_GL"):
+        raise SystemExit(f"refusing to run: MUJOCO_GL={os.environ['MUJOCO_GL']} set, "
+                         "but the action-leverage preflight is state-only (no rendering).")
     env = suite.load(env_name, task, task_kwargs={"random": seed})
     aspec = env.action_spec()
     rng = np.random.RandomState(seed)
