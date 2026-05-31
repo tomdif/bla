@@ -28,7 +28,7 @@ import torch.nn as nn
 from dm_control import suite
 
 
-def collect(env_name, task, n_transitions, episode_len, seed):
+def collect(env_name, task, n_transitions, episode_len, seed, action_repeat=1):
     # GUARD (lesson from the EGL hang): the preflight is physics-only. Refuse to
     # run if a render backend is configured — render config belongs at the
     # dataloader level when pixels are actually needed, never here.
@@ -44,11 +44,16 @@ def collect(env_name, task, n_transitions, episode_len, seed):
     s = obs_vec(ts.observation)
     while len(S) < n_transitions:
         a = rng.uniform(aspec.minimum, aspec.maximum, aspec.shape).astype(np.float32)
-        ts = env.step(a); steps += 1
+        last = False
+        for _ in range(action_repeat):                 # macro-action: hold a for K control steps
+            ts = env.step(a)
+            if ts.last():
+                last = True; break
+        steps += 1
         snext = obs_vec(ts.observation)
         S.append(s); A.append(a); Snext.append(snext)
         s = snext
-        if ts.last() or steps >= episode_len:
+        if last or steps >= episode_len:
             ts = env.reset(); s = obs_vec(ts.observation); steps = 0
     return np.array(S), np.array(A), np.array(Snext)
 
@@ -75,6 +80,8 @@ def main():
     ap.add_argument("--env", default="reacher")
     ap.add_argument("--task", default="easy")
     ap.add_argument("--n", type=int, default=40000)
+    ap.add_argument("--action-repeat", type=int, default=1,
+                    help="macro-action horizon (match the render dataset's action_repeat)")
     ap.add_argument("--episode-len", type=int, default=200)
     ap.add_argument("--steps", type=int, default=4000)
     ap.add_argument("--seed", type=int, default=0)
@@ -82,7 +89,7 @@ def main():
     ap.add_argument("--out", default="gates/action_leverage_reacher.json")
     args = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    S, A, Snext = collect(args.env, args.task, args.n, args.episode_len, args.seed)
+    S, A, Snext = collect(args.env, args.task, args.n, args.episode_len, args.seed, args.action_repeat)
     # z-score the prediction target (per-dim) so MSE is dimensionless; ratio is scale-invariant
     mu, sd = Snext.mean(0), Snext.std(0) + 1e-6
     Yn = (Snext - mu) / sd

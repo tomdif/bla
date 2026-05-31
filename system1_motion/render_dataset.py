@@ -26,7 +26,8 @@ import numpy as np
 import mujoco
 from dm_control import suite
 
-MIN_VAR = 10.0   # a real Reacher frame has var ~1000s; <10 means broken context
+MIN_VAR = 10.0    # a real Reacher frame has var ~1000s; <10 means broken context
+MIN_DISP = 1.0    # min per-transition fingertip px displacement; <1px = sub-pixel/aliased
 
 
 def main():
@@ -58,7 +59,12 @@ def main():
         renderer.update_scene(env.physics.data.ptr, camera=args.camera_id)
         return renderer.render()                                  # [H,W,3] uint8
 
-    # --- startup self-check (the all-black guard) ---
+    def finger_px():
+        xy = np.asarray(env.physics.named.data.geom_xpos["finger"][:2])
+        return (xy + args.extent) / (2 * args.extent) * args.image_size
+
+    # --- startup self-checks ---
+    # (1) all-black guard: a real Reacher frame has var ~1000s.
     env.reset()
     for _ in range(5):
         env.step(rng.uniform(aspec.minimum, aspec.maximum, aspec.shape))
@@ -67,7 +73,26 @@ def main():
     if v < MIN_VAR:
         raise SystemExit(f"render self-check FAILED: frame variance {v:.2f} < {MIN_VAR} "
                          "(broken GL context / all-black frames).")
-    print(f"[render] self-check OK: frame {test.shape} var={v:.1f} mean={test.mean():.1f}", flush=True)
+    # (2) sub-pixel-motion guard (the action-repeat lesson): measure per-transition
+    # fingertip displacement at the configured action_repeat; refuse if < MIN_DISP px,
+    # since the substrate can't learn motion that doesn't render. No run on aliased data.
+    disp = []
+    for _ in range(40):
+        p0 = finger_px(); a = rng.uniform(aspec.minimum, aspec.maximum, aspec.shape)
+        last = False
+        for _ in range(args.action_repeat):
+            if env.step(a).last():
+                last = True; break
+        disp.append(float(np.linalg.norm(finger_px() - p0)))
+        if last:
+            env.reset()
+    mean_disp = float(np.mean(disp))
+    if mean_disp < MIN_DISP:
+        raise SystemExit(f"render self-check FAILED: mean per-transition displacement "
+                         f"{mean_disp:.2f}px < {MIN_DISP}px at action_repeat={args.action_repeat} "
+                         "(sub-pixel motion — increase --action-repeat or --image-size).")
+    print(f"[render] self-check OK: frame {test.shape} var={v:.1f} | "
+          f"per-transition disp {mean_disp:.2f}px @ K={args.action_repeat}", flush=True)
 
     frames, actions, pos, ep_id = [], [], [], []
     for e in range(args.episodes):
