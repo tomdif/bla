@@ -1,0 +1,10 @@
+{
+  "env": "reacher/easy",
+  "n_transitions": 40000,
+  "copy_forward_mse": 0.3279,
+  "mse_history_only": 0.2311,
+  "mse_action_conditioned": 0.001,
+  "r_action": 0.9956,
+  "threshold": 0.15,
+  "preflight_pass": true
+}

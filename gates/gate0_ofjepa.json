@@ -1,0 +1,52 @@
+{
+  "mean_l2_px": 47.542,
+  "rmse_x_px": 35.879,
+  "rmse_y_px": 36.06,
+  "img_px": 128,
+  "threshold_px": 5.0,
+  "pass": false,
+  "n_train": 2880,
+  "n_test": 720,
+  "z_dim": 320,
+  "decoder_steps": 5000,
+  "seed": 0,
+  "embeddings_hash": "0dc132f90d94",
+  "positions_hash": "d849b48853cc",
+  "pred_vs_true_sample": [
+    [
+      58.4,
+      69.7
+    ],
+    [
+      63.3,
+      47.9
+    ],
+    [
+      58.6,
+      23.3
+    ],
+    [
+      63.4,
+      3.0
+    ],
+    [
+      57.9,
+      73.2
+    ],
+    [
+      62.9,
+      45.6
+    ],
+    [
+      57.9,
+      17.5
+    ],
+    [
+      62.8,
+      84.4
+    ]
+  ],
+  "timestamp": 1780184385.0283942,
+  "npz": "/workspace/bla/gates/navigate_embeddings.npz",
+  "scatter": "(scatter skipped: No module named 'matplotlib')"
+}
