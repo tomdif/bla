@@ -34,13 +34,15 @@ def beta_ramp(step, warmup=2000, beta=1.0):
     return beta * min(step / max(warmup, 1), 1.0)
 
 
-@torch.no_grad()
 def gate0_check(encoder, frames, pos, img_px, device, steps=5000, threshold_px=5.0, bs=512):
+    # NOTE: no_grad wraps ONLY the embedding — decode_gate trains a fresh decoder
+    # and needs grad enabled (a @torch.no_grad() on this whole fn breaks backward).
     encoder.eval()
     Z = []
-    for i in range(0, len(frames), bs):
-        x = torch.from_numpy(frames[i:i + bs]).float().to(device) / 255.0
-        Z.append(encoder(x).cpu().numpy())
+    with torch.no_grad():
+        for i in range(0, len(frames), bs):
+            x = torch.from_numpy(frames[i:i + bs]).float().to(device) / 255.0
+            Z.append(encoder(x).cpu().numpy())
     encoder.train()
     Z = np.concatenate(Z)
     return decode_gate(Z, pos, img_px, steps=steps, threshold_px=threshold_px, device=device)
