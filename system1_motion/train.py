@@ -52,6 +52,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", required=True)
     ap.add_argument("--image-size", type=int, default=64)
+    ap.add_argument("--frame-stack", type=int, default=1,
+                    help="S frames stacked on channels so the encoder sees velocity; "
+                         "A1=1 (failed Gate 0 on 2nd-order Reacher), A2=3")
     ap.add_argument("--patch", type=int, default=8)
     ap.add_argument("--d-z", type=int, default=384)
     ap.add_argument("--enc-depth", type=int, default=6)
@@ -73,13 +76,14 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
 
     from system1_motion.data import TransitionDataset
-    ds = TransitionDataset(args.data)
+    ds = TransitionDataset(args.data, frame_stack=args.frame_stack)
     img_px = ds.img_px
     eval_frames, eval_pos = ds.eval_arrays(frac=0.2)
     dl = DataLoader(ds, batch_size=args.batch, shuffle=True, num_workers=4, drop_last=True)
     da = ds.actions.shape[1]
+    in_ch = 3 * args.frame_stack
 
-    enc = ViTEncoder(args.image_size, args.patch, 3, args.d_z, args.enc_depth).to(dev)
+    enc = ViTEncoder(args.image_size, args.patch, in_ch, args.d_z, args.enc_depth).to(dev)
     tgt = copy.deepcopy(enc).to(dev)
     for p in tgt.parameters():
         p.requires_grad_(False)
