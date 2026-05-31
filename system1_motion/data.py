@@ -20,7 +20,7 @@ class TransitionDataset(Dataset):
     failed Gate 0 because single-frame action-conditioned prediction can't reward
     position-encoding without velocity). x_{t+1} is the stack ending at t+1."""
 
-    def __init__(self, npz_path, frame_stack=1):
+    def __init__(self, npz_path, frame_stack=1, disjoint=False):
         d = np.load(npz_path)
         self.frames = d["frames"]            # uint8 [N,3,H,W]
         self.actions = d["actions"].astype(np.float32)
@@ -28,13 +28,20 @@ class TransitionDataset(Dataset):
         self.ep = d["ep_id"].astype(np.int64)
         self.img_px = int(d["img_px"]) if "img_px" in d else self.frames.shape[-1]
         self.S = int(frame_stack)
-        # valid i: i and i+1 same episode, AND the S-frame history ending at i+1
-        # stays within the same episode (so x_t and x_{t+1} are well-defined).
-        ok = (self.ep[:-1] == self.ep[1:])
-        for k in range(1, self.S):
-            ok[k:] &= (self.ep[:-1 - k] == self.ep[k:-1])      # j-k same episode as j
-        self.pairs = np.where(ok)[0]
-        self.pairs = self.pairs[self.pairs >= self.S - 1]
+        self.disjoint = bool(disjoint)
+        N = len(self.frames)
+        if self.disjoint:
+            # A3: past clip [j-S+1..j], action window [j..j+S-1], future clip
+            # [j+1..j+S] — DISJOINT past/future (no shared frames -> no copy shortcut).
+            self.pairs = np.array([j for j in range(self.S - 1, N - self.S)
+                                   if self.ep[j - self.S + 1] == self.ep[j + self.S]])
+        else:
+            # A1/A2: predict the S-stack ending at j+1 from the stack ending at j.
+            ok = (self.ep[:-1] == self.ep[1:])
+            for k in range(1, self.S):
+                ok[k:] &= (self.ep[:-1 - k] == self.ep[k:-1])
+            self.pairs = np.where(ok)[0]
+            self.pairs = self.pairs[self.pairs >= self.S - 1]
 
     def __len__(self):
         return len(self.pairs)
@@ -45,12 +52,15 @@ class TransitionDataset(Dataset):
 
     def __getitem__(self, i):
         j = int(self.pairs[i])
+        if self.disjoint:
+            aw = torch.from_numpy(self.actions[j:j + self.S])          # [S, da] action window
+            return (self._stack(j), aw, self._stack(j + self.S), torch.from_numpy(self.pos[j]))
         return (self._stack(j), torch.from_numpy(self.actions[j]),
                 self._stack(j + 1), torch.from_numpy(self.pos[j]))
 
     def eval_arrays(self, frac=0.2):
-        """Held-out (stacked frames [M,3S,H,W], positions) for the Gate-0 probe —
-        last `frac` of valid stacks, distinct from training batches."""
+        """Held-out (past-clip stacks [M,3S,H,W], positions at j) for Gate 0 —
+        last `frac` of valid pairs, distinct from training batches."""
         n = len(self.pairs); k = int((1 - frac) * n)
         ends = self.pairs[k:]
         X = np.stack([self.frames[e - self.S + 1:e + 1].reshape(-1, *self.frames.shape[2:])

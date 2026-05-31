@@ -55,6 +55,10 @@ def main():
     ap.add_argument("--frame-stack", type=int, default=1,
                     help="S frames stacked on channels so the encoder sees velocity; "
                          "A1=1 (failed Gate 0 on 2nd-order Reacher), A2=3")
+    ap.add_argument("--disjoint", action="store_true",
+                    help="A3: predict a DISJOINT future S-clip from the past S-clip + the "
+                         "S-action window (no shared frames -> blocks the copy shortcut that "
+                         "drove A2 pred->0.0002)")
     ap.add_argument("--patch", type=int, default=8)
     ap.add_argument("--d-z", type=int, default=384)
     ap.add_argument("--enc-depth", type=int, default=6)
@@ -76,18 +80,19 @@ def main():
     os.makedirs(args.out_dir, exist_ok=True)
 
     from system1_motion.data import TransitionDataset
-    ds = TransitionDataset(args.data, frame_stack=args.frame_stack)
+    ds = TransitionDataset(args.data, frame_stack=args.frame_stack, disjoint=args.disjoint)
     img_px = ds.img_px
     eval_frames, eval_pos = ds.eval_arrays(frac=0.2)
     dl = DataLoader(ds, batch_size=args.batch, shuffle=True, num_workers=4, drop_last=True)
     da = ds.actions.shape[1]
     in_ch = 3 * args.frame_stack
+    da_dyn = da * (args.frame_stack if args.disjoint else 1)   # disjoint => action WINDOW (S actions)
 
     enc = ViTEncoder(args.image_size, args.patch, in_ch, args.d_z, args.enc_depth).to(dev)
     tgt = copy.deepcopy(enc).to(dev)
     for p in tgt.parameters():
         p.requires_grad_(False)
-    dyn = LatentDynamics(args.d_z, da, args.dyn_depth).to(dev)
+    dyn = LatentDynamics(args.d_z, da_dyn, args.dyn_depth).to(dev)
     dec = DecodeHead(args.d_z, out_dim=eval_pos.shape[1]).to(dev)
     opt_sub = torch.optim.AdamW(list(enc.parameters()) + list(dyn.parameters()), lr=args.lr, weight_decay=1e-4)
     opt_dec = torch.optim.AdamW(dec.parameters(), lr=1e-3, weight_decay=1e-4)
@@ -101,6 +106,8 @@ def main():
         except StopIteration:
             di = iter(dl); xt, a, xtp1, pos = next(di)
         xt, a, xtp1, pos = xt.to(dev), a.to(dev), xtp1.to(dev), pos.to(dev)
+        if args.disjoint:
+            a = a.reshape(a.shape[0], -1)             # [B, S, da] action window -> [B, S*da]
 
         z_t = enc(xt)
         with torch.no_grad():
