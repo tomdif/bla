@@ -45,6 +45,43 @@ def variance_hinge(z, gamma=1.0):
     return torch.clamp(gamma - std, min=0.0).mean()
 
 
+import math
+
+
+class RunningStandardizer:
+    """EMA per-dim mean/var for standardizing the flattened action window before
+    E_a (so trajectory-level norm variation doesn't dominate the embedding)."""
+
+    def __init__(self, momentum=0.99, eps=1e-5):
+        self.m = momentum; self.eps = eps; self.mean = None; self.var = None
+
+    @torch.no_grad()
+    def update(self, x):
+        mu = x.float().mean(0); v = x.float().var(0, unbiased=False)
+        self.mean = mu if self.mean is None else self.m * self.mean + (1 - self.m) * mu
+        self.var = v if self.var is None else self.m * self.var + (1 - self.m) * v
+
+    def __call__(self, x):
+        if self.mean is None:
+            return x
+        return (x - self.mean.to(x.device)) / torch.sqrt(self.var.to(x.device) + self.eps)
+
+
+def inverse_dynamics_loss(q_psi, h_t, z_future_sg, u_target_sg):
+    """L_inv = MSE(q_psi(h_t, sg[z_future]), sg[E_a(a)]) / d_u. Grad -> q_psi and
+    (via live h_t) f_theta; NOT E_a (target sg'd) nor the future path (sg'd)."""
+    return ((q_psi(h_t, z_future_sg) - u_target_sg) ** 2).mean()
+
+
+def prior_grounding_loss(prior, h_t, u_target_sg):
+    """L_prior = Gaussian NLL of sg[E_a(a)] under p_rho(h_t)=N(mu,sigma). Grad ->
+    p_rho and (via live h_t) f_theta; NOT E_a."""
+    mu, log_sigma = prior(h_t)
+    inv_var = torch.exp(-2.0 * log_sigma)
+    nll = 0.5 * (((u_target_sg - mu) ** 2) * inv_var + 2.0 * log_sigma + math.log(2.0 * math.pi))
+    return nll.mean()
+
+
 def substrate_loss(z_pred, z_tgt, z_t, sigma2, *, beta_var=1.0):
     """Assemble the substrate loss (A1): prediction + variance hinge. Returns
     (total, parts-dict)."""
