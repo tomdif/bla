@@ -97,3 +97,35 @@ What is *not* yet here, deliberately: the Phase-3 training curriculum
 router, value/reward heads on the temporal predictor), and a real video
 dataloader. Those are training-curriculum deliverables; the architectural
 substrate to run them is now in place.
+
+## Phase E — Controls-first Affordance Agent (2026-06-12)
+
+A self-contained, stdlib-only affordance-discovery stack: an agent that finds *which
+interactions change the achievable future set* (`Δachievable`), rather than just predicting
+frames. Built controls-first — every mechanism is its own runnable gate that prints `PASS`/`FAIL`
+with its own ablations, and every ablation fails for its expected reason. Run any gate directly:
+
+```bash
+python3 affordance_loop.py            # Δachievable discovery signal
+python3 online_affordance_integration_gate.py   # stateful runner (#3A)
+python3 arc_online_affordance_runner.py         # full stack online, mock ls20
+```
+
+The core idea is **embodiment-invariant**: a single `discover()` core (discover-by-Δachievable +
+cost/risk/transfer probe selection + class generalization) runs unchanged across a discrete grid
+and a continuous reach body; perception turns a raw color grid (or detection cloud) into an
+affordance canvas via a start-color prior + segmentation. Four git tags freeze the milestones:
+
+| Tag | What it freezes | Files |
+| --- | --- | --- |
+| `phase-e-online-affordance-v0` | stateful algorithmic agent (discover/generalize/refine/contradict/remember) | `affordance_{loop,gate1,gate2,gate3}.py`, `world_model_general.py`, `perception_{affordance,reach,contradiction}.py`, `affordance_aliasing_gate.py`, `online_affordance_integration_gate.py`, `delayed_payoff_arbiter_gate.py` |
+| `phase-e-language-affordance-seam-v0` | first learned fusion seam: language → typed `AffordanceHypothesis`, Δachievable owns truth | `language_hypothesis_affordance_gate.py` |
+| `phase-e-language-assisted-arbiter-v0` | capstone: language seam + delayed-payoff arbiter | `language_assisted_path_hypothesis_arbiter_gate.py` |
+| `phase-e-arc-online-affordance-runner-v0` | full stack as one online loop behind an `ArcAdapter` boundary (mock ls20) | `arc_online_affordance_runner.py` |
+
+Design rule throughout: **modularize what has passed controls; fuse only the unknown interface.**
+The one learned seam is `language → typed hypotheses`; physics (`Δachievable` + predicted/actual
+consistency) owns truth, with a shuffled-language control proving the prior is load-bearing.
+Scope note: `arc_online_affordance_runner.py` is a clean **mock** ls20 integration (the core agent
+is frozen and swappable behind `ArcAdapter`); it is **not** a real ls20 solve — the real game
+(64×64, cross-flip shape-match, occlusion control wall) is a separate, harder problem.
