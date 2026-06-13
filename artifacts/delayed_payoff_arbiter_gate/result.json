@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "checks": {
+    "FULL solves the delayed-payoff world": true,
+    "plateau DETECTED (one-step probes all flat)": true,
+    "arbiter ENTERED on plateau": true,
+    "arbiter found the CORRECT key (multi-step payoff)": true,
+    "arbiter REJECTED the decoy hypothesis (stable-when-gain-expected)": true,
+    "one_step_only FAILS (all one-step probes plateau)": true,
+    "no_plateau_detector FAILS (never enters arbiter)": true,
+    "no_consistency_check FAILS (commits to the decoy)": true,
+    "no_discovery FAILS": true,
+    "no_contradiction FAILS (disguised wall on approach)": true,
+    "oracle SOLVES (upper bound)": true,
+    "blocked stays LOCAL (only the disguised cell)": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "FULL runner solves held episode (separable)": true,
+    "FULL runner solves aliased variant (key refinement online)": true,
+    "CONTRADICTION DID NOT ERASE DISCOVERY (load-bearing)": true,
+    "class belief persisted across steps (yellow believed)": true,
+    "only LOCAL blocked exception added (just the disguised cell)": true,
+    "no_discovery FAILS (doors never open)": true,
+    "no_contradiction FAILS (loops on disguised wall)": true,
+    "no_class_memory FAILS (belief doesn't persist -> can't accumulate)": true,
+    "no_alias_refine FAILS on aliased (blind transfer wastes budget)": true,
+    "green/decoy rejected (not in discovered switches)": true
+  },
+  "pass": true,
+  "runs": {
+    "full_sep": true,
+    "full_ali": true,
+    "no_disc": false,
+    "no_contra": false,
+    "no_classmem": false,
+    "no_alias": false
+  }
+}

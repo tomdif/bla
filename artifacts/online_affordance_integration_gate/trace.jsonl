@@ -1,0 +1,16 @@
+{"step": 0, "pos": [5, 0], "budget": 3, "class_beliefs": {}, "blocked": [], "mode": "probe", "cand": [4, 2], "key": 2, "delta": 23, "refined_key": null, "aliased": []}
+{"step": 1, "pos": [5, 0], "budget": 2, "class_beliefs": {"2": 1}, "blocked": [], "mode": "exploit", "cand": [8, 2], "key": 2, "delta": 44}
+{"step": 2, "pos": [5, 0], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "moved_to": [5, 1]}
+{"step": 3, "pos": [5, 1], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "moved_to": [5, 2]}
+{"step": 4, "pos": [5, 2], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "moved_to": [5, 3]}
+{"step": 5, "pos": [5, 3], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "moved_to": [5, 4]}
+{"step": 6, "pos": [5, 4], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "moved_to": [5, 5]}
+{"step": 7, "pos": [5, 5], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "moved_to": [5, 6]}
+{"step": 8, "pos": [5, 6], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "moved_to": [5, 7]}
+{"step": 9, "pos": [5, 7], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [], "mode": "navigate", "replan_reason": "failed_move", "bumped": [5, 8]}
+{"step": 10, "pos": [5, 7], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [[5, 8]], "mode": "navigate", "moved_to": [6, 7]}
+{"step": 11, "pos": [6, 7], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [[5, 8]], "mode": "navigate", "moved_to": [6, 8]}
+{"step": 12, "pos": [6, 8], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [[5, 8]], "mode": "navigate", "moved_to": [6, 9]}
+{"step": 13, "pos": [6, 9], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [[5, 8]], "mode": "navigate", "moved_to": [5, 9]}
+{"step": 14, "pos": [5, 9], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [[5, 8]], "mode": "navigate", "moved_to": [5, 10]}
+{"step": 15, "pos": [5, 10], "budget": 1, "class_beliefs": {"2": 2}, "blocked": [[5, 8]], "mode": "done"}
