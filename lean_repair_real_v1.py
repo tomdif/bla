@@ -76,7 +76,8 @@ def llm_proposer(stmt, err, model="claude-sonnet-4-6"):
               "[safePeakIterValue] | succ k ih => simp [safePeakIterValue, Nat.succ_add, ih]`. Do NOT use `sorry`/`admit` "
               "(they typecheck but the axiom audit rejects them).\n\n"
               f"DEFINITION:\n{ctx}\nTHEOREM:\n{stmt} := by\n\nHINT/ERROR:\n{err}\n")
-    t = "".join(b.text for b in cl.messages.create(model=model, max_tokens=700,
+    t = "".join(b.text for b in cl.messages.create(model=model, max_tokens=1500,
+                system="Respond with ONLY the JSON object -- no prose, no reasoning, no markdown fences.",
                 messages=[{"role": "user", "content": prompt}]).content if getattr(b, "type", "") == "text")
     t = re.sub(r"^```(?:json)?|```$", "", t.strip(), flags=re.M).strip()      # strip markdown fences
     m = re.search(r"\{.*\}", t, re.S)
