@@ -137,6 +137,30 @@ class TestLs20Hierarchy(unittest.TestCase):
         self.assertIn("shape_matched", out); self.assertIn("at_exit", out)
 
 
+class TestLs20RealPerception(unittest.TestCase):
+    def test_perception_extracts_state(self):
+        from wmos.adapters.ls20_real import RealLs20Adapter, _synthetic_frame
+        from wmos.adapters import ls20_perception as P
+        s = P.extract(_synthetic_frame())
+        self.assertIsNotNone(s["cross"]); self.assertGreater(s["avatar_key"]["cells"], 0)
+        self.assertIn("match_confidence", s)
+
+    def test_online_low_confidence_is_not_asserted(self):
+        # real-grounded adapter is ONLINE: a low-confidence perceived match must NOT be asserted as
+        # verified; WMOS marks it needs_measurement (act to confirm) -- the invariant on real pixels.
+        a = get_adapter("ls20_real")
+        h = Harness(a, SessionStore(tempfile.mkdtemp())); h.hypothesize()
+        if not h.hyps: self.skipTest("no candidate perceived")
+        hid = next(iter(h.hyps))
+        status = h.verify(hid).status
+        self.assertIn(status, ("needs_measurement", "predicted"))
+        self.assertNotEqual(status, "verified", "online predictions must not be asserted as ground truth")
+
+    def test_registered(self):
+        from wmos import list_adapters
+        self.assertIn("ls20_real", list_adapters())
+
+
 class TestCLI(unittest.TestCase):
     def test_commands_never_crash(self):
         h = fresh()

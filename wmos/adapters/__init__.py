@@ -135,6 +135,7 @@ class ReachAdapter(Adapter):
 
 
 from . import ls20  # noqa: F401  (registers "ls20"; stdlib -- richer achievable + hierarchical sub-goals)
+from . import ls20_real  # noqa: F401  (registers "ls20_real"; shape state grounded in real pixels)
 
 # register adapters that need optional heavy imports (numpy) without breaking the base package
 try:

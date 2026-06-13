@@ -97,6 +97,33 @@ the adapter supplies the predicates. The `/goals` command shows the live decompo
 This is the *adapter change, not a WMOS change* the arc adapter pointed to — and it composes the
 delayed-payoff arbiter (matching is K flips) with hierarchical ordering (match before exit).
 
+## Grounded in real ls20 pixels (`ls20_real`)
+
+```bash
+python3 -m wmos --adapter ls20_real    # the shape state is READ FROM real 64x64 frames
+```
+
+`ls20` modeled the shape state symbolically; `ls20_real` reads it from actual frames via
+`ls20_perception.extract()` — avatar position, the cross operator, the avatar KEY and EXIT key
+shapes, and an emptiest-quadrant orientation for each — then runs the *same* hierarchy on perceived
+state. It's **online** (you can't snapshot the remote game to measure without acting), so
+`measure_delta` is a *model/perception prediction*, not committed truth, and WMOS treats it as such:
+
+```
+avatar-key orient 3 (confidence 0.067 — a solid 15-cell block is ambiguous)
+match_confidence 0.067  →  VERIFY → NEEDS_MEASUREMENT  (cannot assert; act to confirm)
+```
+
+That refusal — *not* a confident-but-wrong claim from ambiguous perception — is the verificationist
+invariant on real data. Perception reliably grounds the **state**; the exact ls20 match predicate
+(filled key vs pattern) is the documented `~/arc_local` open problem, and the calibrated
+`match_confidence` makes WMOS defer to real action feedback exactly where that uncertainty lives.
+
+Three honest regimes, same engine: **grid** (offline real measurement → verified/refuted),
+**arc** (offline reachability → cross refuted: reachability is blind to shape), **ls20** (offline
+richer hierarchical signal → cross verified), **ls20_real** (online real perception, low confidence
+→ needs measurement).
+
 ## Add your own world
 
 ```python

@@ -22,8 +22,9 @@ class Hypothesis:
     pred_delta: float = None
     band: tuple = None
     ood: bool = False
-    status: str = "proposed"      # proposed|needs_measurement|trusted|ood_refuse|verified|refuted
+    status: str = "proposed"      # proposed|needs_measurement|trusted|ood_refuse|verified|refuted|predicted
     measured_delta: float = None
+    perceptual_conf: float = 1.0
     provenance: list = field(default_factory=list)
     def note(self, w): self.provenance.append([round(time.time() % 1e5, 2), w])
     def to_dict(self): return asdict(self)
@@ -128,7 +129,7 @@ class Harness:
             hid = self._hid_map.setdefault(cand["id"], f"H{len(self._hid_map) + 1}")  # STABLE id per candidate
             h = Hypothesis(hid, "+".join(s[0] for s in srcs), feat["key"], cand["id"], cand["label"],
                            confidence=round(max(s[1] for s in srcs), 2), pred_delta=round(pred, 1),
-                           band=band, ood=ood)
+                           band=band, ood=ood, perceptual_conf=float(feat.get("confidence", 1.0)))
             for s in srcs: h.note(f"proposed by {s[0]} (conf {s[1]:.2f}): {s[2]}")
             self.hyps[hid] = self.govern(h)
         return self.hyps
@@ -144,11 +145,27 @@ class Harness:
             h.status = "needs_measurement"; h.note("GOVERNOR: unverified -> needs measurement before action")
         return h
 
+    CONF_MIN = 0.15
+
     def verify(self, hid):
         if hid not in self.hyps: raise KeyError(hid)
         h = self.hyps[hid]
-        delta = self.adapter.measure_delta(h.cid)               # the expensive truth (no commit)
-        h.measured_delta = delta; h.note(f"VERIFIER: measured Δachievable = {delta:+.0f}")
+        online = bool(self.adapter.observe().get("online"))
+        delta = self.adapter.measure_delta(h.cid)
+        h.measured_delta = delta
+        if online:
+            # ONLINE: measure_delta is a MODEL/PERCEPTION PREDICTION, not committed truth. Real truth =
+            # action feedback (you cannot measure without acting). Don't assert a belief from a prediction.
+            if delta > 0 and h.perceptual_conf >= self.CONF_MIN:
+                h.status = "predicted"
+                h.note(f"VERIFIER: model-predicted Δ={delta:+.2f} (conf {h.perceptual_conf}); PREDICTED -- act to confirm")
+            else:
+                h.status = "needs_measurement"
+                h.note(f"VERIFIER: Δ={delta:+.2f} at conf {h.perceptual_conf} (online/low-confidence) -> cannot assert; measure by acting")
+            self.mem.log(f"verify {hid} ONLINE predicted Δ={delta:+.2f} conf={h.perceptual_conf} -> {h.status}")
+            return h
+        # OFFLINE: measurement owns truth
+        h.note(f"VERIFIER: measured Δachievable = {delta:+.0f}")
         self.govern(h)
         effect = "switch" if delta > 0 else "inert"
         self.mem.remember(h.key, h.cid, effect, 0.9, list(h.provenance))
