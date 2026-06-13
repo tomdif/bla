@@ -1,0 +1,16 @@
+{
+  "pass": true,
+  "checks": {
+    "no_language arbiter solves (baseline)": true,
+    "language_verified(correct) solves with FEWER micro-plans than no_language": true,
+    "SHUFFLE KILLS ADVANTAGE: language_verified(shuffled) gets NO plan savings": true,
+    "bad language REJECTED by consistency (decoy plan inconsistent)": true,
+    "accepted hypothesis had actual \u0394achievable>0": true,
+    "language_verified(correct) committed the CORRECT key": true,
+    "language_only(correct) solves": true,
+    "language_only(SHUFFLED) FAILS (commits to decoy, no verifier)": true,
+    "arbiter_no_consistency FAILS (commits to nearer decoy)": true,
+    "verifier makes language ROBUST: shuffled still solves (fell back)": true,
+    "oracle solves (upper bound)": true
+  }
+}
