@@ -151,7 +151,7 @@ def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, b
         hinge = variance_hinge(z_t)                                                  # per-dim std floor
         arm = F.mse_loss(dec_arm(z_t), p0)                                           # SUPERVISED grounding = dominant
         tgl = F.mse_loss(dec_tgt(z_t), g0)                                           # anti-collapse: z must encode positions
-        loss = pred + 1.0 * hinge + 5.0 * (arm + tgl)
+        loss = pred + 1.0 * hinge + 15.0 * arm + 5.0 * tgl   # arm (moving fingertip) is the hard one -> weight it 3x
         opt.zero_grad(); loss.backward(); opt.step()
         if step % max(1, steps // 10) == 0 or step == steps - 1:
             log(f"[wm{tag} step {step}/{steps}] pred={pred.item():.4f} std={z_t.std(0).mean().item():.3f} "
