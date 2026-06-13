@@ -33,10 +33,10 @@ class Hypothesis:
 class LearnedDeltaEstimator:
     """Cheap learned proposal + conformal band + OOD flag. (Rigor proven in
     learned_delta_estimator_gate.py / reachability_surrogate_gate.py; here it is a component.)"""
-    def __init__(self, w=37.0, band=10.0, dist_range=(1, 12)):
+    def __init__(self, w=37.0, band=10.0, dist_range=(0, 200)):
         self.w, self.band, self.dist_range = w, band, dist_range
     def predict(self, feat):
-        signal = feat.get("adj_wall", feat.get("graspable", 0))
+        signal = feat.get("signal", feat.get("adj_wall", feat.get("graspable", 0)))
         pred = self.w * signal
         ood = not (self.dist_range[0] <= feat.get("dist", 0) <= self.dist_range[1])
         return pred, (round(pred - self.band, 1), round(pred + self.band, 1)), ood
@@ -56,7 +56,7 @@ class LanguageProposer:
         cands = obs["candidates"]
         if not cands: return None, "no candidates", 0.0, "none"
         if not os.environ.get("RUN_LIVE_LLM_GATE"):
-            best = max(cands, key=lambda c: c["features"].get("adj_wall", c["features"].get("graspable", 0)))
+            best = max(cands, key=lambda c: c["features"].get("signal", c["features"].get("adj_wall", 0)))
             return best["id"], "commonsense: the affordance is usually adjacent to what it controls", 0.6, "stub"
         try:
             import anthropic, re

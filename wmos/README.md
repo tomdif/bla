@@ -58,6 +58,22 @@ wmos/
 └── server.py       web cockpit (stdlib http.server, zero deps)
 ```
 
+## Real ARC-AGI-3 (ls20)
+
+```bash
+python3 -m wmos --adapter arc        # runs on REAL recorded ls20 frames (64x64), or a synthetic fallback
+```
+
+The `arc` adapter perceives the real game (avatar = color 12, maze corridors = 3, the white-cross
+operator = 0/1, yellows = 11) and maps them to WMOS candidates. It's honest about the state of the
+art: Δachievable here is **maze reachability**, which captures navigation/gating affordances — but
+ls20's actual **win mechanic is a shape-match** (run the avatar over the cross to flip its key until
+it matches the exit). So the estimator/language confidently propose the cross, and the reachability
+verifier correctly **refuses to confirm it as a door-opener** (Δreach = 0). That refusal — no false
+affordance — *is* the point. A richer "achievable" (win-states gated on key-shape) is the open
+extension, and it's an **adapter change, not a WMOS one**. Sources: recorded frames
+(`~/arc_local/.../ls20_transitions.npz`), a synthetic fallback, and a live-client wiring stub.
+
 ## Add your own world
 
 ```python

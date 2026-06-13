@@ -78,6 +78,31 @@ class TestAdapters(unittest.TestCase):
         self.assertIsNotNone(tool, "grabbing a tool must increase achievable targets")
 
 
+class TestARCAdapter(unittest.TestCase):
+    def setUp(self):
+        try:
+            import numpy  # noqa
+        except Exception:
+            self.skipTest("numpy required for the ARC adapter")
+
+    def test_arc_perceives_and_verifier_owns_truth(self):
+        from wmos.adapters.arc import ARCAdapter, SyntheticLs20Source
+        a = ARCAdapter(source=SyntheticLs20Source())
+        obs = a.observe()
+        self.assertGreater(obs["reachable"], 5, "should flood the maze corridor")
+        self.assertTrue(any("cross" in c["id"] for c in obs["candidates"]), "should perceive the cross operator")
+        h = Harness(a, SessionStore(tempfile.mkdtemp())); h.hypothesize()
+        self.assertTrue(h.hyps, "WMOS must produce hypotheses on real-format ls20 frames")
+        # the cross is an OPERATOR (shape-flip), not a reachability gate -> a reachability verifier
+        # correctly REFUTES it. The verifier owning truth (no false-positive affordance) is the point.
+        hid = next(iter(h.hyps))
+        self.assertEqual(h.verify(hid).status, "refuted")
+
+    def test_arc_registered(self):
+        from wmos import list_adapters
+        self.assertIn("arc", list_adapters())
+
+
 class TestCLI(unittest.TestCase):
     def test_commands_never_crash(self):
         h = fresh()

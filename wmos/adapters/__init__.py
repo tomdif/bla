@@ -83,7 +83,7 @@ class GridAdapter(Adapter):
                            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)))
             label = {YELLOW: "yellow", GREEN: "green"}[col]
             cands.append({"id": cid, "label": f"{label} object at {cell}",
-                          "features": {"color": label, "adj_wall": int(adj_wall),
+                          "features": {"color": label, "adj_wall": int(adj_wall), "signal": int(adj_wall),
                                        "dist": abs(cell[0] - self.agent[0]) + abs(cell[1] - self.agent[1]),
                                        "key": f"{label}|{'adj_wall' if adj_wall else 'open'}"}})
         scene = "A locked door blocks the exit. Interactables: " + "; ".join(c["label"] for c in cands) + "."
@@ -119,7 +119,7 @@ class ReachAdapter(Adapter):
     def _ach(self, reach): return sum(1 for r in self.radii if r <= reach)
     def observe(self):
         cands = [{"id": cid, "label": f"{('tool' if k=='tool' else 'rock')} at distance {d}",
-                  "features": {"color": k, "graspable": 1, "dist": d, "key": f"{k}|graspable"}}
+                  "features": {"color": k, "graspable": 1, "signal": 1, "dist": d, "key": f"{k}|graspable"}}
                  for cid, (d, k) in self.objs.items() if cid not in self.grabbed]
         return {"candidates": cands, "reachable": self._ach(self.reach), "solved": self.reach >= self.goal_r,
                 "scene": "A reach body; targets sit at increasing radii. Interactables: "
@@ -132,3 +132,10 @@ class ReachAdapter(Adapter):
     def apply(self, cid):
         _d, k = self.objs[cid]
         if k == "tool" and cid not in self.grabbed: self.reach += 2.0; self.grabbed.add(cid)
+
+
+# register adapters that need optional heavy imports (numpy) without breaking the base package
+try:
+    from . import arc  # noqa: F401  (registers "arc"; needs numpy + optional recorded frames)
+except Exception:
+    pass

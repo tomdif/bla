@@ -32,8 +32,19 @@ HELP = """commands:
 _GRIDSYM = {0: ".", 1: "#", 2: "@", 3: "G", 4: "Y", 5: "g"}
 
 
+_LS20SYM = {4: ".", 3: "#", 5: "+", 12: "@", 11: "Y", 9: "i", 8: "*", 0: "x", 1: "x", 2: " "}
+
+
 def render_canvas(h):
     obs = h.adapter.observe(); view = obs.get("view", {})
+    if "grid" in view and view.get("palette") == "ls20":
+        g = view["grid"]; H = len(g); step = max(1, H // 30)    # downsample 64x64 for the terminal
+        rows = []
+        for r in range(0, H, step):
+            s = "".join(_LS20SYM.get(g[r][c], "?") for c in range(0, len(g[r]), step))
+            rows.append("   " + s)
+        return "\n".join(rows) + ("\n   legend: @ avatar  # maze  + border  Y yellow  i icon  x cross  . floor "
+                                  "(downsampled %dx)" % step)
     if "grid" in view:
         dis = view.get("disguised")
         rows = []
