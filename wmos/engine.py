@@ -6,6 +6,7 @@ Invariant enforced in code:  NO UNVERIFIED PROPOSAL OWNS TRUTH.
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 import os, json, time
+from .safety import ShiftDetector
 
 
 # ============================ typed hypothesis bus ============================
@@ -22,9 +23,11 @@ class Hypothesis:
     pred_delta: float = None
     band: tuple = None
     ood: bool = False
-    status: str = "proposed"      # proposed|needs_measurement|trusted|ood_refuse|verified|refuted|predicted
+    status: str = "proposed"      # proposed|needs_measurement|trusted|ood_refuse|verified|refuted|predicted|defer_operator
     measured_delta: float = None
     perceptual_conf: float = 1.0
+    irreversible: bool = False
+    risk_observable: bool = True
     provenance: list = field(default_factory=list)
     def note(self, w): self.provenance.append([round(time.time() % 1e5, 2), w])
     def to_dict(self): return asdict(self)
@@ -34,12 +37,17 @@ class Hypothesis:
 class LearnedDeltaEstimator:
     """Cheap learned proposal + conformal band + OOD flag. (Rigor proven in
     learned_delta_estimator_gate.py / reachability_surrogate_gate.py; here it is a component.)"""
-    def __init__(self, w=37.0, band=10.0, dist_range=(0, 200)):
+    def __init__(self, w=37.0, band=10.0, dist_range=(0, 200), feature_ranges=None):
         self.w, self.band, self.dist_range = w, band, dist_range
+        # COMPLETE-FEATURE OOD (fix for the OOD-evasion breach): monitor EVERY feature with a known
+        # range, not just one. An adversary that pushes an unmonitored feature OOD is no longer silent.
+        self.feature_ranges = feature_ranges or {"dist": dist_range, "signal": (-0.01, 1.01)}
     def predict(self, feat):
         signal = feat.get("signal", feat.get("adj_wall", feat.get("graspable", 0)))
         pred = self.w * signal
-        ood = not (self.dist_range[0] <= feat.get("dist", 0) <= self.dist_range[1])
+        ood = False
+        for k, (lo, hi) in self.feature_ranges.items():
+            if k in feat and not (lo <= feat[k] <= hi): ood = True; break
         return pred, (round(pred - self.band, 1), round(pred + self.band, 1)), ood
 
 
@@ -108,6 +116,7 @@ class Harness:
         self.autonomy = autonomy if autonomy in self.AUTONOMY else "manual"
         self.trust_threshold = trust_threshold
         self.hyps = {}; self._hid_map = {}
+        self.shift = ShiftDetector(); self._shift_ref = False; self._shifted = False   # closes conformal-under-shift
         self.session_id = f"sess-{int(time.time())}"
 
     def state(self):
@@ -118,6 +127,10 @@ class Harness:
 
     def hypothesize(self):
         obs = self.adapter.observe(); self.hyps = {}
+        feats = [c["features"] for c in obs["candidates"]]
+        if feats:                                              # distribution-shift monitor (conformal trust guard)
+            if not self._shift_ref: self.shift.fit(feats); self._shift_ref = True
+            else: self._shifted = self.shift.shifted(feats)
         lcid, lreason, lconf, _lsrc = self.lang.propose(obs)
         for cand in obs["candidates"]:
             feat = cand["features"]; pred, band, ood = self.est.predict(feat)
@@ -129,20 +142,26 @@ class Harness:
             hid = self._hid_map.setdefault(cand["id"], f"H{len(self._hid_map) + 1}")  # STABLE id per candidate
             h = Hypothesis(hid, "+".join(s[0] for s in srcs), feat["key"], cand["id"], cand["label"],
                            confidence=round(max(s[1] for s in srcs), 2), pred_delta=round(pred, 1),
-                           band=band, ood=ood, perceptual_conf=float(feat.get("confidence", 1.0)))
+                           band=band, ood=ood, perceptual_conf=float(feat.get("confidence", 1.0)),
+                           irreversible=bool(feat.get("irreversible", False)),
+                           risk_observable=bool(feat.get("risk_observable", True)))
             for s in srcs: h.note(f"proposed by {s[0]} (conf {s[1]:.2f}): {s[2]}")
             self.hyps[hid] = self.govern(h)
         return self.hyps
 
     def govern(self, h):
-        if h.ood:
-            h.status = "ood_refuse"; h.note("GOVERNOR: out-of-distribution -> refuse; must measure")
+        if h.irreversible and not h.risk_observable:           # irreversibility guard (closes disguised-trap)
+            h.status = "defer_operator"
+            h.note("GOVERNOR: irreversible action under unobservable risk -> defer to operator (never act on a prediction)")
+        elif h.ood:
+            h.status = "ood_refuse"; h.note("GOVERNOR: out-of-distribution (some monitored feature) -> refuse; must measure")
         elif h.measured_delta is not None:
             h.status = "verified" if h.measured_delta > 0 else "refuted"
-        elif h.band and h.band[0] > self.trust_threshold and self.autonomy != "manual":
+        elif h.band and h.band[0] > self.trust_threshold and self.autonomy != "manual" and not self._shifted:
             h.status = "trusted"; h.note(f"GOVERNOR: conformal lower bound {h.band[0]} > {self.trust_threshold} -> trustable")
         else:
-            h.status = "needs_measurement"; h.note("GOVERNOR: unverified -> needs measurement before action")
+            reason = ("distribution shift -> conformal not trustworthy; " if self._shifted else "")
+            h.status = "needs_measurement"; h.note(f"GOVERNOR: {reason}unverified -> needs measurement before action")
         return h
 
     CONF_MIN = 0.15
@@ -183,6 +202,8 @@ class Harness:
     def act(self, hid):
         if hid not in self.hyps: raise KeyError(hid)
         h = self.hyps[hid]; gate = self.AUTONOMY[self.autonomy]
+        if h.status == "defer_operator":
+            return {"released": False, "reason": f"{hid} is irreversible under unobservable risk -> deferred to operator"}
         if h.status == "ood_refuse":
             return {"released": False, "reason": f"{hid} is OOD-refused; measure it first"}
         if h.status == "refuted":

@@ -224,6 +224,40 @@ class TestReach3D(unittest.TestCase):
         self.assertIn("reachable", run_cmd(h, "/why-depth tool"))
 
 
+class TestSafetyFixes(unittest.TestCase):
+    """The meta-defenses from the adversarial red-team, now live in WMOS."""
+    def test_complete_ood_monitors_all_features(self):
+        from wmos.safety import CompleteOODDetector
+        det = CompleteOODDetector().calibrate([{"A": 2.5, "B": 2.5}, {"A": 2.0, "B": 3.0}, {"A": 3.0, "B": 2.0}])
+        flagged, key = det.check({"A": 2.5, "B": 99.0})         # B out of range, A fine
+        self.assertTrue(flagged); self.assertEqual(key, "B")
+
+    def test_estimator_multifeature_ood(self):
+        a = fresh()
+        _p, _b, ood = a.est.predict({"signal": 5.0, "dist": 1})  # signal out of [0,1] -> OOD now
+        self.assertTrue(ood, "estimator must flag an out-of-range NON-distance feature")
+
+    def test_shift_detector(self):
+        from wmos.safety import ShiftDetector
+        sd = ShiftDetector().fit([{"x": v} for v in (0, 1, 2, 3, 4, 5)] * 5)
+        self.assertFalse(sd.shifted([{"x": 2}, {"x": 3}]))
+        self.assertTrue(sd.shifted([{"x": 9}, {"x": 10}]), "a drifted batch must be flagged")
+
+    def test_governor_defers_irreversible_unknown_risk(self):
+        class TrapAdapter:
+            name = "trap"
+            def observe(self): return {"candidates": [{"id": "t", "label": "trap",
+                "features": {"signal": 1.0, "confidence": 0.9, "dist": 1, "key": "x|x",
+                             "irreversible": True, "risk_observable": False}}],
+                "reachable": 1, "solved": False, "scene": "trap", "online": False}
+            def measure_delta(self, cid): return 5.0
+            def apply(self, cid): pass
+        h = Harness(TrapAdapter(), SessionStore(tempfile.mkdtemp())); h.hypothesize()
+        hid = next(iter(h.hyps))
+        self.assertEqual(h.hyps[hid].status, "defer_operator")
+        self.assertFalse(h.act(hid)["released"], "irreversible action under unknown risk must not be released")
+
+
 class TestCLI(unittest.TestCase):
     def test_commands_never_crash(self):
         h = fresh()

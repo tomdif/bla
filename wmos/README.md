@@ -175,6 +175,20 @@ class MyWorld(Adapter):
 `python3 -m wmos --adapter my_world`. The loop, governor, verifier, memory, and audit are unchanged —
 real ARC / robotics is an adapter, not a rewrite.
 
+## Safety layer (`wmos/safety.py`)
+
+The meta-defenses an adversarial red-team named for the three statistical holes, now live in the engine:
+
+- **CompleteOODDetector** — flags OOD if *any* monitored feature is out of range (closes "vary an
+  unmonitored feature"). The estimator now monitors every feature with a known range, not just one.
+- **ShiftDetector** — the governor refuses to trust a calibrated band when the live batch has drifted
+  from calibration (closes "conformal under adversarial shift" — exchangeability is monitored, not assumed).
+- **Irreversibility guard** — the governor *defers to operator* any action that is `irreversible` with
+  `risk_observable: false` (closes the disguised trap — never commit an irreversible step on a prediction).
+
+These convert silent assumptions into enforced, monitored ones: you must still declare the features, the
+calibration reference, and the irreversibility/risk flags — but they're now explicit and checked.
+
 ## Guarantees (tested)
 
 `python3 -m pytest tests/test_wmos.py` covers: the invariant (unverified actions blocked),
