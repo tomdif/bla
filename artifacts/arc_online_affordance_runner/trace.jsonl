@@ -1,0 +1,43 @@
+{"level": 0, "step": 0, "action": 3, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 0, "step": 1, "action": 3, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 0, "step": 2, "action": 3, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 0, "step": 3, "action": 3, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 0, "step": 4, "action": 3, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 0, "step": 5, "action": 3, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 1, "step": 6, "action": 1, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 1, "step": 7, "action": 4, "moved": false, "beliefs": {}, "blocked": 0}
+{"level": 1, "step": 8, "action": 0, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 1, "step": 9, "action": 0, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 1, "step": 10, "action": 0, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 1, "step": 11, "action": 0, "moved": true, "beliefs": {}, "blocked": 0}
+{"level": 1, "step": 12, "action": 4, "moved": false, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 13, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 14, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 15, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 16, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 17, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 18, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 19, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 20, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 1, "step": 21, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 22, "action": 0, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 23, "action": 0, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 24, "action": 0, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 25, "action": 4, "moved": false, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 26, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 27, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 28, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 29, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 30, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 31, "action": 1, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 32, "action": 4, "moved": false, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 33, "action": 0, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 34, "action": 0, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 35, "action": 0, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 36, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 37, "action": 3, "moved": true, "beliefs": {"4": 1}, "blocked": 0}
+{"level": 2, "step": 38, "action": 4, "moved": false, "beliefs": {"4": 1, "5": 1}, "blocked": 0}
+{"level": 2, "step": 39, "action": 3, "moved": true, "beliefs": {"4": 1, "5": 1}, "blocked": 0}
+{"level": 2, "step": 40, "action": 3, "moved": true, "beliefs": {"4": 1, "5": 1}, "blocked": 0}
+{"level": 2, "step": 41, "action": 3, "moved": true, "beliefs": {"4": 1, "5": 1}, "blocked": 0}
+{"level": 2, "step": 42, "action": 3, "moved": true, "beliefs": {"4": 1, "5": 1}, "blocked": 0}
