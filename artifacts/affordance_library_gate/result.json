@@ -1,0 +1,23 @@
+{
+  "pass": true,
+  "transfer": {
+    "no_lib": {
+      "solved": true,
+      "measurements": 6,
+      "refutations": 0,
+      "skipped": 0
+    },
+    "with_lib": {
+      "solved": true,
+      "measurements": 4,
+      "refutations": 1,
+      "skipped": 1
+    },
+    "shuffle": {
+      "solved": true,
+      "measurements": 6,
+      "refutations": 2,
+      "skipped": 4
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "green|open": {
+    "effect": "inert",
+    "n_confirm": 1,
+    "n_refute": 0,
+    "provenance": "game_A",
+    "unlocks": null
+  },
+  "yellow|adj_wall": {
+    "effect": "switch",
+    "n_confirm": 2,
+    "n_refute": 0,
+    "provenance": "game_A",
+    "unlocks": null
+  },
+  "yellow|open": {
+    "effect": "inert",
+    "n_confirm": 1,
+    "n_refute": 0,
+    "provenance": "game_A",
+    "unlocks": null
+  }
+}
