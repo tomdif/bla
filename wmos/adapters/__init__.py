@@ -134,6 +134,8 @@ class ReachAdapter(Adapter):
         if k == "tool" and cid not in self.grabbed: self.reach += 2.0; self.grabbed.add(cid)
 
 
+from . import ls20  # noqa: F401  (registers "ls20"; stdlib -- richer achievable + hierarchical sub-goals)
+
 # register adapters that need optional heavy imports (numpy) without breaking the base package
 try:
     from . import arc  # noqa: F401  (registers "arc"; needs numpy + optional recorded frames)

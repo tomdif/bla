@@ -20,6 +20,7 @@ HELP = """commands:
   /verify <id>          measure Δachievable (verification owns truth)
   /act <id>             release the action (gated by governor + autonomy)
   /autonomy <lvl>       manual | assisted | auto
+  /goals                hierarchical sub-goal decomposition + frontier (if the adapter has one)
   /canaries             run falsifiers (make cheating obvious)
   /library              the persistent affordance library (inspectable)
   /explain              plain-language summary of current beliefs
@@ -58,6 +59,11 @@ def render_canvas(h):
         return "\n".join(rows) + "\n   legend: @ agent  G goal  # wall  Y yellow  g green  ~ disguised(solid)  . floor"
     if "reach" in view:
         return f"   reach radius: {view['reach']}  targets at radii {view['targets']}  goal radius {view['goal_r']}"
+    if "ls20_shape" in view:
+        v = view["ls20_shape"]; ring = ["|", "/", "-", "\\"]
+        return (f"   key shape: {ring[v['key'] % 4]} (state {v['key']})   target: {ring[v['target'] % 4]} (state {v['target']})"
+                f"   {'MATCHED' if v['key'] == v['target'] else 'not matched'}\n"
+                f"   avatar {tuple(v['avatar'])}  exit {tuple(v['exit'])}")
     return "   (no visual view for this adapter)"
 
 
@@ -73,8 +79,20 @@ def run_cmd(h, line):
             return f"autonomy = {h.autonomy}  (manual=shadow | assisted=trust high-confidence | auto=self-act)"
         if c == "/state":
             s = h.state()
-            return (f"adapter={s['adapter']} autonomy={s['autonomy']} | reachable={s['reachable']} solved={s['solved']}\n"
-                    f"beliefs={s['beliefs']} library={s['library']} contested={s['contested']}\n  {s['scene']}")
+            front = ""
+            if hasattr(h.adapter, "goals"):
+                g = h.adapter.goals(); front = f"\n  goal frontier: {g['frontier']}  (hierarchical value {g['value']})"
+            return (f"adapter={s['adapter']} autonomy={s['autonomy']} | achievable={s['reachable']} solved={s['solved']}\n"
+                    f"beliefs={s['beliefs']} library={s['library']} contested={s['contested']}\n  {s['scene']}{front}")
+        if c == "/goals":
+            if not hasattr(h.adapter, "goals"): return "this adapter has no goal hierarchy."
+            g = h.adapter.goals()
+            lines = [f"hierarchical sub-goals (root achieved={g['achieved']}, value={g['value']}, frontier={g['frontier']}):"]
+            for sg in g["subgoals"]:
+                gate = f" requires {sg['requires']}" if sg["requires"] else ""
+                lines.append(f"  [{'x' if sg['satisfied'] else ' '}] {sg['name']}  progress={sg['progress']} "
+                             f"ready={sg['ready']}{gate}")
+            return "\n".join(lines)
         if c == "/canvas": return render_canvas(h)
         if c == "/hypotheses":
             h.hypothesize()

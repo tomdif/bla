@@ -103,6 +103,40 @@ class TestARCAdapter(unittest.TestCase):
         self.assertIn("arc", list_adapters())
 
 
+class TestLs20Hierarchy(unittest.TestCase):
+    def test_richer_signal_confirms_cross_where_flat_refutes(self):
+        a = get_adapter("ls20")
+        self.assertGreater(a.measure_delta("cross"), 0, "richer (shape) signal must advance the win")
+        self.assertEqual(a.flat_reachability_delta("cross"), 0.0, "flat reachability is blind -> would refute")
+
+    def test_decoy_refuted(self):
+        self.assertEqual(get_adapter("ls20").measure_delta("yellow"), 0.0)
+
+    def test_wmos_verifies_cross_on_ls20(self):
+        a = get_adapter("ls20"); h = Harness(a, SessionStore(tempfile.mkdtemp())); h.hypothesize()
+        cross = next(hid for hid, x in h.hyps.items() if x.cid == "cross")
+        self.assertEqual(h.verify(cross).status, "verified", "the richer signal makes the cross a real affordance")
+
+    def test_hierarchy_ordering(self):
+        a = get_adapter("ls20"); g = a.goals()
+        self.assertEqual(g["frontier"], "shape_matched")
+        at_exit = next(s for s in g["subgoals"] if s["name"] == "at_exit")
+        self.assertFalse(at_exit["ready"], "at_exit must require shape_matched first (ordering)")
+
+    def test_full_solve_respects_ordering(self):
+        a = get_adapter("ls20")
+        a.go_to_exit()                                   # try to reach exit BEFORE matching
+        self.assertFalse(a.observe()["solved"], "reaching the exit unmatched must NOT win (the gate)")
+        a.flip_to_match(); a.go_to_exit()
+        self.assertTrue(a.observe()["solved"], "match-then-exit wins")
+        self.assertEqual(a.goals()["frontier"], None)
+
+    def test_goals_command(self):
+        h = Harness(get_adapter("ls20"), SessionStore(tempfile.mkdtemp()))
+        out = run_cmd(h, "/goals")
+        self.assertIn("shape_matched", out); self.assertIn("at_exit", out)
+
+
 class TestCLI(unittest.TestCase):
     def test_commands_never_crash(self):
         h = fresh()

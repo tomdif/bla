@@ -74,6 +74,29 @@ affordance — *is* the point. A richer "achievable" (win-states gated on key-sh
 extension, and it's an **adapter change, not a WMOS one**. Sources: recorded frames
 (`~/arc_local/.../ls20_transitions.npz`), a synthetic fallback, and a live-client wiring stub.
 
+## Richer achievable + hierarchical sub-goals (ls20 shape-match)
+
+```bash
+python3 -m wmos --adapter ls20    # /goals shows the decomposition; the cross is now CONFIRMED
+```
+
+The `arc` adapter is honest that reachability can't see ls20's win (the cross flips a *key shape*, not
+what's reachable) — so the cross is refuted there. The `ls20` adapter supplies the **richer achievable
+signal**: a hierarchical potential over sub-goals.
+
+```
+WIN = key.shape == exit.shape  AND  avatar at exit
+ ├── shape_matched          (apply the cross operator — a multi-flip plan, delayed payoff)
+ └── at_exit  requires: [shape_matched]   (navigate; entering before matching does NOT win)
+```
+
+Now `measure_delta(cross)` is the *shape sub-goal* progress (+1.1), not reachability (0), so the
+verifier **confirms** the cross where the flat signal refuted it — and a yellow decoy still measures 0
+and is refuted. `wmos.goals.GoalHierarchy` is generic (frontier-finding, ordering, value, achievement);
+the adapter supplies the predicates. The `/goals` command shows the live decomposition and frontier.
+This is the *adapter change, not a WMOS change* the arc adapter pointed to — and it composes the
+delayed-payoff arbiter (matching is K flips) with hierarchical ordering (match before exit).
+
 ## Add your own world
 
 ```python
