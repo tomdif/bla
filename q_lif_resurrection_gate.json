@@ -1,0 +1,74 @@
+{
+  "thresholds": {
+    "std_floor": 0.1,
+    "rank_floor": 1.0,
+    "B_xy": 0.5,
+    "B_action": 0.3
+  },
+  "runs": {
+    "positive_control(supervised)": {
+      "latent_health": {
+        "std": 1.13,
+        "eff_rank": 2.07,
+        "collapse": false
+      },
+      "floors": {
+        "predictive_xy_bits": 8.836,
+        "action_delta_bits": 4.52,
+        "predictive_pass": true,
+        "action_pass": true
+      },
+      "verdict": "pass"
+    },
+    "constant_latent": {
+      "latent_health": {
+        "std": 0.0,
+        "eff_rank": 0.0,
+        "collapse": true
+      },
+      "floors": {
+        "predictive_xy_bits": 0.0,
+        "action_delta_bits": 0.0,
+        "predictive_pass": false,
+        "action_pass": false
+      },
+      "verdict": "fail"
+    },
+    "candidate(sigreg_jepa)": {
+      "latent_health": {
+        "std": 1.013,
+        "eff_rank": 15.18,
+        "collapse": false
+      },
+      "floors": {
+        "predictive_xy_bits": 5.937,
+        "action_delta_bits": 3.992,
+        "predictive_pass": true,
+        "action_pass": true
+      },
+      "verdict": "pass"
+    },
+    "broken_ownership(decoupled_action)": {
+      "latent_health": {
+        "std": 1.022,
+        "eff_rank": 15.37,
+        "collapse": false
+      },
+      "floors": {
+        "predictive_xy_bits": 5.734,
+        "action_delta_bits": -0.011,
+        "predictive_pass": true,
+        "action_pass": false
+      },
+      "verdict": "fail"
+    }
+  },
+  "controls": {
+    "positive_control_pass": true,
+    "constant_latent_fail": true,
+    "broken_ownership_fail": true
+  },
+  "diagnostic_valid": true,
+  "candidate_verdict": "pass",
+  "slot_floor": "deferred \u2014 needs object-centric encoder, not faked in v0"
+}

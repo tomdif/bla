@@ -1,0 +1,80 @@
+{
+  "runs": {
+    "positive(supervised)": {
+      "latent_health": {
+        "std": 0.581,
+        "eff_rank": 2.61,
+        "dim_cost": 0.87,
+        "collapse": false
+      },
+      "floors": {
+        "position_bits": 2.885,
+        "velocity_bits": 1.372,
+        "action_bits": 0.687,
+        "position_pass": true,
+        "velocity_pass": true,
+        "action_pass": true
+      },
+      "verdict": "pass"
+    },
+    "sigreg_jepa(plain)": {
+      "latent_health": {
+        "std": 1.025,
+        "eff_rank": 15.77,
+        "dim_cost": 5.26,
+        "collapse": false
+      },
+      "floors": {
+        "position_bits": 2.426,
+        "velocity_bits": 1.286,
+        "action_bits": 0.665,
+        "position_pass": true,
+        "velocity_pass": true,
+        "action_pass": true
+      },
+      "verdict": "pass"
+    },
+    "qlif_v1(aux_floors)": {
+      "latent_health": {
+        "std": 1.034,
+        "eff_rank": 15.62,
+        "dim_cost": 5.21,
+        "collapse": false
+      },
+      "floors": {
+        "position_bits": 2.545,
+        "velocity_bits": 1.259,
+        "action_bits": 0.644,
+        "position_pass": true,
+        "velocity_pass": true,
+        "action_pass": true
+      },
+      "verdict": "pass"
+    },
+    "broken_ownership_v1": {
+      "latent_health": {
+        "std": 1.014,
+        "eff_rank": 15.65,
+        "dim_cost": 5.22,
+        "collapse": false
+      },
+      "floors": {
+        "position_bits": 2.435,
+        "velocity_bits": 1.289,
+        "action_bits": -0.003,
+        "position_pass": true,
+        "velocity_pass": true,
+        "action_pass": false
+      },
+      "verdict": "fail"
+    }
+  },
+  "controls": {
+    "positive_pass": true,
+    "broken_ownership_fail": true
+  },
+  "sigreg_under_encodes": false,
+  "d_vel": -0.027,
+  "d_act": -0.021,
+  "verdict": "NO GAP (task still too easy)"
+}
