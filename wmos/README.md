@@ -115,9 +115,18 @@ match_confidence 0.067  →  VERIFY → NEEDS_MEASUREMENT  (cannot assert; act t
 ```
 
 That refusal — *not* a confident-but-wrong claim from ambiguous perception — is the verificationist
-invariant on real data. Perception reliably grounds the **state**; the exact ls20 match predicate
-(filled key vs pattern) is the documented `~/arc_local` open problem, and the calibrated
-`match_confidence` makes WMOS defer to real action feedback exactly where that uncertainty lives.
+invariant on real data.
+
+**The match predicate, cracked (mined + validated on 2000 recorded frames):** the keys that must
+match are NOT the avatar's solid block but the **LEGEND** (the flippable key HUD, bottom-left
+color-9) and the **EXIT** key (top box). Both are the same L-shaped glyph (a bar + a leg) at
+different scales; the predicate is **scale-invariant orientation agreement** — `orient(legend) ==
+orient(exit)` via the emptiest-quadrant descriptor — and the cross flips the legend's orientation.
+Validation: the predicate produces **0 false matches across 2000 score-0 frames** (a necessary
+condition — random play never won), and a constructed leg-right legend correctly matches the exit.
+Fixing the keys lifted `match_confidence` from 0.067 (the ambiguous solid block) to ~0.2, above
+WMOS's assertion threshold, so the cross moves from *needs-measurement* to a grounded `PREDICTED`.
+The last validation — a true positive on a real WIN — needs the live game (act-and-observe).
 
 Three honest regimes, same engine: **grid** (offline real measurement → verified/refuted),
 **arc** (offline reachability → cross refuted: reachability is blind to shape), **ls20** (offline

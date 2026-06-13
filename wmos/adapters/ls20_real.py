@@ -29,13 +29,21 @@ def _load_frames(npz_path):
         return None
 
 
-def _synthetic_frame():
-    g = [[4] * 64 for _ in range(64)]                     # bg
+def _synthetic_frame(legend_orient=3):
+    """A faithful ls20-ish frame: avatar (core + solid icon block), the cross, an L-shaped EXIT key
+    (top, leg on the right -> orient 2), and an L-shaped LEGEND key (bottom-left). legend_orient
+    controls the legend's leg side (3=leg-left=not matched; 2=leg-right=matches the exit)."""
+    g = [[4] * 64 for _ in range(64)]
     for i in range(64): g[0][i] = g[63][i] = g[i][0] = g[i][63] = 5
     for r in range(45, 47):
         for c in range(34, 39): g[r][c] = 12              # avatar core
-    for (r, c) in [(47, 34), (47, 36), (47, 38), (48, 35), (48, 37), (49, 36)]: g[r][c] = 9   # avatar key (pattern)
-    for (r, c) in [(11, 35), (11, 36), (11, 37), (12, 37), (13, 35), (13, 37)]: g[r][c] = 9   # exit key (top)
+    for r in range(47, 50):
+        for c in range(34, 37): g[r][c] = 9               # avatar's solid icon block (NOT the key to match)
+    for (r, c) in [(11, 35), (11, 36), (11, 37), (12, 37), (13, 37)]: g[r][c] = 9   # EXIT key (top, leg right -> orient 2)
+    # LEGEND key (bottom-left): bar on top + a leg; left leg -> orient 3, right leg -> orient 2 (matches exit)
+    for c in (3, 4, 5, 6): g[55][c] = g[56][c] = 9
+    legcols = (3, 4) if legend_orient == 3 else (5, 6)
+    for c in legcols: g[57][c] = g[58][c] = 9
     g[32][21] = 0; g[31][21] = 1                          # cross
     return g
 
@@ -63,8 +71,8 @@ class RealLs20Adapter(Adapter):
 
     def _state(self):
         p = P.extract(self._frame())
-        av_or = p["avatar_key"]["orient"]; ex_or = p["exit_key"]["orient"]
-        avatar = p["avatar"]; exit_c = p["exit_key"]["center"] or (12, 36)
+        av_or = p["key"]["orient"]; ex_or = p["target"]["orient"]    # legend (flippable key) vs exit (target)
+        avatar = p["avatar"]; exit_c = p["target"]["center"] or (12, 36)
         return {"p": p, "av_or": av_or, "ex_or": ex_or, "matched": p["matched"],
                 "match_conf": p["match_confidence"], "avatar": avatar, "exit": exit_c,
                 "exit_dist": abs(avatar[0] - exit_c[0]) + abs(avatar[1] - exit_c[1]),
@@ -81,9 +89,10 @@ class RealLs20Adapter(Adapter):
                                        "confidence": conf, "dist": abs(p["cross"][0] - s["avatar"][0]) + abs(p["cross"][1] - s["avatar"][1]),
                                        "key": "cross|operator"}})
         scene = (f"REAL ls20 frame. avatar {s['avatar']} | cross {p['cross']} | "
-                 f"avatar-key orient {s['av_or']} (conf {p['avatar_key']['confidence']}, {p['avatar_key']['cells']} cells) | "
-                 f"exit-key orient {s['ex_or']} (conf {p['exit_key']['confidence']}) | "
-                 f"match_confidence {conf} {'(LOW -> measure, do not assert)' if conf < CONF_THRESHOLD else ''} | "
+                 f"KEY(legend) orient {s['av_or']} (conf {p['key']['confidence']}, {p['key']['cells']} cells) | "
+                 f"TARGET(exit) orient {s['ex_or']} (conf {p['target']['confidence']}) | "
+                 f"matched={s['matched']} match_confidence {conf} "
+                 f"{'(LOW -> measure, do not assert)' if conf < CONF_THRESHOLD else '(predicate: legend orient == exit orient)'} | "
                  f"frontier {front.name if front else 'WIN'}")
         return {"candidates": cands, "reachable": round(self.hierarchy.value(s), 3),
                 "solved": self.hierarchy.achieved(s),

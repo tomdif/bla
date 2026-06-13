@@ -112,8 +112,10 @@ def run_cmd(h, line):
         if c == "/verify":
             if not arg or arg not in h.hyps: return f"usage: /verify <id>  (active: {list(h.hyps)})"
             x = h.verify(arg)
-            return (f"VERIFY {arg}: measured Δachievable = {x.measured_delta:+.0f} -> {x.status.upper()}\n"
-                    f"   belief: {x.key} @ {x.cid} -> {'switch' if x.measured_delta > 0 else 'inert'}")
+            online = bool(h.adapter.observe().get("online"))
+            tail = (f"   ONLINE prediction (conf {x.perceptual_conf}) -- act to confirm via real feedback" if online
+                    else f"   belief: {x.key} @ {x.cid} -> {'switch' if x.measured_delta > 0 else 'inert'}")
+            return f"VERIFY {arg}: Δachievable = {x.measured_delta:+.2f} -> {x.status.upper()}\n{tail}"
         if c == "/act":
             if not arg or arg not in h.hyps: return f"usage: /act <id>  (active: {list(h.hyps)})"
             r = h.act(arg)

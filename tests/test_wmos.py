@@ -137,12 +137,40 @@ class TestLs20Hierarchy(unittest.TestCase):
         self.assertIn("shape_matched", out); self.assertIn("at_exit", out)
 
 
+class TestLs20MatchPredicate(unittest.TestCase):
+    """The cracked ls20 win predicate: orient(LEGEND key) == orient(EXIT key), scale-invariant."""
+    def test_matched_vs_not_matched(self):
+        from wmos.adapters.ls20_real import _synthetic_frame
+        from wmos.adapters import ls20_perception as P
+        self.assertFalse(P.extract(_synthetic_frame(legend_orient=3))["matched"], "leg-left legend != exit")
+        self.assertTrue(P.extract(_synthetic_frame(legend_orient=2))["matched"], "leg-right legend == exit -> matched")
+
+    def test_keys_are_legend_and_exit_not_avatar(self):
+        from wmos.adapters.ls20_real import _synthetic_frame
+        from wmos.adapters import ls20_perception as P
+        s = P.extract(_synthetic_frame())
+        self.assertEqual(s["key"]["source"], "legend"); self.assertEqual(s["target"]["source"], "exit")
+        self.assertGreater(s["match_confidence"], 0.1, "L-keys give a real orientation signal (vs the 0.067 solid block)")
+
+    def test_zero_false_matches_on_recorded_score0_frames(self):
+        npz = os.path.expanduser("~/arc_local/jepa_wm/ls20_transitions.npz")
+        if not os.path.exists(npz): self.skipTest("no recorded frames")
+        try:
+            import numpy as np
+        except Exception:
+            self.skipTest("numpy required")
+        from wmos.adapters import ls20_perception as P
+        frames = np.load(npz)["s_before"]
+        false_matches = sum(1 for i in range(0, len(frames), 20) if P.extract(frames[i])["matched"])
+        self.assertEqual(false_matches, 0, "a correct predicate must produce 0 matches on score-0 data")
+
+
 class TestLs20RealPerception(unittest.TestCase):
     def test_perception_extracts_state(self):
         from wmos.adapters.ls20_real import RealLs20Adapter, _synthetic_frame
         from wmos.adapters import ls20_perception as P
         s = P.extract(_synthetic_frame())
-        self.assertIsNotNone(s["cross"]); self.assertGreater(s["avatar_key"]["cells"], 0)
+        self.assertIsNotNone(s["cross"]); self.assertGreater(s["key"]["cells"], 0)
         self.assertIn("match_confidence", s)
 
     def test_online_low_confidence_is_not_asserted(self):
