@@ -35,12 +35,22 @@ class ActionEmbedder(nn.Module):
 
 
 class InverseDynamics(nn.Module):
-    """q_psi: (h_t [d_z], z_future [d_z]) -> u_hat [d_u]."""
+    """q_psi: (h_t [d_z], z_future [d_z]) -> u_hat [d_u].
 
-    def __init__(self, d_z: int, d_u: int = 32, hidden: int = 256):
+    `hidden` and `linear` control q_psi capacity. A high-capacity q_psi can
+    MEMORIZE the action from (z_t, z_future) without the encoder representing it
+    usefully, so L_inv is satisfied with no pressure on the encoder. Tightening
+    the bottleneck (small hidden, or linear=True) forces the *encoder* to make
+    the action easily recoverable -> the grounding pressure actually lands on it.
+    Defaults (hidden=256, linear=False) preserve the canonical v4 behavior."""
+
+    def __init__(self, d_z: int, d_u: int = 32, hidden: int = 256, linear: bool = False):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(2 * d_z, hidden), nn.GELU(),
-                                 nn.Linear(hidden, hidden), nn.GELU(), nn.Linear(hidden, d_u))
+        if linear:
+            self.net = nn.Linear(2 * d_z, d_u)                      # no nonlinearity, no memorization room
+        else:
+            self.net = nn.Sequential(nn.Linear(2 * d_z, hidden), nn.GELU(),
+                                     nn.Linear(hidden, hidden), nn.GELU(), nn.Linear(hidden, d_u))
 
     def forward(self, h_t, z_future):
         return self.net(torch.cat([h_t, z_future], dim=-1))

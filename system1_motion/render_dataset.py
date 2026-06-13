@@ -63,6 +63,13 @@ def main():
         xy = np.asarray(env.physics.named.data.geom_xpos["finger"][:2])
         return (xy + args.extent) / (2 * args.extent) * args.image_size
 
+    def target_px():
+        # The Reacher TARGET geom: uncontrolled, decision-relevant variable (set at
+        # episode reset, static within an episode). Same pixel scaling as the finger.
+        # This is the probe variable for the grounding-dissociation experiment.
+        xy = np.asarray(env.physics.named.data.geom_xpos["target"][:2])
+        return (xy + args.extent) / (2 * args.extent) * args.image_size
+
     # --- startup self-checks ---
     # (1) all-black guard: a real Reacher frame has var ~1000s.
     env.reset()
@@ -73,6 +80,13 @@ def main():
     if v < MIN_VAR:
         raise SystemExit(f"render self-check FAILED: frame variance {v:.2f} < {MIN_VAR} "
                          "(broken GL context / all-black frames).")
+    # (1b) target geom must exist — it's the uncontrolled-variable probe target.
+    try:
+        _t = target_px()
+    except KeyError as ex:
+        raise SystemExit(f"render self-check FAILED: no 'target' geom ({ex}). "
+                         "The grounding-dissociation experiment needs the Reacher target position.")
+    print(f"[render] target geom OK: target px {_t[0]:.1f},{_t[1]:.1f}", flush=True)
     # (2) sub-pixel-motion guard (the action-repeat lesson): measure per-transition
     # fingertip displacement at the configured action_repeat; refuse if < MIN_DISP px,
     # since the substrate can't learn motion that doesn't render. No run on aliased data.
@@ -94,13 +108,17 @@ def main():
     print(f"[render] self-check OK: frame {test.shape} var={v:.1f} | "
           f"per-transition disp {mean_disp:.2f}px @ K={args.action_repeat}", flush=True)
 
-    frames, actions, pos, ep_id = [], [], [], []
+    frames, actions, pos, target, ep_id = [], [], [], [], []
+    qpos, qvel = [], []                                           # proprioceptive (relative) state
     for e in range(args.episodes):
         env.reset()
         for t in range(args.episode_len):
             frames.append(render_frame().transpose(2, 0, 1))      # [3,H,W]
             xy = np.asarray(env.physics.named.data.geom_xpos["finger"][:2])
             pos.append(((xy + args.extent) / (2 * args.extent) * args.image_size).astype(np.float32))
+            target.append(target_px().astype(np.float32))         # uncontrolled-var GT
+            qpos.append(np.asarray(env.physics.data.qpos).astype(np.float32).copy())  # joint angles (+target slides)
+            qvel.append(np.asarray(env.physics.data.qvel).astype(np.float32).copy())  # angular velocities
             a = rng.uniform(aspec.minimum, aspec.maximum, aspec.shape).astype(np.float32)
             actions.append(a); ep_id.append(e)
             last = False                                          # apply action K control steps
@@ -117,10 +135,14 @@ def main():
                         frames=np.asarray(frames, dtype=np.uint8),
                         actions=np.asarray(actions, dtype=np.float32),
                         pos=np.asarray(pos, dtype=np.float32),
+                        target=np.asarray(target, dtype=np.float32),
+                        qpos=np.asarray(qpos, dtype=np.float32),
+                        qvel=np.asarray(qvel, dtype=np.float32),
                         ep_id=np.asarray(ep_id, dtype=np.int64),
                         img_px=args.image_size)
     print(f"[render] wrote {args.out}: {len(frames)} frames @ {args.image_size}px "
-          f"(pos px range {np.min(pos):.1f}-{np.max(pos):.1f})", flush=True)
+          f"(finger px {np.min(pos):.1f}-{np.max(pos):.1f} | "
+          f"target px {np.min(target):.1f}-{np.max(target):.1f})", flush=True)
 
 
 if __name__ == "__main__":

@@ -20,11 +20,18 @@ class TransitionDataset(Dataset):
     failed Gate 0 because single-frame action-conditioned prediction can't reward
     position-encoding without velocity). x_{t+1} is the stack ending at t+1."""
 
-    def __init__(self, npz_path, frame_stack=1, disjoint=False):
+    def __init__(self, npz_path, frame_stack=1, disjoint=False, return_target=False):
         d = np.load(npz_path)
         self.frames = d["frames"]            # uint8 [N,3,H,W]
         self.actions = d["actions"].astype(np.float32)
         self.pos = d["pos"].astype(np.float32)
+        # Optional uncontrolled-variable GT (Reacher target px). Present only in
+        # datasets rendered with target extraction; None otherwise so existing
+        # (target-free) pipelines are unaffected.
+        self.target = d["target"].astype(np.float32) if "target" in d.files else None
+        self.return_target = bool(return_target)
+        if self.return_target and self.target is None:
+            raise ValueError(f"{npz_path} has no 'target' key — re-render with target extraction.")
         self.ep = d["ep_id"].astype(np.int64)
         self.img_px = int(d["img_px"]) if "img_px" in d else self.frames.shape[-1]
         self.S = int(frame_stack)
@@ -54,9 +61,13 @@ class TransitionDataset(Dataset):
         j = int(self.pairs[i])
         if self.disjoint:
             aw = torch.from_numpy(self.actions[j:j + self.S])          # [S, da] action window
-            return (self._stack(j), aw, self._stack(j + self.S), torch.from_numpy(self.pos[j]))
-        return (self._stack(j), torch.from_numpy(self.actions[j]),
-                self._stack(j + 1), torch.from_numpy(self.pos[j]))
+            out = (self._stack(j), aw, self._stack(j + self.S), torch.from_numpy(self.pos[j]))
+        else:
+            out = (self._stack(j), torch.from_numpy(self.actions[j]),
+                   self._stack(j + 1), torch.from_numpy(self.pos[j]))
+        if self.return_target:
+            out = out + (torch.from_numpy(self.target[j]),)            # uncontrolled-var GT at j
+        return out
 
     def eval_arrays(self, frac=0.2):
         """Held-out (past-clip stacks [M,3S,H,W], positions at j) for Gate 0 —
