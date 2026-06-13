@@ -175,6 +175,26 @@ class MyWorld(Adapter):
 `python3 -m wmos --adapter my_world`. The loop, governor, verifier, memory, and audit are unchanged —
 real ARC / robotics is an adapter, not a rewrite.
 
+## Technique Discovery layer (`wmos/techniques.py`)
+
+The researcher/experimenter loop, one level above affordances: an *action* changes the world; a
+**technique** is a reusable *strategy* for a class of bottleneck. The system gets no credit for a
+plausible-sounding technique — only for one that **survives a verifier** (environment feedback /
+Δachievable / tests / Lean / held-out). Verified techniques become a cumulative library of
+`TechniqueCard`s keyed by their bottleneck preconditions, so the next problem with the same signature
+**reuses the card** instead of re-discovering it.
+
+```
+diagnose bottleneck → propose technique → design experiment → test/verify → promote → reuse
+```
+
+Demonstrated in `technique_discovery_gate.py`: an agent with an *incomplete* library faces five worlds
+each needing a different technique (far-switch → Δachievable probe, alias → key refinement, disguised
+wall → contradiction update, delayed payoff → multi-step arbiter), discovers the missing ones, transfers
+them to held-out variants with zero re-discovery, rejects a confidently-wrong decoy technique — and
+*falsely promotes it when the verifier is ablated*. Same invariant, lifted: **techniques propose;
+measured results own promotion.**
+
 ## Safety layer (`wmos/safety.py`)
 
 The meta-defenses an adversarial red-team named for the three statistical holes, now live in the engine:
