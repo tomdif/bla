@@ -21,6 +21,12 @@ ram = ["faiss-cpu>=1.7"]
 # Memoria knowledge graph is used by system2_dca.symbolic_memory.
 memory = ["memoria-core"]
 dev = ["pytest>=7"]
+# WMOS (World-Model Operating System) is stdlib-only; anthropic is optional for the live-LLM proposer.
+wmos-llm = ["anthropic>=0.40"]
+
+# WMOS operator console. Stdlib-only: also runnable dependency-free via `python3 -m wmos`.
+[project.scripts]
+wmos = "wmos.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
