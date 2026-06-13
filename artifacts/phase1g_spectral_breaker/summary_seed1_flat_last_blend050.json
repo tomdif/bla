@@ -1,0 +1,132 @@
+{
+  "config": {
+    "steps": 120,
+    "batch_size": 8,
+    "eval_batches": 16,
+    "history": 4,
+    "train_horizon": 4,
+    "eval_horizon": 12,
+    "image_size": 16,
+    "latent_view": "flat",
+    "prior_kind": "last",
+    "spectral_mode": "blend",
+    "direct_weight": 0.5,
+    "residual_scale": 0.1,
+    "lr": 0.003,
+    "seed": 1,
+    "device": "cpu",
+    "grad_clip": 1.0,
+    "log_every": 10,
+    "out": "artifacts/phase1g_spectral_breaker/summary_seed1_flat_last_blend050.json"
+  },
+  "latent_dim": 512,
+  "initial_eval": {
+    "short": {
+      "direct_rollout": 2.1361642330884933,
+      "spectral_rollout": 1.2862843796610832,
+      "action_mlp_rollout": 0.04040766414254904,
+      "prior_rollout": 0.0015134594432311133,
+      "copy_last_rollout": 0.0015134594432311133,
+      "direct_single": 2.1337504535913467,
+      "spectral_single": 0.5341068431735039,
+      "action_mlp_single": 0.0066850763687398285,
+      "prior_single": 0.0014484529456240125,
+      "copy_last_single": 0.0014484529456240125
+    },
+    "long": {
+      "direct_rollout": 2.120817616581917,
+      "spectral_rollout": 1.7854682058095932,
+      "action_mlp_rollout": 0.30753091908991337,
+      "prior_rollout": 0.0015765505449962802,
+      "copy_last_rollout": 0.0015765505449962802,
+      "direct_single": 2.1294336318969727,
+      "spectral_single": 0.5330536030232906,
+      "action_mlp_single": 0.006695687101455405,
+      "prior_single": 0.0015203108778223395,
+      "copy_last_single": 0.0015203108778223395
+    }
+  },
+  "final_eval": {
+    "short": {
+      "direct_rollout": 0.0007749758296995424,
+      "spectral_rollout": 0.0008338467014255002,
+      "action_mlp_rollout": 0.001570271844684612,
+      "prior_rollout": 0.0015134594432311133,
+      "copy_last_rollout": 0.0015134594432311133,
+      "direct_single": 0.0007733075617579743,
+      "spectral_single": 0.0009262577041226905,
+      "action_mlp_single": 0.0014569314444088377,
+      "prior_single": 0.0014484529456240125,
+      "copy_last_single": 0.0014484529456240125
+    },
+    "long": {
+      "direct_rollout": 0.0008053869132709224,
+      "spectral_rollout": 0.0008346945069206413,
+      "action_mlp_rollout": 0.0019768414204008877,
+      "prior_rollout": 0.0015765505449962802,
+      "copy_last_rollout": 0.0015765505449962802,
+      "direct_single": 0.0007796020327077713,
+      "spectral_single": 0.0009558462697896175,
+      "action_mlp_single": 0.0015263685781974345,
+      "prior_single": 0.0015203108778223395,
+      "copy_last_single": 0.0015203108778223395
+    }
+  },
+  "train_tail": [
+    {
+      "event": "train",
+      "step": 115,
+      "direct_rollout": 0.0008384538232348859,
+      "spectral_rollout": 0.0009005441679619253,
+      "action_mlp_rollout": 0.0015896819531917572,
+      "direct_single": 0.0007157846121117473,
+      "spectral_single": 0.0008980405982583761,
+      "action_mlp_single": 0.0014396547339856625,
+      "spectral_direct_weight": 0.49221086502075195
+    },
+    {
+      "event": "train",
+      "step": 116,
+      "direct_rollout": 0.0008573904633522034,
+      "spectral_rollout": 0.0009213555604219437,
+      "action_mlp_rollout": 0.0016190271126106381,
+      "direct_single": 0.0007869363762438297,
+      "spectral_single": 0.0009620754281058908,
+      "action_mlp_single": 0.0014911242760717869,
+      "spectral_direct_weight": 0.4922133982181549
+    },
+    {
+      "event": "train",
+      "step": 117,
+      "direct_rollout": 0.0008567192708142102,
+      "spectral_rollout": 0.0009227038826793432,
+      "action_mlp_rollout": 0.0017225304618477821,
+      "direct_single": 0.0008404450491070747,
+      "spectral_single": 0.0009712266037240624,
+      "action_mlp_single": 0.0015109769301488996,
+      "spectral_direct_weight": 0.4922160506248474
+    },
+    {
+      "event": "train",
+      "step": 118,
+      "direct_rollout": 0.0007406520890071988,
+      "spectral_rollout": 0.0007834015414118767,
+      "action_mlp_rollout": 0.0014098207466304302,
+      "direct_single": 0.0007557297358289361,
+      "spectral_single": 0.0008908340823836625,
+      "action_mlp_single": 0.001344351447187364,
+      "spectral_direct_weight": 0.49221861362457275
+    },
+    {
+      "event": "train",
+      "step": 119,
+      "direct_rollout": 0.0007674815133213997,
+      "spectral_rollout": 0.0008447333239018917,
+      "action_mlp_rollout": 0.00154258799739182,
+      "direct_single": 0.0008066622540354729,
+      "spectral_single": 0.0009944455232471228,
+      "action_mlp_single": 0.001558499876409769,
+      "spectral_direct_weight": 0.4922211468219757
+    }
+  ]
+}

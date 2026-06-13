@@ -1,0 +1,61 @@
+{
+  "runs": [
+    {
+      "seed": 0,
+      "short_direct": 0.0007653740685782395,
+      "short_augmented": 0.00076805335629615,
+      "short_prior": 0.0014645526025560685,
+      "short_action_mlp": 0.0015179601614363492,
+      "short_augmented_vs_direct_pct": -0.35006251556020623,
+      "short_augmented_vs_prior_pct": 47.55713417492315,
+      "long_direct": 0.0007757297607895453,
+      "long_augmented": 0.0007777555656502955,
+      "long_prior": 0.0014963425273890607,
+      "long_action_mlp": 0.001881684482214041,
+      "long_augmented_vs_direct_pct": -0.2611482713629975,
+      "long_augmented_vs_prior_pct": 48.02289239166475
+    },
+    {
+      "seed": 1,
+      "short_direct": 0.000767112313042162,
+      "short_augmented": 0.0007712200858804863,
+      "short_prior": 0.0015134594432311133,
+      "short_action_mlp": 0.0015432998552569188,
+      "short_augmented_vs_direct_pct": -0.535485191475285,
+      "short_augmented_vs_prior_pct": 49.04256672818441,
+      "long_direct": 0.0007934045970614534,
+      "long_augmented": 0.0007982172464835458,
+      "long_prior": 0.0015765505449962802,
+      "long_action_mlp": 0.0018080596782965586,
+      "long_augmented_vs_direct_pct": -0.606581993590289,
+      "long_augmented_vs_prior_pct": 49.36938438054144
+    },
+    {
+      "seed": 2,
+      "short_direct": 0.0007071013933455106,
+      "short_augmented": 0.0007089548380463384,
+      "short_prior": 0.001340290553343948,
+      "short_action_mlp": 0.0013820791718899272,
+      "short_augmented_vs_direct_pct": -0.2621186605302267,
+      "short_augmented_vs_prior_pct": 47.10439193370894,
+      "long_direct": 0.000716338323400123,
+      "long_augmented": 0.0007176698236435186,
+      "long_prior": 0.0013877653691451997,
+      "long_action_mlp": 0.0017463743424741551,
+      "long_augmented_vs_direct_pct": -0.18587589130727475,
+      "long_augmented_vs_prior_pct": 48.28593942464708
+    }
+  ],
+  "mean_short_direct": 0.0007465292583219707,
+  "mean_short_augmented": 0.0007494094267409915,
+  "mean_short_prior": 0.0014394341997103766,
+  "mean_short_action_mlp": 0.0014811130628610651,
+  "mean_short_augmented_vs_direct_pct": -0.3825554558552393,
+  "mean_short_augmented_vs_prior_pct": 47.901364278938836,
+  "mean_long_direct": 0.0007618242270837072,
+  "mean_long_augmented": 0.0007645475452591199,
+  "mean_long_prior": 0.0014868861471768469,
+  "mean_long_action_mlp": 0.0018120395009949182,
+  "mean_long_augmented_vs_direct_pct": -0.35120205208685373,
+  "mean_long_augmented_vs_prior_pct": 48.55940539895109
+}

@@ -1,0 +1,84 @@
+{
+  "config": {
+    "steps": 60,
+    "batch_size": 8,
+    "eval_batches": 16,
+    "horizon": 4,
+    "history": 4,
+    "image_size": 16,
+    "lr": 0.003,
+    "seed": 0,
+    "device": "cpu",
+    "grad_clip": 1.0,
+    "prior_kind": "last",
+    "residual_scale": 0.01,
+    "out": "artifacts/phase1g_spectral_temporal/summary_seed0_last_scale001.json"
+  },
+  "initial_eval": {
+    "direct_eval_rollout": 1.5444158986210823,
+    "direct_eval_single": 1.6570624858140945,
+    "spectral_eval_rollout": 0.0008200902993849013,
+    "spectral_eval_single": 0.00020434342877706513,
+    "prior_eval_rollout": 0.00010818955433933297,
+    "prior_eval_single": 0.00010661784835974686,
+    "copy_last_eval_rollout": 0.00010818955433933297,
+    "copy_last_eval_single": 0.00010661784835974686
+  },
+  "final_eval": {
+    "direct_eval_rollout": 0.00015970977074175607,
+    "direct_eval_single": 0.00018859154988604132,
+    "spectral_eval_rollout": 0.000252400075623882,
+    "spectral_eval_single": 0.00016327714183717035,
+    "prior_eval_rollout": 0.00010818955433933297,
+    "prior_eval_single": 0.00010661784835974686,
+    "copy_last_eval_rollout": 0.00010818955433933297,
+    "copy_last_eval_single": 0.00010661784835974686
+  },
+  "train_tail": [
+    {
+      "event": "train",
+      "step": 55,
+      "direct_rollout_loss": 0.0001758310099830851,
+      "direct_single_step_loss": 0.0001826755324145779,
+      "spectral_rollout_loss": 0.0002506963210180402,
+      "spectral_single_step_loss": 0.0001788661174941808,
+      "spectral_residual_scale": 0.00884351134300232
+    },
+    {
+      "event": "train",
+      "step": 56,
+      "direct_rollout_loss": 0.00018829820328392088,
+      "direct_single_step_loss": 0.00019109803542960435,
+      "spectral_rollout_loss": 0.0002724941004998982,
+      "spectral_single_step_loss": 0.00016213855997193605,
+      "spectral_residual_scale": 0.00882641226053238
+    },
+    {
+      "event": "train",
+      "step": 57,
+      "direct_rollout_loss": 0.00018228466797154397,
+      "direct_single_step_loss": 0.00019755770335905254,
+      "spectral_rollout_loss": 0.00023506589059252292,
+      "spectral_single_step_loss": 0.00015697591879870743,
+      "spectral_residual_scale": 0.008809496648609638
+    },
+    {
+      "event": "train",
+      "step": 58,
+      "direct_rollout_loss": 0.00017848535208031535,
+      "direct_single_step_loss": 0.0002119419805239886,
+      "spectral_rollout_loss": 0.00022055761655792594,
+      "spectral_single_step_loss": 0.00013709592167288065,
+      "spectral_residual_scale": 0.008792923763394356
+    },
+    {
+      "event": "train",
+      "step": 59,
+      "direct_rollout_loss": 0.00018121143511962146,
+      "direct_single_step_loss": 0.000224340328713879,
+      "spectral_rollout_loss": 0.000175887907971628,
+      "spectral_single_step_loss": 0.00013705797027796507,
+      "spectral_residual_scale": 0.008777101524174213
+    }
+  ]
+}

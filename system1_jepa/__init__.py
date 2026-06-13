@@ -62,6 +62,16 @@ from .temporal import (
     multistep_rollout_loss,
     pool_patch_tokens,
 )
+from .spectral_temporal import (
+    SpectralAugmentedTemporalPredictor,
+    SpectralBlendTemporalPredictor,
+    SpectralFeatureTemporalPredictor,
+    SpectralResidualTemporalPredictor,
+    SpectralTemporalConfig,
+    carrier_prior,
+    generic_multistep_rollout_loss,
+    prior_multistep_rollout_loss,
+)
 from .vit import PatchViTEncoder
 
 __all__ = [
@@ -99,8 +109,14 @@ __all__ = [
     "SyntheticImageLoader",
     "TemporalConfig",
     "TemporalPredictor",
+    "SpectralAugmentedTemporalPredictor",
+    "SpectralBlendTemporalPredictor",
+    "SpectralFeatureTemporalPredictor",
+    "SpectralResidualTemporalPredictor",
+    "SpectralTemporalConfig",
     "binding_mass",
     "causal_edge_loss",
+    "carrier_prior",
     "scene_content_signal",
     "scene_content_surprise",
     "cem_plan",
@@ -110,9 +126,11 @@ __all__ = [
     "jepa_loss",
     "make_image_loader",
     "make_moving_patch_episodes",
+    "generic_multistep_rollout_loss",
     "multistep_rollout_loss",
     "plan_weighted_mse",
     "pool_patch_tokens",
+    "prior_multistep_rollout_loss",
     "sample_patch_mask",
     "sample_tube_mask",
     "sigreg_epps_pulley",
