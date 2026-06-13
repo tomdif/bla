@@ -32,7 +32,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from system1_motion.models import ViTEncoder, LatentDynamics, DecodeHead, ema_update
+from system1_motion.models import ViTEncoder, LatentDynamics, DecodeHead
+from system1_motion.objective import substrate_loss, variance_hinge   # the validated anti-collapse objective
 
 EXTENT = 0.27   # arena half-extent (matches render_dataset)
 
@@ -106,17 +107,18 @@ def load_transitions(npz_path):
     return frames, actions, pos, tgt, idx
 
 
-def train_world_model(npz_path, steps, device, d_z=384, lr=3e-4, batch=128, init_enc=None, log=print):
+def train_world_model(npz_path, steps, device, d_z=384, lr=3e-4, batch=128, beta_var=1.0, init_enc=None, log=print):
+    """JEPA world model with the validated objective: normalized-MSE prediction + variance_hinge floor
+    (raw MSE rewards collapse; normalized-MSE divides by target variance so collapse is self-defeating).
+    Decode heads output NORMALIZED [0,1] fingertip/target px and ground the encoder (the planner's cost)."""
     frames, actions, pos, tgt, idx = load_transitions(npz_path)
     H = frames.shape[-1]; adim = actions.shape[1]
     enc = ViTEncoder(H, 8, 3, d_z, 6).to(device)
     if init_enc and os.path.exists(init_enc):
         sd = torch.load(init_enc, map_location=device); enc.load_state_dict(sd["enc"]); log(f"[wm] loaded grounded encoder {init_enc}")
-    enc_tgt = ViTEncoder(H, 8, 3, d_z, 6).to(device); enc_tgt.load_state_dict(enc.state_dict())
-    for p in enc_tgt.parameters(): p.requires_grad_(False)
     dyn = LatentDynamics(d_z, adim, 4).to(device)
-    dec_arm = DecodeHead(d_z, out_dim=2).to(device)
-    dec_tgt = DecodeHead(d_z, out_dim=2).to(device)
+    dec_arm = DecodeHead(d_z, out_dim=2).to(device)                           # -> normalized fingertip [0,1]
+    dec_tgt = DecodeHead(d_z, out_dim=2).to(device)                           # -> normalized target  [0,1]
     params = list(enc.parameters()) + list(dyn.parameters()) + list(dec_arm.parameters()) + list(dec_tgt.parameters())
     opt = torch.optim.AdamW(params, lr=lr)
     fr = torch.from_numpy(frames); ac = torch.from_numpy(actions)
@@ -126,19 +128,18 @@ def train_world_model(npz_path, steps, device, d_z=384, lr=3e-4, batch=128, init
         b = rng.choice(idx, batch)
         x0 = fr[b].float().to(device) / 255.0
         x1 = fr[b + 1].float().to(device) / 255.0
-        a = ac[b].to(device); p0 = po[b].to(device); g0 = tg[b].to(device)
-        z0 = enc(x0)
-        with torch.no_grad(): z1_t = enc_tgt(x1)
-        z1_pred = dyn(z0, a)
-        pred = F.mse_loss(z1_pred, z1_t)                                       # latent prediction (the world model)
-        var = torch.relu(1.0 - z0.std(0)).mean()                              # variance hinge (anti-collapse)
-        arm = F.mse_loss(dec_arm(z0), p0)                                     # ground fingertip (decodable)
-        tgl = F.mse_loss(dec_tgt(z0), g0)                                     # ground TARGET (decodable -> plannable)
-        loss = pred + 1.0 * var + 0.05 * arm + 0.05 * tgl
-        opt.zero_grad(); loss.backward(); opt.step(); ema_update(enc_tgt, enc, 0.996)
-        if step % max(1, steps // 8) == 0 or step == steps - 1:
-            log(f"[wm step {step}/{steps}] pred={pred.item():.3f} var={z0.std(0).mean().item():.3f} "
-                f"arm_px={arm.item()**0.5:.1f} tgt_px={tgl.item()**0.5:.1f} ({time.time()-t0:.0f}s)")
+        a = ac[b].to(device); p0 = po[b].to(device) / H; g0 = tg[b].to(device) / H   # px -> [0,1]
+        z_t = enc(x0); z_future = enc(x1); z_pred = dyn(z_t, a)
+        sig2 = z_future.var(0, unbiased=False).detach() + 1e-4
+        L_pred, parts = substrate_loss(z_pred, z_future, z_t, sig2, beta_var=0.0)     # normalized-MSE prediction
+        hinge = variance_hinge(z_t)                                                  # per-dim std floor
+        arm = F.mse_loss(dec_arm(z_t), p0)                                           # ground fingertip into encoder
+        tgl = F.mse_loss(dec_tgt(z_t), g0)                                           # ground target into encoder
+        loss = L_pred + beta_var * hinge + 0.5 * arm + 0.5 * tgl
+        opt.zero_grad(); loss.backward(); opt.step()
+        if step % max(1, steps // 10) == 0 or step == steps - 1:
+            log(f"[wm step {step}/{steps}] pred={parts['pred']:.3f} std={z_t.std(0).mean().item():.3f} "
+                f"arm_px={arm.item()**0.5*H:.1f} tgt_px={tgl.item()**0.5*H:.1f} ({time.time()-t0:.0f}s)")
     return {"enc": enc.eval(), "dyn": dyn.eval(), "dec_arm": dec_arm.eval(), "dec_tgt": dec_tgt.eval(),
             "adim": adim, "img": H}
 
@@ -218,7 +219,7 @@ def eval_method(method, wm, bc, bc_goal, demos, region, n_eps, seed0, image_size
                 x = torch.from_numpy(render(env, renderer).transpose(2, 0, 1).astype(np.float32) / 255.0)[None].to(device)
                 if method == "wm_cem":
                     z0 = wm["enc"](x)
-                    a = cem_plan(wm, z0, tpx, aspec, device)
+                    a = cem_plan(wm, z0, tpx / image_size, aspec, device)     # dec_arm outputs normalized [0,1]
                 elif method == "bc":
                     a = bc(x).cpu().numpy()[0]
                 elif method == "bc_goal":
