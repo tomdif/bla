@@ -1,0 +1,23 @@
+{
+  "n_tuples": 3497,
+  "spec": {
+    "image_size": 128,
+    "patch_size": 8,
+    "max_steps": 20,
+    "success_radius": 6.0,
+    "action_dim": 32,
+    "move_max": 10.0
+  },
+  "expert_success": 1.0,
+  "random_success": 0.03125,
+  "flatten": {
+    "val_mse": 69.46803,
+    "success": 0.0,
+    "success_no_goal_control": 0.0
+  },
+  "perfile": {
+    "val_mse": 69.48755,
+    "success": 0.0,
+    "success_no_goal_control": 0.0
+  }
+}
