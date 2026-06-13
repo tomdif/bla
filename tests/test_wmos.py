@@ -189,6 +189,41 @@ class TestLs20RealPerception(unittest.TestCase):
         self.assertIn("ls20_real", list_adapters())
 
 
+class TestReach3D(unittest.TestCase):
+    def test_registered(self):
+        self.assertIn("reach3d", list_adapters())
+
+    def test_2d_trap_resolved_by_depth(self):
+        from wmos.geometry import project
+        a = get_adapter("reach3d")
+        # the tool and the look-alike share the SAME 2D projection...
+        self.assertAlmostEqual(project(a.objs["tool"]["pos"])[0], project(a.objs["lookalike"]["pos"])[0], places=6)
+        g = {o["id"]: o for o in a.geometry()["objects"]}
+        # ...but the GeometryCanvas distinguishes them by depth: tool reachable, look-alike not
+        self.assertTrue(g["tool"]["reach_pred"]); self.assertFalse(g["lookalike"]["reach_pred"])
+
+    def test_reach_affordance_and_verification(self):
+        a = get_adapter("reach3d")
+        self.assertGreater(a.measure_delta("tool"), 0, "reachable tool extends reach -> Δachievable>0")
+        self.assertEqual(a.measure_delta("lookalike"), 0.0, "unreachable look-alike: cannot grasp -> 0")
+        self.assertEqual(a.measure_delta("decoy"), 0.0, "reachable but inert decoy -> 0")
+        h = Harness(a, SessionStore(tempfile.mkdtemp())); h.hypothesize()
+        tool = next(hid for hid, x in h.hyps.items() if x.cid == "tool")
+        self.assertEqual(h.verify(tool).status, "verified")
+        self.assertTrue(h.act(tool)["released"]); self.assertTrue(a.observe()["solved"])
+
+    def test_monocular_is_ood_refused(self):
+        a = get_adapter("reach3d", stereo=False)        # one view -> depth underdetermined
+        g = {o["id"]: o for o in a.geometry()["objects"]}
+        self.assertTrue(g["tool"]["ood"]); self.assertIsNone(g["tool"]["reach_pred"], "monocular must refuse, not assert")
+
+    def test_3d_harness_tools(self):
+        h = Harness(get_adapter("reach3d"), SessionStore(tempfile.mkdtemp())); h.hypothesize()
+        for cmd in ["/show-geometry", "/why-depth tool", "/simulate-reach tool"]:
+            out = run_cmd(h, cmd); self.assertIsInstance(out, str); self.assertNotIn("Traceback", out)
+        self.assertIn("reachable", run_cmd(h, "/why-depth tool"))
+
+
 class TestCLI(unittest.TestCase):
     def test_commands_never_crash(self):
         h = fresh()

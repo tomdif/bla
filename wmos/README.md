@@ -133,6 +133,29 @@ Three honest regimes, same engine: **grid** (offline real measurement → verifi
 richer hierarchical signal → cross verified), **ls20_real** (online real perception, low confidence
 → needs measurement).
 
+## 3D GeometryCanvas (`reach3d`)
+
+```bash
+python3 -m wmos --adapter reach3d    # 3D scene; depth resolves a 2D trap, action feedback verifies
+```
+
+An optional, *verified* 2.5D layer (`wmos/geometry.py`) — object poses + depth uncertainty, **not** a
+dense reconstruction. The achievable set is the reachable objects (3D reach radius); grasping a
+reachable **tool** extends reach. The **2D-trap** is built in: a reachable tool and a far look-alike
+share the *same* 2D projection — a 2D agent can't tell them apart, the GeometryCanvas resolves depth
+(stereo), and a real reach attempt owns truth. Monocular depth is underdetermined → WMOS **refuses**
+to assert reachability and measures instead. Same rule, lifted to 3D: **geometry proposes structure;
+action feedback owns truth** (validated in `geometry_canvas_gate.py`).
+
+3D operator tools:
+
+```
+/show-geometry              object poses, depth, uncertainty, reachability
+/why-depth <id>             stereo/mono, sigma, reprojection, reach verdict
+/simulate-reach <id>        imagine reaching (no commit)
+/verify-3d-hypothesis <id>  verify by a real reach attempt (action owns truth)
+```
+
 ## Add your own world
 
 ```python

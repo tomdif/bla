@@ -21,6 +21,10 @@ HELP = """commands:
   /act <id>             release the action (gated by governor + autonomy)
   /autonomy <lvl>       manual | assisted | auto
   /goals                hierarchical sub-goal decomposition + frontier (if the adapter has one)
+  /show-geometry        the 3D GeometryCanvas: object poses, depth, uncertainty, reachability
+  /why-depth <id>       explain a depth estimate (stereo/mono, sigma, reprojection, reach verdict)
+  /simulate-reach <id>  imagine reaching an object (no commit)
+  /verify-3d-hypothesis <id>  verify a 3D reach hypothesis by a real reach attempt (action owns truth)
   /canaries             run falsifiers (make cheating obvious)
   /library              the persistent affordance library (inspectable)
   /explain              plain-language summary of current beliefs
@@ -59,6 +63,13 @@ def render_canvas(h):
         return "\n".join(rows) + "\n   legend: @ agent  G goal  # wall  Y yellow  g green  ~ disguised(solid)  . floor"
     if "reach" in view:
         return f"   reach radius: {view['reach']}  targets at radii {view['targets']}  goal radius {view['goal_r']}"
+    if "geometry" in view:
+        g = view["geometry"]
+        rows = [f"   GeometryCanvas reach={g['reach_radius']} stereo={g['stereo']} | reachable {g['reachable']}"]
+        for o in g["objects"]:
+            mark = "*" if o["reach_pred"] is True else ("?" if o["ood"] else " ")
+            rows.append(f"   [{mark}] {o['id']:10} {o['type']:7} depth={o['depth']:>5} reach_pred={o['reach_pred']}")
+        return "\n".join(rows) + "\n   (* reachable  ? depth-uncertain/refuse)"
     if "ls20_shape" in view:
         v = view["ls20_shape"]; ring = ["|", "/", "-", "\\"]
         return (f"   key shape: {ring[v['key'] % 4]} (state {v['key']})   target: {ring[v['target'] % 4]} (state {v['target']})"
@@ -84,6 +95,38 @@ def run_cmd(h, line):
                 g = h.adapter.goals(); front = f"\n  goal frontier: {g['frontier']}  (hierarchical value {g['value']})"
             return (f"adapter={s['adapter']} autonomy={s['autonomy']} | achievable={s['reachable']} solved={s['solved']}\n"
                     f"beliefs={s['beliefs']} library={s['library']} contested={s['contested']}\n  {s['scene']}{front}")
+        if c == "/show-geometry":
+            if not hasattr(h.adapter, "geometry"): return "this adapter has no GeometryCanvas."
+            g = h.adapter.geometry()
+            lines = [f"GeometryCanvas (stereo={g['stereo']}, reach_radius={g['reach_radius']}, camera={g['camera']})",
+                     f"  reachable: {g['reachable']}  grabbed: {g['grabbed']}"]
+            for o in g["objects"]:
+                lines.append(f"  {o['id']:10} {o['type']:7} pose3d={o['pose3d']} depth={o['depth']} "
+                             f"sigma={o['depth_sigma']} reach_pred={o['reach_pred']} ood={o['ood']} "
+                             f"reproj_err={o['reproj_err']} uv={o['uv']}")
+            return "\n".join(lines)
+        if c == "/why-depth":
+            if not hasattr(h.adapter, "depth_explain"): return "this adapter has no depth model."
+            cid = arg if arg and arg in getattr(h.adapter, "objs", {}) else (h.hyps[arg].cid if arg in h.hyps else arg)
+            d = h.adapter.depth_explain(cid)
+            if not d: return f"no object '{arg}' (try /show-geometry)"
+            return (f"why-depth {d['id']}: {d['mode']}\n"
+                    f"   depth {d['depth']} +/- sigma {d['depth_sigma']} | est_dist {d['est_dist']} | "
+                    f"reproj_err {d['reproj_err']} | uv {d['uv']}\n   verdict: {d['verdict']}")
+        if c == "/simulate-reach":
+            if not hasattr(h.adapter, "simulate_reach"): return "this adapter has no reach model."
+            cid = arg if arg and arg in getattr(h.adapter, "objs", {}) else (h.hyps[arg].cid if arg in h.hyps else arg)
+            r = h.adapter.simulate_reach(cid)
+            return (f"IMAGINE reach {r['id']}: depth {r['depth']} reach_pred {r['reach_pred']} -> "
+                    f"Δreachable {r['imagined_delta_reachable']:+.0f}  ({r['note']})")
+        if c == "/verify-3d-hypothesis":
+            if not arg or arg not in h.hyps:
+                # allow verifying by object id: find the hypothesis whose cid matches
+                arg = next((hid for hid, x in h.hyps.items() if x.cid == arg), arg)
+            if arg not in h.hyps: return f"usage: /verify-3d-hypothesis <id>  (run /hypotheses; active: {list(h.hyps)})"
+            x = h.verify(arg)
+            return (f"VERIFY-3D {arg} ({x.cid}): reach attempt -> Δachievable {x.measured_delta:+.2f} -> {x.status.upper()}\n"
+                    f"   (action feedback owns truth; geometry only proposed the structure)")
         if c == "/goals":
             if not hasattr(h.adapter, "goals"): return "this adapter has no goal hierarchy."
             g = h.adapter.goals()
