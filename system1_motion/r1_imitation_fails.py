@@ -146,7 +146,9 @@ def train_world_model(npz_path, steps, device, d_z=384, lr=3e-4, batch=128, init
 # ----------------------------- CEM-MPC planner (uses the LEARNED model only) -----------------------------
 @torch.no_grad()
 def cem_plan(wm, z0, target_px, aspec, device, horizon=5, iters=3, pop=128, elite=16):
-    adim = wm["adim"]; lo = torch.tensor(aspec.minimum, device=device); hi = torch.tensor(aspec.maximum, device=device)
+    adim = wm["adim"]
+    lo = torch.tensor(aspec.minimum, device=device, dtype=torch.float32)     # float32: aspec is float64 -> clamp would upcast
+    hi = torch.tensor(aspec.maximum, device=device, dtype=torch.float32)
     mu = torch.zeros(horizon, adim, device=device); sigma = torch.ones(horizon, adim, device=device) * 0.5
     tpx = torch.tensor(target_px, device=device).float()
     for _ in range(iters):
