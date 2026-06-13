@@ -166,9 +166,9 @@ def cem_plan(wm, z0, target_px, aspec, device, horizon=5, iters=3, pop=128, elit
 class BCNet(nn.Module):
     def __init__(self, img, adim, goal_cond):
         super().__init__()
-        self.enc = ViTEncoder(img, 8, 3, 256, 4)
+        self.enc = ViTEncoder(img, 8, 3, 384, 4)
         self.goal_cond = goal_cond
-        self.head = nn.Sequential(nn.Linear(256 + (2 if goal_cond else 0), 256), nn.ReLU(), nn.Linear(256, adim))
+        self.head = nn.Sequential(nn.Linear(384 + (2 if goal_cond else 0), 256), nn.ReLU(), nn.Linear(256, adim))
     def forward(self, x, g=None):
         z = self.enc(x)
         if self.goal_cond: z = torch.cat([z, g], -1)
