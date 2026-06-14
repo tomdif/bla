@@ -112,6 +112,7 @@ class DemoEngine:
             if cur_px < 14.0:                                   # NEAR goal: precision mode -- deep search, settle on target
                 a, imagined = cem_imagine(self.wm, z0, tpx / self.img, self.aspec, self.dev,
                                           horizon=8, iters=8, pop=384, elite=32, terminal_w=10.0)
+                if cur_px < 7.0: a = a * 0.55                   # damp near goal: gentler corrections, settle not overshoot
             else:                                               # FAR: fast mode -- light search, quick approach (keeps fps up)
                 a, imagined = cem_imagine(self.wm, z0, tpx / self.img, self.aspec, self.dev,
                                           horizon=6, iters=4, pop=160, elite=20, terminal_w=4.0)
