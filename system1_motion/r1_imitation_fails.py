@@ -120,44 +120,84 @@ def load_transitions(npz_path):
     return frames, actions, pos, tgt, idx
 
 
-def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, beta_var=1.0, init_enc=None, log=print, tag=""):
-    """JEPA world model: plain-MSE latent prediction (stop-grad target) + STRONG supervised decode grounding
-    (a latent that must decode the moving fingertip cannot collapse) + variance_hinge floor. Decode heads
-    output NORMALIZED [0,1] fingertip/target px and provide the planner's cost. `transitions` =
-    (frames, actions, pos, tgt, idx) -- pass exploration data OR the expert demos (fair-data ablation)."""
+@torch.no_grad()
+def rollout_error_px(enc, dyn, dec_arm, transitions, device, horizon=8, n=512):
+    """AUDIT B1 -- DIRECT multi-step dynamics validation (not inferred from planning). Roll the dynamics
+    forward `horizon` steps applying the recorded actions; compare the DECODED fingertip px to the ground-
+    truth fingertip px at each step. Returns mean px error over the horizon. A planner is only as trustworthy
+    as this number -- it measures the dynamics model itself, separate from decode accuracy at t=0."""
+    frames, actions, pos, tgt, idx = transitions
+    H = frames.shape[-1]; idxset = set(int(s) for s in idx)
+    starts = np.array([s for s in idx if all((int(s) + k) in idxset for k in range(horizon))])
+    if len(starts) == 0: return float("nan")
+    rng = np.random.RandomState(123); starts = rng.choice(starts, min(n, len(starts)), replace=False)
+    fr = torch.from_numpy(frames); ac = torch.from_numpy(actions); po = torch.from_numpy(pos)
+    errs = []
+    for i in range(0, len(starts), 256):
+        bs = starts[i:i + 256]
+        z = enc(fr[bs].float().to(device) / 255.0)
+        for k in range(horizon):
+            z = dyn(z, ac[bs + k].to(device))
+            pred = dec_arm(z) * H                                    # decoded fingertip px after k+1 steps
+            true = po[bs + k + 1].to(device)                         # actual fingertip px
+            errs.append((pred - true).pow(2).sum(-1).sqrt().mean().item())
+    return float(np.mean(errs))
+
+
+def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, beta_var=1.0, init_enc=None,
+                      log=print, tag="", seed=0, arm_gate_px=5.0, early_px=9.0, max_attempts=4):
+    """JEPA world model with an AUDIT-HARDENED training loop:
+      - F3 (reproducible): torch+numpy seeded per attempt.
+      - A1 (CONVERGENCE GATE): the arm (moving fingertip) decode is the planner's cost and converges
+        STOCHASTICALLY. We early-abort an init that isn't on track by 45% of training, reinit, and retry up
+        to max_attempts; we only return a WM whose final arm_px <= arm_gate_px. A stuck WM can no longer
+        silently ship (it used to: std/pred/target all look fine while the arm decode is broken).
+      - B1: returns the held-out multi-step rollout error.
+    Loss: plain-MSE latent prediction (stop-grad target) + 15x arm + 5x target decode grounding + var floor."""
     frames, actions, pos, tgt, idx = transitions
     H = frames.shape[-1]; adim = actions.shape[1]
     batch = min(batch, max(8, len(idx)))
-    enc = ViTEncoder(H, 8, 3, d_z, 6).to(device)
-    if init_enc and os.path.exists(init_enc):
-        sd = torch.load(init_enc, map_location=device); enc.load_state_dict(sd["enc"]); log(f"[wm] loaded grounded encoder {init_enc}")
-    dyn = LatentDynamics(d_z, adim, 4).to(device)
-    dec_arm = DecodeHead(d_z, out_dim=2).to(device)                           # -> normalized fingertip [0,1]
-    dec_tgt = DecodeHead(d_z, out_dim=2).to(device)                           # -> normalized target  [0,1]
-    params = list(enc.parameters()) + list(dyn.parameters()) + list(dec_arm.parameters()) + list(dec_tgt.parameters())
-    opt = torch.optim.AdamW(params, lr=lr)
     fr = torch.from_numpy(frames); ac = torch.from_numpy(actions)
-    po = torch.from_numpy(pos); tg = torch.from_numpy(tgt); rng = np.random.RandomState(0)
-    t0 = time.time()
-    for step in range(steps):
-        b = rng.choice(idx, batch)
-        x0 = fr[b].float().to(device) / 255.0
-        x1 = fr[b + 1].float().to(device) / 255.0
-        a = ac[b].to(device); p0 = po[b].to(device) / H; g0 = tg[b].to(device) / H   # px -> [0,1]
-        z_t = enc(x0)
-        with torch.no_grad(): z_next = enc(x1)                                       # stop-grad target (no trivial mutual collapse)
-        z_pred = dyn(z_t, a)
-        pred = F.mse_loss(z_pred, z_next)                                            # plain latent prediction (trains dyn)
-        hinge = variance_hinge(z_t)                                                  # per-dim std floor
-        arm = F.mse_loss(dec_arm(z_t), p0)                                           # SUPERVISED grounding = dominant
-        tgl = F.mse_loss(dec_tgt(z_t), g0)                                           # anti-collapse: z must encode positions
-        loss = pred + 1.0 * hinge + 15.0 * arm + 5.0 * tgl   # arm (moving fingertip) is the hard one -> weight it 3x
-        opt.zero_grad(); loss.backward(); opt.step()
-        if step % max(1, steps // 10) == 0 or step == steps - 1:
-            log(f"[wm{tag} step {step}/{steps}] pred={pred.item():.4f} std={z_t.std(0).mean().item():.3f} "
-                f"arm_px={arm.item()**0.5*H:.1f} tgt_px={tgl.item()**0.5*H:.1f} ({time.time()-t0:.0f}s)", flush=True)
-    return {"enc": enc.eval(), "dyn": dyn.eval(), "dec_arm": dec_arm.eval(), "dec_tgt": dec_tgt.eval(),
-            "adim": adim, "img": H}
+    po = torch.from_numpy(pos); tg = torch.from_numpy(tgt)
+    early_step = int(0.45 * steps)
+    last = None
+    for attempt in range(max_attempts):
+        torch.manual_seed(seed + 1000 * attempt); np.random.seed(seed + attempt)
+        enc = ViTEncoder(H, 8, 3, d_z, 6).to(device)
+        if init_enc and os.path.exists(init_enc):
+            sd = torch.load(init_enc, map_location=device); enc.load_state_dict(sd["enc"]); log(f"[wm{tag}] loaded grounded encoder {init_enc}")
+        dyn = LatentDynamics(d_z, adim, 4).to(device)
+        dec_arm = DecodeHead(d_z, out_dim=2).to(device); dec_tgt = DecodeHead(d_z, out_dim=2).to(device)
+        opt = torch.optim.AdamW(list(enc.parameters()) + list(dyn.parameters()) + list(dec_arm.parameters()) + list(dec_tgt.parameters()), lr=lr)
+        brng = np.random.RandomState(0)                              # same data order across attempts -> init is the only variable
+        t0 = time.time(); cur_arm = 99.0; stuck = False
+        for step in range(steps):
+            b = brng.choice(idx, batch)
+            x0 = fr[b].float().to(device) / 255.0; x1 = fr[b + 1].float().to(device) / 255.0
+            a = ac[b].to(device); p0 = po[b].to(device) / H; g0 = tg[b].to(device) / H
+            z_t = enc(x0)
+            with torch.no_grad(): z_next = enc(x1)                   # stop-grad target
+            pred = F.mse_loss(dyn(z_t, a), z_next)
+            hinge = variance_hinge(z_t)
+            arm = F.mse_loss(dec_arm(z_t), p0); tgl = F.mse_loss(dec_tgt(z_t), g0)
+            loss = pred + 1.0 * hinge + 15.0 * arm + 5.0 * tgl       # arm (moving fingertip) weighted 3x -- the hard one
+            opt.zero_grad(); loss.backward(); opt.step()
+            if step == early_step or step % max(1, steps // 10) == 0 or step == steps - 1:
+                cur_arm = arm.item() ** 0.5 * H
+                log(f"[wm{tag} a{attempt+1} step {step}/{steps}] pred={pred.item():.4f} std={z_t.std(0).mean().item():.3f} "
+                    f"arm_px={cur_arm:.1f} tgt_px={tgl.item()**0.5*H:.1f} ({time.time()-t0:.0f}s)", flush=True)
+            if step == early_step and cur_arm > early_px:
+                log(f"[wm{tag} a{attempt+1}] EARLY-ABORT arm_px={cur_arm:.1f}>{early_px} at {step} -> reinit", flush=True); stuck = True; break
+        if stuck: continue
+        roll = rollout_error_px(enc.eval(), dyn.eval(), dec_arm.eval(), transitions, device)
+        wm = {"enc": enc.eval(), "dyn": dyn.eval(), "dec_arm": dec_arm.eval(), "dec_tgt": dec_tgt.eval(),
+              "adim": adim, "img": H, "arm_px": cur_arm, "rollout_px": roll, "attempts": attempt + 1}
+        if cur_arm <= arm_gate_px:
+            log(f"[wm{tag}] CONVERGED arm_px={cur_arm:.1f}<={arm_gate_px} rollout_px={roll:.1f} (attempt {attempt+1})", flush=True)
+            wm["converged"] = True; return wm
+        log(f"[wm{tag} a{attempt+1}] GATE FAIL arm_px={cur_arm:.1f}>{arm_gate_px}; retry", flush=True); last = wm
+    log(f"[wm{tag}] WARNING: did NOT converge in {max_attempts} attempts (arm_px={last['arm_px']:.1f}) -- results suspect", flush=True)
+    last["converged"] = False; return last
 
 
 # ----------------------------- CEM-MPC planner (uses the LEARNED model only) -----------------------------
@@ -194,7 +234,8 @@ class BCNet(nn.Module):
         return self.head(z)
 
 
-def train_bc(demos, img, adim, device, steps, goal_cond, lr=3e-4, batch=128, log=print):
+def train_bc(demos, img, adim, device, steps, goal_cond, lr=3e-4, batch=128, log=print, seed=0):
+    torch.manual_seed(seed)                                                   # F3: reproducible BC init
     X = np.concatenate([d["frames"][:-0 or None] for d in demos], 0).astype(np.float32) / 255.0
     A = np.concatenate([d["actions"] for d in demos], 0).astype(np.float32)
     G = np.concatenate([np.tile(d["target_px"], (len(d["actions"]), 1)) for d in demos], 0).astype(np.float32)
@@ -214,7 +255,10 @@ def train_bc(demos, img, adim, device, steps, goal_cond, lr=3e-4, batch=128, log
 
 # ----------------------------- evaluation in the live env -----------------------------
 @torch.no_grad()
-def eval_method(method, models, demos, region, n_eps, seed0, image_size, ep_len, action_repeat, device, thresholds=(6.0, 12.0)):
+def eval_method(method, models, demos, region, n_eps, seed0, image_size, ep_len, action_repeat, device,
+                thresholds=(6.0, 12.0), perceived_goal=False):
+    # AUDIT C3: perceived_goal=True makes the planner PERCEIVE the target via dec_tgt(z0) instead of being
+    # handed the ground-truth goal -- tests the real perception->plan path, esp. on shifted goals.
     dists = []
     for e in range(n_eps):
         env, renderer = make_env(seed0 + 1000 + e, image_size); env.reset()
@@ -234,7 +278,8 @@ def eval_method(method, models, demos, region, n_eps, seed0, image_size, ep_len,
                 x = torch.from_numpy(render(env, renderer).transpose(2, 0, 1).astype(np.float32) / 255.0)[None].to(device)
                 if method.startswith("wm_cem"):
                     wm = models[method]; z0 = wm["enc"](x)
-                    a = cem_plan(wm, z0, tpx / image_size, aspec, device)     # dec_arm outputs normalized [0,1]
+                    goal = wm["dec_tgt"](z0)[0].cpu().numpy() if perceived_goal else (tpx / image_size)  # perceived vs given
+                    a = cem_plan(wm, z0, goal, aspec, device)                 # dec_arm/dec_tgt are normalized [0,1]
                 elif method == "bc":
                     a = models["bc"](x).cpu().numpy()[0]
                 elif method == "bc_goal":
