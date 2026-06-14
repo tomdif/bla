@@ -106,14 +106,17 @@ def collect_exploration(n_steps, seed=0, ep_len=50, log=print):
     """goal-agnostic wandering: shoot toward random waypoints across the WHOLE workspace (+noise) -> broad
     (state x action) dynamics coverage incl. the test region. Records frames/actions/ee_norm/target_norm/ep."""
     arm = Arm(seed); F_, A, P, T, E = [], [], [], [], []; ep = 0; t0 = time.time()
-    arm.reset(); arm.set_target(arm.sample_target()); on = 0   # visible target = current waypoint; arm chases it (+noise)
+    arm.reset(); arm.set_target(arm.sample_target()); on = 0; mode = 0
     for i in range(n_steps):
         F_.append(arm.render()); P.append(norm3(arm.ee())); T.append(norm3(arm.tgt())); E.append(ep)
         if on >= arm.rng.randint(8, 18): arm.set_target(arm.sample_target()); on = 0
-        a = np.clip(arm.pd_reach() + arm.rng.normal(0, 0.35, ADIM), -1, 1).astype(np.float32)   # torque toward wp + explore noise
+        if mode == 1:                                          # ACTION-coverage episodes: uniform random torque ->
+            a = arm.rng.uniform(-1, 1, ADIM).astype(np.float32)   # model learns action->effector sensitivity OFF the
+        else:                                                  # reaching manifold (where CEM/diag actually search)
+            a = np.clip(arm.pd_reach() + arm.rng.normal(0, 0.35, ADIM), -1, 1).astype(np.float32)  # STATE-coverage
         A.append(a); arm.step(a); on += 1
         if (i + 1) % ep_len == 0:
-            ep += 1; arm.reset(); arm.set_target(arm.sample_target()); on = 0
+            ep += 1; arm.reset(); arm.set_target(arm.sample_target()); on = 0; mode = ep % 2   # alternate reach/random
         if (i + 1) % 4000 == 0: log(f"  [explore] {i+1}/{n_steps} ({time.time()-t0:.0f}s)", flush=True)
     return (np.asarray(F_, np.uint8), np.asarray(A, np.float32), np.asarray(P, np.float32),
             np.asarray(T, np.float32), np.asarray(E, np.int64))
