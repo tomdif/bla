@@ -42,6 +42,23 @@ def imag_cost(ee, g, zone):                                   # ee,g normalized 
     return d + pen
 
 
+class ValueHead(nn.Module):                                   # predicts return-to-go (=-cost-to-go) for lambda-returns
+    def __init__(self, d_z=384):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(d_z + 3 + 4, 256), nn.SiLU(), nn.Linear(256, 256), nn.SiLU(), nn.Linear(256, 1))
+    def forward(self, z, g, zone): return self.net(torch.cat([z, g, zone], -1)).squeeze(-1)
+
+
+@torch.no_grad()
+def roll_policy(pol, wm, z0, g, zone, device, H=8):
+    """roll the policy through the WM; return its action chunk + decoded ee path (normalized) for verification."""
+    gt = torch.tensor(g, device=device).float()[None]; zt = torch.tensor(zone, device=device).float()[None]
+    z = z0; acts = []; ees = [wm["dec_g"](z)[0].cpu().numpy()]
+    for _ in range(H):
+        a = pol(z, gt, zt); acts.append(a[0].cpu().numpy()); z = wm["dyn"](z, a); ees.append(wm["dec_g"](z)[0].cpu().numpy())
+    return np.array(acts), np.array(ees)
+
+
 def sample_goals(n, rng):
     out = []
     while len(out) < n:
@@ -84,6 +101,47 @@ def train_policy(wm, device, steps=6000, H=12, gamma=0.97, lr=3e-4, batch=256, z
     return pol.eval()
 
 
+def train_policy_v2(wm, device, steps=6000, H=10, gamma=0.97, lam=0.95, lr=3e-4, batch=256,
+                    zone_frac=0.5, areg=0.03, log=print):
+    """Dreamer-style actor-critic in imagination: lambda-returns bootstrapped by a value head (denser/longer
+    signal than naive full-H backprop), + action regularization to discourage exploiting WM error with extreme actions."""
+    for k in ("enc", "dyn", "dec_g", "dec_t"):
+        for p in wm[k].parameters(): p.requires_grad_(False)
+    rng = np.random.RandomState(0); arm = Arm(0); Z = []
+    log("[polv2] building real-latent buffer ...", flush=True)
+    with torch.no_grad():
+        for _ in range(2500):
+            arm.reset(); x = torch.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(device); Z.append(wm["enc"](x))
+    arm.close(); Zbuf = torch.cat(Z); G = torch.from_numpy(sample_goals(8000, rng)).to(device); zrn = zr_norm()
+    pol = ImaginationPolicy().to(device); val = ValueHead().to(device)
+    oa = torch.optim.AdamW(pol.parameters(), lr=lr); ov = torch.optim.AdamW(val.parameters(), lr=lr)
+    log("[polv2] training actor-critic in imagination ...", flush=True); t0 = time.time()
+    for step in range(steps):
+        z = Zbuf[rng.randint(0, Zbuf.shape[0], batch)]; g = G[rng.randint(0, G.shape[0], batch)]
+        with torch.no_grad(): ee0 = wm["dec_g"](z)
+        use = (torch.from_numpy(rng.rand(batch)).to(device) < zone_frac).float()
+        zc = 0.5 * (ee0 + g) + torch.from_numpy(rng.normal(0, 0.04, (batch, 3)).astype(np.float32)).to(device)
+        zone = torch.cat([zc, torch.full((batch, 1), zrn, device=device) * use[:, None]], -1)
+        zcur = z; states = [z]; rews = []; acts = []
+        for h in range(H):
+            a = pol(zcur, g, zone); acts.append(a); zcur = wm["dyn"](zcur, a)
+            rews.append(-imag_cost(wm["dec_g"](zcur), g, zone)); states.append(zcur)
+        V = [val(s, g, zone) for s in states]                 # V[0..H]
+        ret = [None] * H; last = V[H]
+        for h in reversed(range(H)):                          # Dreamer lambda-return
+            last = rews[h] + gamma * ((1 - lam) * V[h + 1] + lam * last); ret[h] = last
+        R = torch.stack(ret)                                  # [H,B]
+        actor_loss = -R.mean() + areg * torch.stack(acts).pow(2).mean()
+        oa.zero_grad(); actor_loss.backward(retain_graph=True); nn.utils.clip_grad_norm_(pol.parameters(), 1.0); oa.step()
+        critic_loss = sum(F.mse_loss(V[h], R[h].detach()) for h in range(H)) / H
+        ov.zero_grad(); critic_loss.backward(); nn.utils.clip_grad_norm_(val.parameters(), 1.0); ov.step()
+        if step % max(1, steps // 12) == 0 or step == steps - 1:
+            with torch.no_grad(): fin_cm = ((wm["dec_g"](zcur) - g) * span_t).pow(2).sum(-1).sqrt().mean().item() * 100
+            log(f"[polv2 {step}/{steps}] actor={actor_loss.item():.3f} critic={critic_loss.item():.3f} "
+                f"imag_final_dist={fin_cm:.1f}cm ({time.time()-t0:.0f}s)", flush=True)
+    return pol.eval()
+
+
 # ----------------------------- planners for eval -----------------------------
 @torch.no_grad()
 def cem_zone(wm, z0, g, zone, device, horizon=8, iters=5, pop=256, elite=32, terminal_w=6.0):
@@ -102,17 +160,24 @@ def cem_zone(wm, z0, g, zone, device, horizon=8, iters=5, pop=256, elite=32, ter
 
 @torch.no_grad()
 def eval_planner(which, wm, pol, region, n_eps, device, zone_on, ep_len=26, seed0=7000):
-    arm = Arm(seed0); reach5 = reach10 = avoided = 0; finals = []; zrn = zr_norm()
+    arm = Arm(seed0); reach5 = reach10 = avoided = 0; finals = []; zrn = zr_norm(); n_steps = n_fallback = 0
     for e in range(n_eps):
         arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt); g = norm3(tgt)
-        ee0 = norm3(arm.ee())
-        zc = 0.5 * (ee0 + g); zr = zrn if zone_on else 0.0
+        zc = 0.5 * (norm3(arm.ee()) + g); zr = zrn if zone_on else 0.0
         zone = np.concatenate([zc, [zr]]).astype(np.float32)
-        min_zone = 9.9
+        gt = torch.tensor(g, device=device).float()[None]; zt = torch.tensor(zone, device=device).float()[None]; min_zone = 9.9
         for t in range(ep_len):
-            x = torch.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(device); z0 = wm["enc"](x)
+            x = torch.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(device); z0 = wm["enc"](x); n_steps += 1
             if which == "policy":
-                a = pol(z0, torch.tensor(g, device=device).float()[None], torch.tensor(zone, device=device).float()[None])[0].cpu().numpy()
+                a = pol(z0, gt, zt)[0].cpu().numpy()
+            elif which == "verify":                            # governor: reject exploited proposals, fall back to CEM
+                acts, ees = roll_policy(pol, wm, z0, g, zone, device, H=8)
+                motion = float(np.linalg.norm(np.diff(ees, axis=0) * SPAN, axis=1).max()) * 100   # max predicted cm/step
+                sat = float(np.mean(np.abs(acts[0]) > 0.95))
+                if motion > 18.0 or sat > 0.6:                 # implausible predicted motion / saturated -> untrustworthy
+                    a = cem_zone(wm, z0, g, zone, device); n_fallback += 1
+                else:
+                    a = acts[0]
             else:
                 a = cem_zone(wm, z0, g, zone, device)
             arm.step(np.clip(a, -1, 1))
@@ -120,14 +185,17 @@ def eval_planner(which, wm, pol, region, n_eps, device, zone_on, ep_len=26, seed
         d_cm = float(np.linalg.norm(arm.ee() - tgt)) * 100; finals.append(d_cm)
         reach5 += d_cm <= 5; reach10 += d_cm <= 10; avoided += (min_zone > zr) if zone_on else 1
     arm.close()
-    return {"reach@5": reach5 / n_eps, "reach@10": reach10 / n_eps,
-            "avoided_zone": avoided / n_eps, "mean_cm": float(np.mean(finals))}
+    out = {"reach@5": reach5 / n_eps, "reach@10": reach10 / n_eps, "avoided_zone": avoided / n_eps, "mean_cm": float(np.mean(finals))}
+    if which == "verify": out["cem_fallback"] = round(n_fallback / max(1, n_steps), 2)
+    return out
 
 
 def main():
     global span_t
     ap = argparse.ArgumentParser()
     ap.add_argument("--train", action="store_true"); ap.add_argument("--ab", action="store_true")
+    ap.add_argument("--v2", action="store_true"); ap.add_argument("--verify", action="store_true")
+    ap.add_argument("--policy-file", default="runs/r3t_ckpt/policy.pt")
     ap.add_argument("--smoke", action="store_true"); ap.add_argument("--steps", type=int, default=6000)
     ap.add_argument("--eval-eps", type=int, default=25); ap.add_argument("--action-repeat", type=int, default=12)
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
@@ -135,22 +203,23 @@ def main():
     span_t = torch.tensor(SPAN, device=dev).float()
     wm = load_wm3d(CKPT, dev); print(f"[pol] loaded WM (grip_cm={wm['grip_cm']:.2f}) AR={R.AR}", flush=True)
     if args.smoke: args.steps = 300; args.eval_eps = 5
+    pf = "runs/r3t_ckpt/policy_v2.pt" if args.v2 else args.policy_file
 
     pol = None
-    if args.train or args.smoke:
-        pol = train_policy(wm, dev, steps=args.steps)
-        torch.save({"state": pol.state_dict()}, "runs/r3t_ckpt/policy.pt"); print("[pol] saved policy", flush=True)
-    if (args.ab or args.smoke):
+    if args.v2:
+        pol = train_policy_v2(wm, dev, steps=args.steps); torch.save({"state": pol.state_dict()}, pf); print(f"[polv2] saved {pf}", flush=True)
+    elif args.train or args.smoke:
+        pol = train_policy(wm, dev, steps=args.steps); torch.save({"state": pol.state_dict()}, pf); print(f"[pol] saved {pf}", flush=True)
+    if args.ab or args.smoke or args.verify:
         if pol is None:
-            pol = ImaginationPolicy().to(dev); pol.load_state_dict(torch.load("runs/r3t_ckpt/policy.pt", map_location=dev)["state"]); pol.eval()
-        ne = args.eval_eps
-        print(f"\n[pol] ===== A/B  CEM vs POLICY  ({ne} eps/region) =====", flush=True)
+            pol = ImaginationPolicy().to(dev); pol.load_state_dict(torch.load(pf, map_location=dev)["state"]); pol.eval()
+        ne = args.eval_eps; whichset = ("cem", "policy", "verify") if args.verify else ("cem", "policy")
+        print(f"\n[pol] ===== A/B {'+verify ' if args.verify else ''}({ne} eps, policy={pf.split('/')[-1]}) =====", flush=True)
         for zone_on in (False, True):
             tag = "ZONE-TASK" if zone_on else "plain-reach"
-            for r in ("test",):                                  # the shifted/moat region
-                for which in ("cem", "policy"):
-                    res = eval_planner(which, wm, pol, r, ne, dev, zone_on)
-                    print(f"  [{tag:11} {r:5}] {which:6} {res}", flush=True)
+            for which in whichset:
+                res = eval_planner(which, wm, pol, "test", ne, dev, zone_on)
+                print(f"  [{tag:11} test ] {which:6} {res}", flush=True)
 
 
 if __name__ == "__main__":
