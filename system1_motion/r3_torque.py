@@ -19,7 +19,7 @@ from system1_motion.objective import variance_hinge
 IMG = 96
 LO = np.array([-0.42, -0.42, 0.04]); HI = np.array([0.42, 0.42, 0.46]); SPAN = HI - LO
 M2CM = float(np.mean(SPAN)) * 100.0                          # approx cm per normalized unit (gate metric only; eval uses true m)
-RMIN, RMAX = 0.14, 0.40                                     # reachable target shell radius
+RMIN, RMAX = 0.16, 0.36                                     # reliably-reachable shell radius (front zone)
 ADIM = 3
 
 ARM_XML = """
@@ -78,8 +78,8 @@ class Arm:
         self.d.qpos[:] = self.rng.uniform(-0.6, 0.6, self.m.nq); self.d.qvel[:] = 0; mujoco.mj_forward(self.m, self.d)
     def set_target(self, xyz): self.d.mocap_pos[0] = xyz; mujoco.mj_forward(self.m, self.d)
     def sample_target(self, region=None):
-        while True:
-            c = self.rng.uniform([-0.42, -0.42, 0.05], [0.42, 0.42, 0.45])
+        while True:                                            # FRONT zone (x>0) -> reliably reachable; split left/right by y
+            c = self.rng.uniform([0.10, -0.35, 0.08], [0.38, 0.35, 0.42])
             if RMIN < np.linalg.norm(c) < RMAX and (region is None or region_of3d(c) == region): return c
     def step(self, ctrl, repeat=2):
         self.d.ctrl[:] = np.clip(ctrl, -1, 1)
