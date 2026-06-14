@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3D World Model — move the goal</title>
+<style>
+ :root{--bg:#0d1117;--card:#0f141b;--line:#222b36;--txt:#e6edf3;--mut:#8b949e;--blue:#58a6ff;--green:#3fb950;--amber:#e3b341;--red:#f85149}
+ *{box-sizing:border-box} body{background:radial-gradient(1100px 700px at 50% -10%,#11202f,#0d1117 50%,#070a0f);color:var(--txt);
+   font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;margin:0;padding:24px;text-align:center}
+ h1{font-size:24px;font-weight:680;margin:0 0 4px} h1 .v{background:linear-gradient(90deg,var(--blue),#7ee787);-webkit-background-clip:text;background-clip:text;color:transparent}
+ p.sub{color:var(--mut);max-width:680px;margin:0 auto;font-size:14px}
+ .verify{display:inline-flex;gap:8px;align-items:center;margin-top:10px;padding:6px 14px;border:1px solid #1f3a26;background:rgba(63,185,80,.08);border-radius:999px;color:#7ee787;font-size:12.5px;font-weight:600}
+ .verify .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+ .stage{display:flex;gap:22px;justify-content:center;align-items:flex-start;flex-wrap:wrap;margin-top:20px}
+ .card{background:linear-gradient(180deg,var(--card),#0b1017);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 20px 50px -20px rgba(0,0,0,.8)}
+ img#scene{display:block;width:380px;max-width:90vw;height:auto;border-radius:12px;background:#05070a}
+ .panel{width:280px;text-align:left}
+ .row{margin:12px 0} .row label{font-size:12px;color:var(--mut);display:flex;justify-content:space-between}
+ input[type=range]{width:100%;accent-color:var(--blue)}
+ .ywrap{position:relative} .ysplit{position:absolute;top:18px;height:14px;width:2px;background:var(--red);opacity:.7}
+ button{background:#171d26;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;margin:3px}
+ button.on{background:linear-gradient(180deg,#1f6feb,#1158c7);border-color:#2f81f7;color:#fff}
+ .big{font-size:15.5px;font-weight:650} .k{color:var(--mut)} .v{color:var(--blue);font-variant-numeric:tabular-nums}
+ .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+ .pill.test{background:rgba(248,81,73,.15);color:#ff8a84} .pill.train{background:rgba(125,231,135,.13);color:#7ee787}
+ .cap{margin-top:8px;font-weight:600;min-height:22px;transition:color .3s} hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+</style></head><body>
+<h1><span class="v">3D World Model</span> — move the goal anywhere</h1>
+<p class="sub">A real 3D robot arm (FetchReach). The world model plans to <b>any</b> goal you set — including the shaded
+"shifted" zone where it was never shown demonstrations. Imitation can only copy its demos, so it fails there.</p>
+<div class="verify"><span class="dot"></span> Verified world model · gripper decode <b id="vg">—</b>cm · held-out dynamics <b id="vo">—</b>cm</div>
+
+<div class="stage">
+  <div class="card"><img id="scene" alt="scene"></div>
+  <div class="card panel">
+    <div><button id="bwm" class="on" onclick="setM('wm')">🧠 World Model</button><button id="bbc" onclick="setM('bc')">🎬 Imitation</button></div>
+    <div><button onclick="reset()">↺ Reset</button><button id="brun" class="on" onclick="toggle()">❚❚ Pause</button></div>
+    <hr>
+    <div class="row"><label>goal X (depth) <span id="lx"></span></label><input id="x" type="range" min="1.15" max="1.55" step="0.005"></div>
+    <div class="row ywrap"><label>goal Y (left ⟷ right) <span id="ly"></span></label><input id="y" type="range" min="0.55" max="0.95" step="0.005"><div class="ysplit" id="ysp"></div></div>
+    <div class="row"><label>goal Z (height) <span id="lz"></span></label><input id="z" type="range" min="0.35" max="0.75" step="0.005"></div>
+    <hr>
+    <div class="big"><span class="k">region</span> <span id="reg" class="pill">—</span></div>
+    <div class="big" style="margin-top:8px"><span class="k">gripper → goal</span> <span class="v" id="dist">—</span> cm</div>
+    <div class="cap" id="cap">—</div>
+  </div>
+</div>
+<p class="sub" style="margin-top:14px">Drag the <b>Y</b> slider past the red line into the shaded zone (left half) — that's where no
+demonstrations exist. The world model still reaches it; imitation drifts to where its demos were.</p>
+
+<script>
+const S = id => document.getElementById(id);
+let method='wm', running=true, goal={x:1.34,y:0.62,z:0.50};
+const YSPLIT=0.749;
+async function post(p,b){const r=await fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});return r.json();}
+function setM(m){method=m;S('bwm').className=m=='wm'?'on':'';S('bbc').className=m=='bc'?'on':'';}
+function toggle(){running=!running;S('brun').innerHTML=running?'❚❚ Pause':'▶ Run';}
+async function reset(){const o=await post('/reset');await pushGoal();draw(o);}
+function syncLabels(){S('lx').textContent=(+S('x').value).toFixed(2);S('ly').textContent=(+S('y').value).toFixed(2);S('lz').textContent=(+S('z').value).toFixed(2);}
+async function pushGoal(){goal={x:+S('x').value,y:+S('y').value,z:+S('z').value};syncLabels();await post('/set_goal',goal);}
+for(const k of ['x','y','z']) S(k).addEventListener('input',pushGoal);
+// place the Y split marker
+window.addEventListener('load',()=>{const yr=S('y');const f=(YSPLIT-0.55)/(0.95-0.55);S('ysp').style.left=(f*100)+'%';});
+function draw(o){
+  if(o.frame) S('scene').src=o.frame;
+  const test=o.region==='test';
+  S('reg').textContent=test?'TEST · shifted (no demos)':'TRAIN · demos here';
+  S('reg').className='pill '+(test?'test':'train');
+  if(o.dist_cm!=null) S('dist').textContent=o.dist_cm.toFixed(1);
+  const reached=o.dist_cm!=null&&o.dist_cm<=5;
+  const cap=S('cap');
+  if(method==='wm'){cap.textContent=reached?'✓ World model reached your goal':'World model planning to the goal…';cap.style.color=reached?'var(--green)':'var(--blue)';}
+  else{cap.textContent=test?'✗ Imitation is lost — it never saw a demo here':(reached?'✓ Copying a demo it knows':'Imitation replaying demos…');cap.style.color=test?'var(--red)':(reached?'var(--green)':'var(--amber)');}
+  if(o.grip_cm!=null)S('vg').textContent=o.grip_cm.toFixed(1);
+  if(o.ood_cm!=null)S('vo').textContent=o.ood_cm.toFixed(1);
+}
+async function loop(){if(running){try{const o=await post('/step',{method});draw(o);}catch(e){await new Promise(r=>setTimeout(r,300));}}setTimeout(loop,110);}
+(async function(){S('x').value=goal.x;S('y').value=goal.y;S('z').value=goal.z;syncLabels();
+  const o=await post('/reset');await pushGoal();draw(o);loop();})();
+</script></body></html>
