@@ -233,15 +233,28 @@ def train_bc3d(demos, adim, device, steps, lr=3e-4, batch=128, log=print, seed=0
 
 
 # ----------------------------- eval (true meters) -----------------------------
+def load_wm3d(path, device):
+    ck = torch.load(path, map_location=device); adim = ck["adim"]
+    enc = ViTEncoder(IMG, 8, 3, 384, 6).to(device); enc.load_state_dict(ck["enc"]); enc.eval()
+    dyn = LatentDynamics(384, adim, 4).to(device); dyn.load_state_dict(ck["dyn"]); dyn.eval()
+    dg = DecodeHead(384, out_dim=3).to(device); dg.load_state_dict(ck["dec_g"]); dg.eval()
+    dt = DecodeHead(384, out_dim=3).to(device); dt.load_state_dict(ck["dec_t"]); dt.eval()
+    return {"enc": enc, "dyn": dyn, "dec_g": dg, "dec_t": dt, "adim": adim,
+            "grip_cm": ck.get("grip_cm"), "rollout_ood_cm": ck.get("rollout_ood_cm")}
+
+def load_bc3d(path, device):
+    ck = torch.load(path, map_location=device); net = BC3D(ck["adim"]).to(device); net.load_state_dict(ck["state"]); net.eval(); return net
+
+
 @torch.no_grad()
-def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=90, thresh_cm=(5.0, 10.0)):
+def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=90, thresh_cm=(5.0, 10.0), cem_h=8, cem_iters=5):
     arm = Arm(seed0 + 7000); succ = {t: 0 for t in thresh_cm}; finals = []
     for e in range(n_eps):
         arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt); g = norm3(tgt)
         for t in range(ep_len):
             x = torch.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(device)
             if method == "wm_cem":
-                wm = models["wm"]; z0 = wm["enc"](x); a = cem_plan3d(wm, z0, g, device)
+                wm = models["wm"]; z0 = wm["enc"](x); a = cem_plan3d(wm, z0, g, device, horizon=cem_h, iters=cem_iters)
             else:
                 a = models["bc"](x, torch.tensor(g, device=device).float()[None]).cpu().numpy()[0]
             arm.step(np.clip(a, -1, 1))
@@ -258,7 +271,19 @@ def main():
     ap.add_argument("--eval-eps", type=int, default=30); ap.add_argument("--validate", action="store_true")
     ap.add_argument("--gate-cm", type=float, default=4.0); ap.add_argument("--max-attempts", type=int, default=6)
     ap.add_argument("--smoke", action="store_true"); ap.add_argument("--testexpert", action="store_true")
+    ap.add_argument("--evalonly", action="store_true")     # reuse saved ckpt; sweep CEM horizon (no retrain)
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.evalonly:
+        wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); bc = load_bc3d("runs/r3t_ckpt/bc3dt.pt", dev)
+        ne = min(args.eval_eps, 15)
+        print(f"[r3t] EVALONLY ckpt grip_cm={wm['grip_cm']:.2f} OOD={wm['rollout_ood_cm']:.1f}cm | {ne} eps/region", flush=True)
+        for r in ("train", "test"):
+            print(f"  BC   [{r:5}] {eval_method3d('bc', {'bc': bc}, r, ne, 0, dev)}", flush=True)
+        for h in (8, 16, 24, 40):                            # does a longer planning horizon let the WM reach?
+            for r in ("train", "test"):
+                e = eval_method3d("wm_cem", {"wm": wm}, r, ne, 0, dev, cem_h=h, cem_iters=6)
+                print(f"  WM h={h:2d} [{r:5}] {e}", flush=True)
+        return
     if args.testexpert:                                        # instrument one trajectory to see WHY it doesn't reach
         for region in ("train", "test", None):
             arm = Arm(0); arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt)
