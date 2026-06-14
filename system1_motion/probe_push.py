@@ -75,13 +75,16 @@ class PushEnv:
                                    pts["puck1"][0], pts["puck1"][1], pts["puck2"][0], pts["puck2"][1]])
         self.d.qvel[:] = 0; self.set_goal(pts["goal"]); mujoco.mj_forward(self.m, self.d)
     def _sample_layout(self):
-        pts = {}
-        names = ["pusher", "puck0", "puck1", "puck2", "goal"]; placed = []
-        for n in names:
-            for _ in range(200):
-                c = self.rng.uniform(-0.28, 0.28, 2)
-                if all(np.linalg.norm(c - p) > 0.11 for p in placed): placed.append(c); pts[n] = c; break
-            else: pts[n] = self.rng.uniform(-0.28, 0.28, 2); placed.append(pts[n])
+        names = ["pusher", "puck0", "puck1", "puck2", "goal"]
+        for _ in range(60):
+            pts = {}; placed = []; ok = True
+            for n in names:
+                for _ in range(200):
+                    c = self.rng.uniform(-0.24, 0.24, 2)                  # central region (off the joint-limit edges)
+                    if all(np.linalg.norm(c - p) > 0.11 for p in placed): placed.append(c); pts[n] = c; break
+                else: ok = False; break
+            if ok and 0.10 < np.linalg.norm(pts["puck0"] - pts["goal"]) < 0.32:  # reasonable target->goal spread
+                return pts
         return pts
     def step(self, ctrl):
         self.d.ctrl[:] = np.clip(ctrl, -1, 1)
