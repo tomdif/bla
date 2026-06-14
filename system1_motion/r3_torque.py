@@ -153,12 +153,15 @@ def rollout_error_cm(enc, dyn, dec_g, trans, device, horizon=8, n=512):
     return float(np.mean(errs))
 
 def train_wm3d(trans, steps, device, d_z=384, lr=3e-4, batch=128, log=print, tag="", seed=0,
-               gate_cm=4.0, early_cm=7.0, max_attempts=6, rollout_eval=None):
+               gate_cm=4.0, early_cm=7.0, max_attempts=6, rollout_eval=None, cons_k=4, cons_w=15.0):
     F_, A, P, T, E = trans; adim = A.shape[1]; idx = np.where(E[:-1] == E[1:])[0]
     batch = min(batch, max(8, len(idx)))
     fr = torch.from_numpy(F_); ac = torch.from_numpy(A); po = torch.from_numpy(P); tg = torch.from_numpy(T)
     span = torch.tensor(SPAN, device=device).float()
     split = int(0.9 * len(idx)); train_idx = idx[:split]
+    idxset_tr = set(int(s) for s in train_idx)                  # K-step windows for multi-step decode consistency
+    kstarts = np.array([s for s in train_idx if all((int(s) + k) in idxset_tr for k in range(cons_k))])
+    if len(kstarts) < batch: kstarts = train_idx
     held_idx = idx[split:] if (len(idx) - split) >= 64 else idx
     held = (F_, A, P, T, held_idx)
     ood = None
@@ -171,20 +174,27 @@ def train_wm3d(trans, steps, device, d_z=384, lr=3e-4, batch=128, log=print, tag
         dec_g = DecodeHead(d_z, out_dim=3).to(device); dec_t = DecodeHead(d_z, out_dim=3).to(device)
         opt = torch.optim.AdamW(list(enc.parameters()) + list(dyn.parameters()) + list(dec_g.parameters()) + list(dec_t.parameters()), lr=lr)
         brng = np.random.RandomState(0); t0 = time.time(); cur_cm = 99.0; stuck = False
+        cons_cm = 99.0
         for step in range(steps):
-            b = brng.choice(train_idx, batch)
+            b = brng.choice(kstarts, batch)                     # b..b+cons_k consecutive (same episode)
             x0 = fr[b].float().to(device) / 255.0; x1 = fr[b + 1].float().to(device) / 255.0
             a = ac[b].to(device); p0 = po[b].to(device); g0 = tg[b].to(device)
             z_t = enc(x0)
             with torch.no_grad(): z_next = enc(x1)
             pred = F.mse_loss(dyn(z_t, a), z_next); hinge = variance_hinge(z_t)
             grip = F.mse_loss(dec_g(z_t), p0); tgl = F.mse_loss(dec_t(z_t), g0)
-            loss = pred + 1.0 * hinge + 15.0 * grip + 5.0 * tgl
+            zr = z_t; cons = 0.0                                # MULTI-STEP DECODE CONSISTENCY: rolled latents must
+            for k in range(cons_k):                            # decode to the TRUE ee trajectory (fixes dec(dyn(z,a)))
+                zr = dyn(zr, ac[b + k].to(device)); cons = cons + F.mse_loss(dec_g(zr), po[b + k + 1].to(device))
+            cons = cons / cons_k
+            loss = pred + 1.0 * hinge + 15.0 * grip + 5.0 * tgl + cons_w * cons
             opt.zero_grad(); loss.backward(); opt.step()
             if step == early_step or step % max(1, steps // 10) == 0 or step == steps - 1:
-                with torch.no_grad(): cur_cm = (((dec_g(z_t) - p0) * span).pow(2).sum(-1).sqrt().mean().item()) * 100.0  # TRUE cm
+                with torch.no_grad():
+                    cur_cm = (((dec_g(z_t) - p0) * span).pow(2).sum(-1).sqrt().mean().item()) * 100.0  # decode (1-step) cm
+                    cons_cm = (cons.item() ** 0.5) * float(np.mean(SPAN)) * 100.0                      # rolled-decode cm (approx)
                 log(f"[wm{tag} a{attempt+1} {step}/{steps}] pred={pred.item():.4f} std={z_t.std(0).mean().item():.3f} "
-                    f"grip_cm={cur_cm:.2f} ({time.time()-t0:.0f}s)", flush=True)
+                    f"grip_cm={cur_cm:.2f} rolldec_cm={cons_cm:.1f} ({time.time()-t0:.0f}s)", flush=True)
             if step == early_step and cur_cm > early_cm:
                 log(f"[wm{tag} a{attempt+1}] EARLY-ABORT grip_cm={cur_cm:.2f}>{early_cm} -> reinit", flush=True); stuck = True; break
         if stuck: continue
