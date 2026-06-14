@@ -102,21 +102,21 @@ class Arm:
 
 
 # ----------------------------- data -----------------------------
-def collect_exploration(n_steps, seed=0, ep_len=50, log=print):
-    """goal-agnostic wandering: shoot toward random waypoints across the WHOLE workspace (+noise) -> broad
-    (state x action) dynamics coverage incl. the test region. Records frames/actions/ee_norm/target_norm/ep."""
+def collect_exploration(n_steps, seed=0, ep_len=50, rand_frac=0.5, log=print):
+    """goal-agnostic exploration mixing STATE-coverage (pd-reach toward waypoints) and ACTION-coverage (uniform
+    random torque) episodes. rand_frac = fraction of random-torque episodes -> faithfulness where the planner searches."""
     arm = Arm(seed); F_, A, P, T, E = [], [], [], [], []; ep = 0; t0 = time.time()
-    arm.reset(); arm.set_target(arm.sample_target()); on = 0; mode = 0
+    arm.reset(); arm.set_target(arm.sample_target()); on = 0; mode = int(arm.rng.rand() < rand_frac)
     for i in range(n_steps):
         F_.append(arm.render()); P.append(norm3(arm.ee())); T.append(norm3(arm.tgt())); E.append(ep)
         if on >= arm.rng.randint(8, 18): arm.set_target(arm.sample_target()); on = 0
-        if mode == 1:                                          # ACTION-coverage episodes: uniform random torque ->
-            a = arm.rng.uniform(-1, 1, ADIM).astype(np.float32)   # model learns action->effector sensitivity OFF the
-        else:                                                  # reaching manifold (where CEM/diag actually search)
-            a = np.clip(arm.pd_reach() + arm.rng.normal(0, 0.35, ADIM), -1, 1).astype(np.float32)  # STATE-coverage
+        if mode == 1:                                          # ACTION-coverage: uniform random torque
+            a = arm.rng.uniform(-1, 1, ADIM).astype(np.float32)
+        else:                                                  # STATE-coverage: reach toward waypoint + noise
+            a = np.clip(arm.pd_reach() + arm.rng.normal(0, 0.35, ADIM), -1, 1).astype(np.float32)
         A.append(a); arm.step(a); on += 1
         if (i + 1) % ep_len == 0:
-            ep += 1; arm.reset(); arm.set_target(arm.sample_target()); on = 0; mode = ep % 2   # alternate reach/random
+            ep += 1; arm.reset(); arm.set_target(arm.sample_target()); on = 0; mode = int(arm.rng.rand() < rand_frac)
         if (i + 1) % 4000 == 0: log(f"  [explore] {i+1}/{n_steps} ({time.time()-t0:.0f}s)", flush=True)
     return (np.asarray(F_, np.uint8), np.asarray(A, np.float32), np.asarray(P, np.float32),
             np.asarray(T, np.float32), np.asarray(E, np.int64))
@@ -327,6 +327,8 @@ def main():
     ap.add_argument("--action-repeat", type=int, default=2)    # substeps/control step; raise to lift action authority
     ap.add_argument("--explore-eplen", type=int, default=50); ap.add_argument("--demo-eplen", type=int, default=100)
     ap.add_argument("--eval-eplen", type=int, default=90); ap.add_argument("--keep-cm", type=float, default=0.06)
+    ap.add_argument("--rand-frac", type=float, default=0.5)     # fraction of random-torque (action-coverage) episodes
+    ap.add_argument("--cons-k", type=int, default=4); ap.add_argument("--cons-w", type=float, default=15.0)  # decode consistency
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
     global AR; AR = args.action_repeat                     # set BEFORE any Arm() is built (diag/eval/collect all read it)
     if args.planner_ab:
@@ -370,13 +372,13 @@ def main():
         args.gate_cm, args.max_attempts = 999.0, 1
     print(f"[r3t] TORQUE 3D moat test on {dev} | IMG={IMG} action_repeat={AR} split=y<0 smoke={args.smoke}", flush=True)
     print("[r3t] collecting goal-agnostic torque exploration ...", flush=True)
-    expl = collect_exploration(args.explore, ep_len=args.explore_eplen)
+    expl = collect_exploration(args.explore, ep_len=args.explore_eplen, rand_frac=args.rand_frac)
     print("[r3t] collecting TRAIN-region shooting-expert demos ...", flush=True)
     demos = collect_demos(args.demos, "train", ep_len=args.demo_eplen, keep_cm=args.keep_cm)
     if len(demos) < 2: raise RuntimeError(f"[r3t] expert produced only {len(demos)} clean demos -- expert too weak; tune shoot/keep_cm.")
-    print("[r3t] training GATED torque world model ...", flush=True)
+    print(f"[r3t] training GATED torque world model (rand_frac={args.rand_frac} cons_k={args.cons_k} cons_w={args.cons_w}) ...", flush=True)
     wm = train_wm3d(expl, args.wm_steps, dev, tag="_3dt", rollout_eval=expl, gate_cm=args.gate_cm,
-                    early_cm=args.gate_cm * 1.6, max_attempts=args.max_attempts)
+                    early_cm=args.gate_cm * 1.6, max_attempts=args.max_attempts, cons_k=args.cons_k, cons_w=args.cons_w)
     print("[r3t] training goal-conditioned BC ...", flush=True)
     bc = train_bc3d(demos, ADIM, dev, args.bc_steps)
     if not args.smoke:
