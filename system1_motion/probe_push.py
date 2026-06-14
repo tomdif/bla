@@ -92,19 +92,21 @@ class PushEnv:
         v = (np.asarray(xy) - self.pos("pusher")); return np.clip(gain * v, -1, 1)
 
 
-def expert_push(env, target="puck0", steps=70):
-    """get BEHIND the target puck (opposite the goal), then push it toward the goal."""
+def expert_push(env, target="puck0", steps=90):
+    """ORBIT-then-push: arc the pusher AROUND the puck (staying at contact radius) until it's behind the puck
+    (opposite the goal), then push through toward the goal. The orbit avoids knocking the puck the wrong way."""
+    R = env.PUCK_R + env.PUSH_R + 0.012
     for t in range(steps):
-        p, g = env.pos(target), env.goal()
+        p, g, push = env.pos(target), env.goal(), env.pos("pusher")
         to_goal = g - p; d = np.linalg.norm(to_goal)
-        if d < 1e-6: break
-        dirn = to_goal / d
-        behind = p - dirn * (env.PUCK_R + env.PUSH_R + 0.015)     # staging point behind the puck
-        push = env.pos("pusher")
-        if np.linalg.norm(push - behind) > 0.03 and np.dot(push - p, dirn) > -0.01:
-            env.step(env.move_toward(behind))                     # not yet behind -> go around to the staging point
-        else:
-            env.step(env.move_toward(g))                          # behind -> push through the puck toward the goal
+        if d < 0.04: break
+        dirn = to_goal / d; behind_dir = -dirn
+        rel = push - p; rel_d = np.linalg.norm(rel) + 1e-9; cur_dir = rel / rel_d
+        if np.dot(cur_dir, behind_dir) > 0.6 and rel_d < R + 0.05:    # behind & close -> push through
+            env.step(env.move_toward(g, gain=10))
+        else:                                                        # orbit around the puck toward the behind point
+            tdir = cur_dir + 0.6 * (behind_dir - cur_dir); tdir /= (np.linalg.norm(tdir) + 1e-9)
+            env.step(env.move_toward(p + tdir * (R + 0.01), gain=10))
     return float(np.linalg.norm(env.pos(target) - env.goal()))
 
 
