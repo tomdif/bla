@@ -86,16 +86,16 @@ class Arm:
         for _ in range(repeat): mujoco.mj_step(self.m, self.d)
     def render(self):
         self.ren.update_scene(self.d, camera="cam"); return self.ren.render().transpose(2, 0, 1).copy()
-    def shoot(self, K=96, repeat=2, vel_w=0.01):                # privileged shooting expert; vel_w = gentle settle
-        # NOTE: vel_w must stay SMALL -- ee dist is in meters (~0.1-0.3) but qvel is rad/s (~3-8); a large weight
-        # makes "hold still" beat "reach the target" (that bug gave 27-43cm median reach).
-        s, v, t = self.d.qpos.copy(), self.d.qvel.copy(), self.tgt(); best_a, best_c = None, 1e9
-        for _ in range(K):
-            a = self.rng.uniform(-1, 1, self.m.nu); self.d.qpos[:] = s; self.d.qvel[:] = v; self.d.ctrl[:] = a
-            for _ in range(repeat): mujoco.mj_step(self.m, self.d)
-            c = np.linalg.norm(self.ee() - t) + vel_w * np.linalg.norm(self.d.qvel)   # + velocity -> settle, no overshoot
-            if c < best_c: best_c, best_a = c, a
-        self.d.qpos[:] = s; self.d.qvel[:] = v; mujoco.mj_forward(self.m, self.d); return best_a.astype(np.float32)
+    def pd_reach(self, Kp=45.0, Kd=5.0):
+        """privileged operational-space controller: Jacobian-transpose Cartesian PD + gravity/coriolis
+        compensation -> torque ctrl. Reliably drives the ee to the target (greedy 1-step shooting could not:
+        too myopic under damping to build sustained motion across the workspace)."""
+        t, ee = self.tgt(), self.ee()
+        jacp = np.zeros((3, self.m.nv)); mujoco.mj_jacSite(self.m, self.d, jacp, None, self.eid)
+        vee = jacp @ self.d.qvel                                # ee Cartesian velocity
+        Fcart = Kp * (t - ee) - Kd * vee                        # desired Cartesian force
+        tau = jacp.T @ Fcart + self.d.qfrc_bias                 # + gravity/coriolis compensation
+        return np.clip(tau / self.m.actuator_gear[:, 0], -1, 1).astype(np.float32)
 
 
 # ----------------------------- data -----------------------------
@@ -103,16 +103,14 @@ def collect_exploration(n_steps, seed=0, ep_len=50, log=print):
     """goal-agnostic wandering: shoot toward random waypoints across the WHOLE workspace (+noise) -> broad
     (state x action) dynamics coverage incl. the test region. Records frames/actions/ee_norm/target_norm/ep."""
     arm = Arm(seed); F_, A, P, T, E = [], [], [], [], []; ep = 0; t0 = time.time()
-    arm.reset(); wp = arm.sample_target(); arm.set_target(arm.sample_target()); on = 0
+    arm.reset(); arm.set_target(arm.sample_target()); on = 0   # visible target = current waypoint; arm chases it (+noise)
     for i in range(n_steps):
         F_.append(arm.render()); P.append(norm3(arm.ee())); T.append(norm3(arm.tgt())); E.append(ep)
-        if on >= arm.rng.randint(6, 14): wp = arm.sample_target(); on = 0
-        arm.d.mocap_pos[0] = arm.tgt()                          # keep visible target fixed this episode
-        save = arm.tgt(); arm.set_target(wp); a = arm.shoot(K=24); arm.set_target(save)   # cheap shooting toward waypoint
-        a = np.clip(a + arm.rng.normal(0, 0.3, ADIM), -1, 1).astype(np.float32)
+        if on >= arm.rng.randint(8, 18): arm.set_target(arm.sample_target()); on = 0
+        a = np.clip(arm.pd_reach() + arm.rng.normal(0, 0.35, ADIM), -1, 1).astype(np.float32)   # torque toward wp + explore noise
         A.append(a); arm.step(a); on += 1
         if (i + 1) % ep_len == 0:
-            ep += 1; arm.reset(); arm.set_target(arm.sample_target()); wp = arm.sample_target(); on = 0
+            ep += 1; arm.reset(); arm.set_target(arm.sample_target()); on = 0
         if (i + 1) % 4000 == 0: log(f"  [explore] {i+1}/{n_steps} ({time.time()-t0:.0f}s)", flush=True)
     return (np.asarray(F_, np.uint8), np.asarray(A, np.float32), np.asarray(P, np.float32),
             np.asarray(T, np.float32), np.asarray(E, np.int64))
@@ -125,7 +123,7 @@ def collect_demos(n_demos, region, seed=0, ep_len=70, keep_cm=0.07, log=print):
         frames, actions, ee = [], [], []
         for _ in range(ep_len):
             frames.append(arm.render()); ee.append(norm3(arm.ee()))
-            a = arm.shoot(K=128); actions.append(a); arm.step(a)
+            a = arm.pd_reach(); actions.append(a); arm.step(a)
         fd = float(np.linalg.norm(arm.ee() - tgt)); reached.append(fd)
         if fd > keep_cm: continue
         demos.append({"frames": np.asarray(frames, np.uint8), "actions": np.asarray(actions, np.float32),
@@ -266,7 +264,7 @@ def main():
             arm = Arm(0); arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt)
             print(f"\n  region={region} target={np.round(tgt,3)} |t|={np.linalg.norm(tgt):.3f} start_ee={np.round(arm.ee(),3)}", flush=True)
             for t in range(70):
-                a = arm.shoot(K=96); arm.step(a)
+                a = arm.pd_reach(); arm.step(a)
                 if t % 14 == 0 or t == 69:
                     print(f"    t={t:2d} ee={np.round(arm.ee(),3)} dist={np.linalg.norm(arm.ee()-tgt)*100:5.1f}cm "
                           f"qpos={np.round(arm.d.qpos,2)} |qvel|={np.linalg.norm(arm.d.qvel):.1f} a={np.round(a,2)}", flush=True)
