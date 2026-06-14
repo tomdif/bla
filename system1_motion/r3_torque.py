@@ -261,16 +261,15 @@ def main():
     ap.add_argument("--gate-cm", type=float, default=4.0); ap.add_argument("--max-attempts", type=int, default=6)
     ap.add_argument("--smoke", action="store_true"); ap.add_argument("--testexpert", action="store_true")
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
-    if args.testexpert:                                        # isolate: does render() (or anything) break the reach?
-        for label, do_render in (("NO-render", False), ("WITH-render", True)):
-            arm = Arm(0); ds = []
-            for _ in range(6):
-                arm.reset(); tgt = arm.sample_target("train"); arm.set_target(tgt)
-                for _ in range(70):
-                    if do_render: arm.render()
-                    a = arm.shoot(K=96); arm.step(a)
-                ds.append(np.linalg.norm(arm.ee() - tgt) * 100)
-            print(f"  {label:12} reach cm: {[round(x,1) for x in ds]}", flush=True)
+    if args.testexpert:                                        # instrument one trajectory to see WHY it doesn't reach
+        for region in ("train", "test", None):
+            arm = Arm(0); arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt)
+            print(f"\n  region={region} target={np.round(tgt,3)} |t|={np.linalg.norm(tgt):.3f} start_ee={np.round(arm.ee(),3)}", flush=True)
+            for t in range(70):
+                a = arm.shoot(K=96); arm.step(a)
+                if t % 14 == 0 or t == 69:
+                    print(f"    t={t:2d} ee={np.round(arm.ee(),3)} dist={np.linalg.norm(arm.ee()-tgt)*100:5.1f}cm "
+                          f"qpos={np.round(arm.d.qpos,2)} |qvel|={np.linalg.norm(arm.d.qvel):.1f} a={np.round(a,2)}", flush=True)
         return
     if args.smoke:
         args.explore, args.demos, args.wm_steps, args.bc_steps, args.eval_eps = 800, 6, 200, 200, 3
