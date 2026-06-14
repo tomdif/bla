@@ -81,14 +81,17 @@ def cem_imagine(wm, z0, goal_px_norm, aspec, device, horizon=8, iters=5, pop=256
 
 # ----------------------------- the live demo engine -----------------------------
 class DemoEngine:
-    def __init__(self, wm, bc, device, image_size=64, seed=0, action_repeat=2):
+    def __init__(self, wm, bc, device, image_size=64, seed=0, action_repeat=2, disp_size=440):
+        import mujoco
         self.wm, self.bc, self.dev = wm, bc, device
-        self.img, self.ar = image_size, action_repeat
+        self.img, self.ar, self.disp_size = image_size, action_repeat, disp_size
         self.env, self.renderer = make_env(seed, image_size); self.aspec = self.env.action_spec()
+        self.disp = mujoco.Renderer(self.env.physics.model.ptr, height=disp_size, width=disp_size)
+        self.trail = []                                          # fingertip history (display px) for motion trail
         self.reset()
 
     def reset(self):
-        self.env.reset(); return self._obs()
+        self.env.reset(); self.trail = []; return self._obs()
 
     def set_goal(self, xy_world):
         """move the Reacher target to the user's dragged goal. dm_control Reacher positions the target via
@@ -115,10 +118,15 @@ class DemoEngine:
         return self._obs(imagined)
 
     def _obs(self, imagined=None):
-        fr = render(self.env, self.renderer)
-        fpx, tpx = to_px(finger_world(self.env), self.img), to_px(target_world(self.env), self.img)
-        return {"frame": fr, "finger_px": fpx.tolist(), "target_px": tpx.tolist(),
-                "dist_px": float(np.linalg.norm(fpx - tpx)), "imagined_px": imagined,
+        fr = render(self.env, self.disp)                        # HIGH-RES display frame (model still sees 64px)
+        f_w, t_w = finger_world(self.env), target_world(self.env)
+        sc, k = self.disp_size, self.disp_size / self.img
+        fpx, tpx = to_px(f_w, sc), to_px(t_w, sc)               # display-space pixel coords
+        self.trail.append(fpx.tolist()); self.trail = self.trail[-20:]
+        dist64 = float(np.linalg.norm(to_px(f_w, self.img) - to_px(t_w, self.img)))  # metric in MODEL px (64)
+        imag = [[p[0] * k, p[1] * k] for p in imagined] if imagined is not None else None
+        return {"frame": fr, "finger_px": fpx.tolist(), "target_px": tpx.tolist(), "trail": list(self.trail),
+                "dist_px": dist64, "disp": sc, "imagined_px": imag, "region": region_of(t_w),
                 "wm_arm_px": self.wm.get("arm_px"), "wm_rollout_ood_px": self.wm.get("rollout_ood_px")}
 
 

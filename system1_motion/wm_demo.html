@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verified World Model — live demo</title>
+<style>
+  :root{
+    --bg0:#070a0f; --bg1:#0d1117; --card:#0f141b; --line:#222b36;
+    --txt:#e6edf3; --mut:#8b949e; --blue:#58a6ff; --green:#3fb950; --amber:#e3b341; --red:#f85149;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 50% -10%, #11202f 0%, var(--bg1) 45%, var(--bg0) 100%);
+    color:var(--txt); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:26px 20px 40px; text-align:center;
+  }
+  header h1{font-size:26px;font-weight:680;letter-spacing:-.02em;margin:0 0 6px}
+  header h1 .v{background:linear-gradient(90deg,var(--blue),#7ee787);-webkit-background-clip:text;background-clip:text;color:transparent}
+  header p{color:var(--mut);margin:0 auto;max-width:680px;font-size:14.5px}
+  .verify{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:6px 14px;border:1px solid #1f3a26;
+    background:rgba(63,185,80,.08);border-radius:999px;color:#7ee787;font-size:12.5px;font-weight:600}
+  .verify .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .stage{display:flex;gap:22px;justify-content:center;align-items:flex-start;flex-wrap:wrap;margin:22px auto 0;max-width:1040px}
+  .card{background:linear-gradient(180deg,var(--card),#0b1017);border:1px solid var(--line);border-radius:18px;
+    padding:16px 16px 14px;box-shadow:0 20px 50px -20px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.03);width:472px;max-width:94vw}
+  .card.win{border-color:#1d3b5c} .card.lose{border-color:#3a2422}
+  .ctitle{display:flex;align-items:center;gap:10px;justify-content:flex-start;margin:2px 2px 12px}
+  .ctitle .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:18px;flex:none}
+  .ctitle .wmic{background:rgba(88,166,255,.14);border:1px solid #1d3b5c}
+  .ctitle .bcic{background:rgba(227,179,65,.13);border:1px solid #4a3b16}
+  .ctitle .tt{text-align:left} .ctitle .tt b{font-size:15.5px;font-weight:650;display:block}
+  .ctitle .tt span{font-size:12px;color:var(--mut)}
+  .cvwrap{position:relative;width:440px;max-width:100%;margin:0 auto;border-radius:13px;overflow:hidden;background:#05070a}
+  canvas{display:block;width:100%;height:auto;cursor:crosshair}
+  .caption{margin-top:11px;min-height:22px;font-size:13.5px;font-weight:600;letter-spacing:-.01em;transition:color .3s}
+  .meter{height:6px;border-radius:6px;background:#1b222c;margin-top:9px;overflow:hidden}
+  .meter > i{display:block;height:100%;width:0;border-radius:6px;transition:width .12s linear,background .3s}
+  .stat{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mut);margin-top:7px;padding:0 2px}
+  .stat b{color:var(--txt);font-variant-numeric:tabular-nums}
+
+  .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:24px 0 8px}
+  button{background:#171d26;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:10px 18px;
+    font-size:14px;font-weight:600;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:7px}
+  button:hover{background:#1f2731;border-color:#3a4654;transform:translateY(-1px)}
+  button.primary{background:linear-gradient(180deg,#1f6feb,#1158c7);border-color:#2f81f7;color:#fff;box-shadow:0 6px 18px -6px rgba(31,111,235,.7)}
+  button.primary:hover{background:linear-gradient(180deg,#2a7bf6,#1c64d6)}
+  .narr{margin:14px auto 0;max-width:760px;min-height:24px;color:var(--blue);font-size:15px;font-weight:600;transition:opacity .3s}
+  .legend{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-top:18px;color:var(--mut);font-size:12.5px}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .tip{margin-top:6px;color:#5c6672;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="v">Verified World Model</span> — drag the goal anywhere</h1>
+  <p>Imitation can only copy the demonstrations it was shown. A world model learns the arm's physics and <i>plans</i> — so it reaches goals no demonstration ever covered. Drag the target into the shaded zone to see the difference.</p>
+  <div class="verify"><span class="dot"></span> Verified world model · gate <b id="vgate">—</b>px · held-out dynamics <b id="vood">—</b>px</div>
+</header>
+
+<div class="narr" id="narr">Drag the red target — try the shaded left zone, where there are no demonstrations.</div>
+
+<div class="stage">
+  <div class="card win" id="card_wm">
+    <div class="ctitle"><div class="ic wmic">🧠</div><div class="tt"><b>World Model</b><span>plans from learned physics</span></div></div>
+    <div class="cvwrap"><canvas id="cv_wm"></canvas></div>
+    <div class="caption" id="cap_wm" style="color:var(--blue)">planning…</div>
+    <div class="meter"><i id="m_wm"></i></div>
+    <div class="stat"><span>fingertip → goal</span><span><b id="d_wm">—</b> px</span></div>
+  </div>
+  <div class="card lose" id="card_bc">
+    <div class="ctitle"><div class="ic bcic">🎬</div><div class="tt"><b>Imitation (BC)</b><span>copies demonstrations</span></div></div>
+    <div class="cvwrap"><canvas id="cv_bc"></canvas></div>
+    <div class="caption" id="cap_bc" style="color:var(--amber)">replaying demos…</div>
+    <div class="meter"><i id="m_bc"></i></div>
+    <div class="stat"><span>fingertip → goal</span><span><b id="d_bc">—</b> px</span></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="primary" id="b_auto">▶ Auto Demo</button>
+  <button id="b_reset">↺ Reset</button>
+  <button id="b_pause">❚❚ Pause</button>
+</div>
+<div class="legend">
+  <span><i style="background:#ff5a5f"></i> your goal</span>
+  <span><i style="background:#3fb950"></i> fingertip</span>
+  <span><i style="background:#58a6ff"></i> world model's imagined plan</span>
+  <span><i style="background:rgba(248,81,73,.5)"></i> shaded = no demonstrations</span>
+</div>
+<div class="tip" id="tip">tip: drag the target on either panel — both arms share the same goal</div>
+
+<script>
+const SUCC=12, NEAR=6;                        // px thresholds (model-space): reached / locked
+let DISP=440, running=true, auto=false, autoT=0;
+let goalUV={u:0.72,v:0.40}, goalAnim={u:0.72,v:0.40};
+const sides={wm:mk('wm'),bc:mk('bc')};
+const G=document.getElementById.bind(document);
+
+function mk(id){
+  const cv=G('cv_'+id); const ctx=cv.getContext('2d');
+  return {cv,ctx,img:new Image(),prev:null,fade:1,obs:null,
+          fpx:[DISP/2,DISP/2],ease:[DISP/2,DISP/2],trail:[],burst:0};
+}
+async function post(p,b){const r=await fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});return r.json();}
+
+function applyObs(s,o){
+  s.obs=o;
+  if(o.disp&&o.disp!==DISP){DISP=o.disp;}
+  if(o.frame){const im=new Image();im.onload=()=>{s.prev=s.img.complete?s.img:null;s.img=im;s.fade=0;s.fadeStart=performance.now();};im.src=o.frame;}
+  s.trail=o.trail||[];
+}
+async function stepLoop(){
+  while(true){
+    if(running){
+      try{const o=await post('/step');applyObs(sides.wm,o.wm);applyObs(sides.bc,o.bc);}
+      catch(e){await sleep(300);}
+    } else await sleep(80);
+  }
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ---- drawing ----
+function sz(){const w=sides.wm.cv.clientWidth||DISP;return w;}
+function fit(){for(const k in sides){const s=sides[k];s.cv.width=DISP;s.cv.height=DISP;}}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function draw(t){
+  // ease goal toward target (smooth drag)
+  goalAnim.u=lerp(goalAnim.u,goalUV.u,0.18); goalAnim.v=lerp(goalAnim.v,goalUV.v,0.18);
+  for(const k in sides) drawSide(sides[k],k,t);
+  updatePanels();
+  requestAnimationFrame(draw);
+}
+function drawSide(s,kind,t){
+  const ctx=s.ctx, W=DISP, H=DISP; ctx.clearRect(0,0,W,H);
+  // base frame (crossfade prev->cur)
+  const f=Math.min(1,(performance.now()-(s.fadeStart||0))/80);
+  if(s.prev&&s.prev.complete){ctx.globalAlpha=1;ctx.drawImage(s.prev,0,0,W,H);ctx.globalAlpha=f;}
+  if(s.img&&s.img.complete){ctx.drawImage(s.img,0,0,W,H);} ctx.globalAlpha=1;
+
+  // region shading: left half = no demonstrations
+  ctx.fillStyle='rgba(248,81,73,0.07)'; ctx.fillRect(0,0,W/2,H);
+  ctx.save();ctx.setLineDash([6,7]);ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.restore();
+  label(ctx,'NO DEMOS',W/2-12,18,'right','rgba(248,81,73,.6)');
+  label(ctx,'DEMONSTRATIONS',W/2+12,18,'left','rgba(125,231,135,.5)');
+
+  const o=s.obs; if(!o){return;}
+  // eased fingertip
+  s.ease[0]=lerp(s.ease[0],o.finger_px[0],0.35); s.ease[1]=lerp(s.ease[1],o.finger_px[1],0.35);
+
+  // comet trail
+  if(s.trail.length>1){
+    for(let i=1;i<s.trail.length;i++){
+      const a=i/s.trail.length;
+      ctx.strokeStyle=`rgba(63,185,80,${a*0.5})`; ctx.lineWidth=1+a*4; ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(s.trail[i-1][0],s.trail[i-1][1]);ctx.lineTo(s.trail[i][0],s.trail[i][1]);ctx.stroke();
+    }
+  }
+  // imagined plan (world model only)
+  if(kind==='wm'&&o.imagined_px&&o.imagined_px.length){
+    const pts=[s.ease,...o.imagined_px];
+    ctx.save();ctx.setLineDash([7,6]);ctx.lineDashOffset=-(t/40)%26;ctx.lineWidth=2.4;ctx.lineJoin='round';
+    const grad=ctx.createLinearGradient(pts[0][0],pts[0][1],pts[pts.length-1][0],pts[pts.length-1][1]);
+    grad.addColorStop(0,'rgba(88,166,255,.95)');grad.addColorStop(1,'rgba(88,166,255,.15)');
+    ctx.strokeStyle=grad;ctx.shadowColor='rgba(88,166,255,.6)';ctx.shadowBlur=8;
+    ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.stroke();
+    ctx.restore();
+    for(let i=0;i<o.imagined_px.length;i++){const p=o.imagined_px[i],a=1-i/o.imagined_px.length;
+      ctx.fillStyle=`rgba(88,166,255,${.25+a*.5})`;ctx.beginPath();ctx.arc(p[0],p[1],2.6,0,7);ctx.fill();}
+  }
+  // goal: pulsing concentric rings
+  const gx=goalAnim.u*W, gy=goalAnim.v*H, pulse=1+0.18*Math.sin(t/350);
+  ctx.save();ctx.shadowColor='rgba(255,90,95,.8)';ctx.shadowBlur=14;
+  for(let r=0;r<3;r++){ctx.strokeStyle=`rgba(255,90,95,${0.85-r*0.28})`;ctx.lineWidth=2.4-r*0.6;
+    ctx.beginPath();ctx.arc(gx,gy,(8+r*6)*pulse,0,7);ctx.stroke();}
+  ctx.restore();
+  ctx.fillStyle='#ff5a5f';ctx.beginPath();ctx.arc(gx,gy,3.2,0,7);ctx.fill();
+
+  // success burst
+  const reached=o.dist_px<=SUCC;
+  if(reached&&s.burst<1)s.burst=Math.min(1,s.burst+0.08); else if(!reached)s.burst=0;
+  if(s.burst>0&&s.burst<1){ctx.strokeStyle=`rgba(63,185,80,${1-s.burst})`;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(s.ease[0],s.ease[1],8+s.burst*34,0,7);ctx.stroke();}
+
+  // fingertip glow
+  ctx.save();ctx.shadowColor=reached?'rgba(63,185,80,.9)':'rgba(125,231,135,.6)';ctx.shadowBlur=reached?16:9;
+  ctx.fillStyle=reached?'#56d364':'#3fb950';ctx.beginPath();ctx.arc(s.ease[0],s.ease[1],5.5,0,7);ctx.fill();ctx.restore();
+}
+function label(ctx,txt,x,y,al,col){ctx.save();ctx.font='600 10px -apple-system,system-ui';ctx.textAlign=al;
+  ctx.textBaseline='top';ctx.fillStyle=col;ctx.fillText(txt,x,y);ctx.restore();}
+
+function updatePanels(){
+  const inTest=goalUV.u<0.5;
+  for(const k of ['wm','bc']){
+    const o=sides[k].obs; if(!o)continue;
+    const d=o.dist_px, reached=d<=SUCC, near=d<=NEAR;
+    G('d_'+k).textContent=d.toFixed(1);
+    const m=G('m_'+k), frac=Math.max(0,Math.min(1,1-d/40));
+    m.style.width=(frac*100)+'%';
+    m.style.background = reached? 'linear-gradient(90deg,#238636,#3fb950)'
+                       : k==='bc'&&inTest? 'linear-gradient(90deg,#a5302a,#f85149)'
+                       : 'linear-gradient(90deg,#1f6feb,#58a6ff)';
+  }
+  // captions
+  const wmo=sides.wm.obs, bco=sides.bc.obs;
+  if(wmo){const r=wmo.dist_px<=SUCC; cap('wm', r?'✓ Reached your goal':'Planning a path to the goal…', r?'var(--green)':'var(--blue)');}
+  if(bco){
+    if(inTest) cap('bc','✗ Lost — it never saw a demo here', 'var(--red)');
+    else {const r=bco.dist_px<=SUCC; cap('bc', r?'✓ Replaying a demo it knows':'Replaying demonstrations…', r?'var(--green)':'var(--amber)');}
+  }
+  G('card_bc').className='card '+(inTest?'lose':'win');
+  if(wmo){G('vgate').textContent=(wmo.wm_arm_px||0).toFixed(1);G('vood').textContent=(wmo.wm_rollout_ood_px||0).toFixed(1);}
+}
+function cap(k,txt,col){const e=G('cap_'+k);if(e.textContent!==txt){e.textContent=txt;}e.style.color=col;}
+
+// ---- interaction ----
+function setGoalFromEvent(e){
+  const cv=e.currentTarget, r=cv.getBoundingClientRect();
+  const u=Math.max(.03,Math.min(.97,(e.clientX-r.left)/r.width));
+  const v=Math.max(.03,Math.min(.97,(e.clientY-r.top)/r.height));
+  goalUV={u,v}; post('/set_goal',{u,v}); auto=false;
+}
+for(const k in sides){const cv=sides[k].cv;
+  cv.addEventListener('mousedown',setGoalFromEvent);
+  cv.addEventListener('mousemove',e=>{if(e.buttons)setGoalFromEvent(e);});
+}
+G('b_pause').onclick=function(){running=!running;this.innerHTML=running?'❚❚ Pause':'▶ Play';};
+G('b_reset').onclick=async()=>{auto=false;narr('Drag the red target — try the shaded left zone, where there are no demonstrations.');
+  const o=await post('/reset');applyObs(sides.wm,o.wm);applyObs(sides.bc,o.bc);await post('/set_goal',goalUV);};
+G('b_auto').onclick=()=>{auto=!auto;autoT=0;G('b_auto').innerHTML=auto?'■ Stop':'▶ Auto Demo';};
+
+function narr(t){const n=G('narr');n.style.opacity=0;setTimeout(()=>{n.textContent=t;n.style.opacity=1;},220);}
+
+// scripted tour
+const SCRIPT=[
+ {u:0.72,v:0.38, t:3600, say:"A two-joint arm reaches a target. This goal is in the DEMONSTRATION region (right)."},
+ {u:0.80,v:0.66, t:3600, say:"Both reach it — imitation has demonstrations to copy here."},
+ {u:0.24,v:0.40, t:2200, say:"Now the goal jumps to where there are NO demonstrations (left)…"},
+ {u:0.22,v:0.40, t:4800, say:"The world model PLANS straight to it. Imitation is lost — it never saw this goal."},
+ {u:0.20,v:0.72, t:4200, say:"It generalises everywhere. Drag the target yourself — the world model just solves it."},
+];
+let scriptIdx=-1, scriptStart=0;
+function tick(){
+  if(auto){
+    const now=performance.now();
+    if(scriptIdx<0||now-scriptStart>SCRIPT[scriptIdx].t){
+      scriptIdx=(scriptIdx+1)%SCRIPT.length; scriptStart=now;
+      const s=SCRIPT[scriptIdx]; goalUV={u:s.u,v:s.v}; post('/set_goal',{u:s.u,v:s.v}); narr(s.say);
+    }
+  } else if(scriptIdx>=0){scriptIdx=-1;}
+  setTimeout(tick,200);
+}
+
+// ---- boot ----
+(async function(){
+  fit();
+  const o=await post('/reset'); DISP=o.wm.disp||440; fit();
+  applyObs(sides.wm,o.wm); applyObs(sides.bc,o.bc);
+  await post('/set_goal',goalUV);
+  stepLoop(); tick(); requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
