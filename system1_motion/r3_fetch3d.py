@@ -246,6 +246,14 @@ def main():
     print("[r3] training goal-conditioned BC on TRAIN demos ...", flush=True)
     bc = train_bc3d(demos, 4, dev, args.bc_steps)
 
+    if not args.smoke:                                        # save checkpoints for a future 3D GUI
+        import os; os.makedirs("runs/r3_ckpt", exist_ok=True)
+        torch.save({k: wm[k].state_dict() for k in ("enc", "dyn", "dec_g", "dec_t")} |
+                   {"adim": wm["adim"], "grip_cm": wm["grip_cm"], "rollout_ood_cm": wm["rollout_ood_cm"], "img": IMG},
+                   "runs/r3_ckpt/wm3d.pt")
+        torch.save({"state": bc.state_dict(), "adim": 4, "img": IMG}, "runs/r3_ckpt/bc3d.pt")
+        print("[r3] saved checkpoints -> runs/r3_ckpt/", flush=True)
+
     print("\n[r3] ===== MOAT EVAL (zero-shot, frozen models) =====", flush=True)
     out = {}
     for region in ("train", "test"):
