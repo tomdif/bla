@@ -72,13 +72,13 @@ class RelationalDyn(nn.Module):
     """interaction net: action enters ONLY the pusher node (idx 0); pairwise contact/proximity messages propagate."""
     def __init__(self, hid=128):
         super().__init__()
-        self.type = nn.Embedding(2, 8)                         # 0=pusher, 1=puck
+        self.type_emb = nn.Embedding(2, 8)                     # 0=pusher, 1=puck (NOT self.type -> shadows Module.type)
         self.edge = nn.Sequential(nn.Linear(2 * (SDIM + 8), hid), nn.SiLU(), nn.Linear(hid, hid))
         self.node = nn.Sequential(nn.Linear(SDIM + 8 + ADIM + hid, hid), nn.SiLU(), nn.Linear(hid, SDIM))
     def forward(self, s, a):
         B = s.shape[0]; nodes = s.view(B, NOBJ, SDIM)
         tids = torch.zeros(B, NOBJ, dtype=torch.long, device=s.device); tids[:, 1:] = 1
-        h = torch.cat([nodes, self.type(tids)], -1)            # [B,N,SDIM+8]
+        h = torch.cat([nodes, self.type_emb(tids)], -1)        # [B,N,SDIM+8]
         hi = h[:, :, None].expand(B, NOBJ, NOBJ, h.shape[-1])
         hj = h[:, None, :].expand(B, NOBJ, NOBJ, h.shape[-1])
         msg = self.edge(torch.cat([hi, hj], -1))               # [B,N,N,hid]
