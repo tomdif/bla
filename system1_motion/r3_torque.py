@@ -263,14 +263,21 @@ def load_bc3d(path, device):
 
 
 @torch.no_grad()
-def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=90, thresh_cm=(5.0, 10.0), cem_h=8, cem_iters=5):
+def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=90, thresh_cm=(5.0, 10.0), cem_h=8, cem_iters=5, planner="cem"):
     arm = Arm(seed0 + 7000); succ = {t: 0 for t in thresh_cm}; finals = []
     for e in range(n_eps):
         arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt); g = norm3(tgt)
         for t in range(ep_len):
             x = torch.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(device)
             if method == "wm_cem":
-                wm = models["wm"]; z0 = wm["enc"](x); a = cem_plan3d(wm, z0, g, device, horizon=cem_h, iters=cem_iters)
+                wm = models["wm"]; z0 = wm["enc"](x)
+                if planner == "stack":                          # proposal stack (MPPI+CEM proposers + verify + governor)
+                    from system1_motion.proposal_stack import TorchWMAdapter, goal_objective, default_stack
+                    if "_st" not in models:
+                        models["_ad"] = TorchWMAdapter(wm, device); models["_st"] = default_stack(); models["_rng"] = np.random.RandomState(0)
+                    a = models["_st"].plan(models["_ad"], z0, goal_objective(g, 4.0), horizon=cem_h, rng=models["_rng"])["action"]
+                else:
+                    a = cem_plan3d(wm, z0, g, device, horizon=cem_h, iters=cem_iters)
             else:
                 a = models["bc"](x, torch.tensor(g, device=device).float()[None]).cpu().numpy()[0]
             arm.step(np.clip(a, -1, 1))
@@ -316,11 +323,21 @@ def main():
     ap.add_argument("--smoke", action="store_true"); ap.add_argument("--testexpert", action="store_true")
     ap.add_argument("--evalonly", action="store_true")     # reuse saved ckpt; sweep CEM horizon (no retrain)
     ap.add_argument("--diag", action="store_true")         # action-sensitivity: does dyn respond to actions like reality?
+    ap.add_argument("--planner-ab", action="store_true")   # A/B raw CEM vs proposal stack (MPPI) on the saved ckpt
     ap.add_argument("--action-repeat", type=int, default=2)    # substeps/control step; raise to lift action authority
     ap.add_argument("--explore-eplen", type=int, default=50); ap.add_argument("--demo-eplen", type=int, default=100)
     ap.add_argument("--eval-eplen", type=int, default=90); ap.add_argument("--keep-cm", type=float, default=0.06)
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
     global AR; AR = args.action_repeat                     # set BEFORE any Arm() is built (diag/eval/collect all read it)
+    if args.planner_ab:
+        wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); bc = load_bc3d("runs/r3t_ckpt/bc3dt.pt", dev); ne = args.eval_eps
+        print(f"[r3t] PLANNER A/B on saved ckpt (AR={AR}, {ne} eps/region) -- CEM vs proposal-stack(MPPI) vs BC", flush=True)
+        for r in ("train", "test"):
+            cem = eval_method3d("wm_cem", {"wm": wm}, r, ne, 0, dev, ep_len=args.eval_eplen, planner="cem")
+            stk = eval_method3d("wm_cem", {"wm": wm}, r, ne, 0, dev, ep_len=args.eval_eplen, planner="stack")
+            b = eval_method3d("bc", {"bc": bc}, r, ne, 0, dev, ep_len=args.eval_eplen)
+            print(f"  [{r:5}] CEM {cem}\n         STACK {stk}\n         BC   {b}", flush=True)
+        return
     if args.diag:
         wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); a = action_authority(wm, dev)
         print(f"[diag] ACTION AUTHORITY (1 step, AR={AR}): real={a['real_cm']:.2f}cm  model={a['model_cm']:.2f}cm  ratio={a['ratio']:.2f}", flush=True)
