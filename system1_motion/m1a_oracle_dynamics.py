@@ -40,9 +40,9 @@ def contacted_puck(env):
     return -1
 
 
-def collect(n_steps, seed=0, log=print):
+def collect(n_steps, seed=0, ar=8, log=print):
     """contact-rich: drive the pusher toward a random puck (+noise) so it bumps/pushes pucks; mix random walks."""
-    env = PushEnv(seed); rng = np.random.RandomState(seed)
+    env = PushEnv(seed, ar=ar); rng = np.random.RandomState(seed)
     S, A, S1, C = [], [], [], []; env.reset(); mode = 0; tgt = 0; t0 = time.time()
     for i in range(n_steps):
         s = get_state(env)
@@ -103,10 +103,10 @@ def train_dyn(model, data, device, steps=8000, lr=3e-4, batch=256, log=print, ta
 
 # ----------------------------- action-cosine (per object, + contacted puck) -----------------------------
 @torch.no_grad()
-def action_cosine(model, device, n=1500, seed=0):
+def action_cosine(model, device, n=1500, seed=0, ar=8):
     """counterfactual: from real states, model & sim predict each object's pos-delta under action a vs 0; compare
     direction. Report overall (all objects) and CONTACTED-PUCK cosine (the object-dynamics faithfulness)."""
-    env = PushEnv(seed + 99); rng = np.random.RandomState(seed); env.reset(); mode = 0; tgt = 0
+    env = PushEnv(seed + 99, ar=ar); rng = np.random.RandomState(seed); env.reset(); mode = 0; tgt = 0
     cos_all, cos_contact = [], []
     for i in range(n):
         s = get_state(env); qp, qv = env.d.qpos.copy(), env.d.qvel.copy()
@@ -135,14 +135,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", action="store_true"); ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--steps", type=int, default=8000); ap.add_argument("--collect", type=int, default=40000)
+    ap.add_argument("--ar", type=int, default=8)                # env action_repeat (per-step contact window vs noise)
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
     if args.smoke: args.steps, args.collect = 300, 3000
-    print(f"[m1a] ORACLE-slot dynamics test on {dev} | collect={args.collect} steps={args.steps}", flush=True)
-    data = collect(args.collect)
+    print(f"[m1a] ORACLE-slot dynamics test on {dev} | collect={args.collect} steps={args.steps} ar={args.ar}", flush=True)
+    data = collect(args.collect, ar=args.ar)
     print(f"[m1a] collected {len(data[0])} transitions, {int((data[3]>=0).sum())} in contact", flush=True)
     mono = train_dyn(MonolithicDyn().to(dev), data, dev, args.steps, tag="_mono")
     rel = train_dyn(RelationalDyn().to(dev), data, dev, args.steps, tag="_rel")
-    cm, cmc, nm = action_cosine(mono, dev); cr, crc, nr = action_cosine(rel, dev)
+    cm, cmc, nm = action_cosine(mono, dev, ar=args.ar); cr, crc, nr = action_cosine(rel, dev, ar=args.ar)
     print("\n[m1a] ===== ACTION-COSINE (oracle slots) =====", flush=True)
     print(f"  MONOLITHIC : all={cm:.2f}  contacted-puck={cmc:.2f}  (n_contact={nm})", flush=True)
     print(f"  RELATIONAL : all={cr:.2f}  contacted-puck={crc:.2f}  (n_contact={nr})", flush=True)
