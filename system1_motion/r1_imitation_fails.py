@@ -145,7 +145,7 @@ def rollout_error_px(enc, dyn, dec_arm, transitions, device, horizon=8, n=512):
 
 
 def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, beta_var=1.0, init_enc=None,
-                      log=print, tag="", seed=0, arm_gate_px=5.0, early_px=9.0, max_attempts=6):
+                      log=print, tag="", seed=0, arm_gate_px=5.0, early_px=9.0, max_attempts=6, rollout_eval=None):
     """JEPA world model with an AUDIT-HARDENED training loop:
       - F3 (reproducible): torch+numpy seeded per attempt.
       - A1 (CONVERGENCE GATE): the arm (moving fingertip) decode is the planner's cost and converges
@@ -159,6 +159,12 @@ def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, b
     batch = min(batch, max(8, len(idx)))
     fr = torch.from_numpy(frames); ac = torch.from_numpy(actions)
     po = torch.from_numpy(pos); tg = torch.from_numpy(tgt)
+    # AUDIT (held-out-rollout hole): never measure rollout on trained-on transitions. Hold out the last 10%;
+    # rollout_eval (a DIVERSE off-distribution reference, e.g. broad exploration) catches a narrow-data WM that
+    # predicts its own tube perfectly but cannot plan off it (low in-dist rollout, high OOD rollout).
+    split = int(0.9 * len(idx)); train_idx = idx[:split]
+    held_idx = idx[split:] if (len(idx) - split) >= 64 else idx              # fallback if held split too small
+    held_trans = (frames, actions, pos, tgt, held_idx)
     early_step = int(0.45 * steps)
     last = None
     for attempt in range(max_attempts):
@@ -172,7 +178,7 @@ def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, b
         brng = np.random.RandomState(0)                              # same data order across attempts -> init is the only variable
         t0 = time.time(); cur_arm = 99.0; stuck = False
         for step in range(steps):
-            b = brng.choice(idx, batch)
+            b = brng.choice(train_idx, batch)                               # train only on the train split
             x0 = fr[b].float().to(device) / 255.0; x1 = fr[b + 1].float().to(device) / 255.0
             a = ac[b].to(device); p0 = po[b].to(device) / H; g0 = tg[b].to(device) / H
             z_t = enc(x0)
@@ -189,11 +195,14 @@ def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, b
             if step == early_step and cur_arm > early_px:
                 log(f"[wm{tag} a{attempt+1}] EARLY-ABORT arm_px={cur_arm:.1f}>{early_px} at {step} -> reinit", flush=True); stuck = True; break
         if stuck: continue
-        roll = rollout_error_px(enc.eval(), dyn.eval(), dec_arm.eval(), transitions, device)
+        roll = rollout_error_px(enc.eval(), dyn.eval(), dec_arm.eval(), held_trans, device)         # HELD-OUT (in-dist)
+        roll_ood = rollout_error_px(enc.eval(), dyn.eval(), dec_arm.eval(), rollout_eval, device) \
+            if rollout_eval is not None else float("nan")                                            # DIVERSE off-dist
         wm = {"enc": enc.eval(), "dyn": dyn.eval(), "dec_arm": dec_arm.eval(), "dec_tgt": dec_tgt.eval(),
-              "adim": adim, "img": H, "arm_px": cur_arm, "rollout_px": roll, "attempts": attempt + 1}
+              "adim": adim, "img": H, "arm_px": cur_arm, "rollout_px": roll, "rollout_ood_px": roll_ood,
+              "attempts": attempt + 1}
         if cur_arm <= arm_gate_px:
-            log(f"[wm{tag}] CONVERGED arm_px={cur_arm:.1f}<={arm_gate_px} rollout_px={roll:.1f} (attempt {attempt+1})", flush=True)
+            log(f"[wm{tag}] CONVERGED arm_px={cur_arm:.1f}<={arm_gate_px} rollout_heldout={roll:.1f} rollout_OOD={roll_ood:.1f} (attempt {attempt+1})", flush=True)
             wm["converged"] = True; return wm
         log(f"[wm{tag} a{attempt+1}] GATE FAIL arm_px={cur_arm:.1f}>{arm_gate_px}; retry", flush=True); last = wm
     # AUDIT N2: refuse to return an unverified WM -- raise so a caller can NEVER silently use a bad one.

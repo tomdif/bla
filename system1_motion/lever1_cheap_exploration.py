@@ -223,7 +223,9 @@ def main():
         mixed = mix_transitions(demo_tr, sub)
         print(f"  -- E={E}: WM trains on {len(mixed[4])} pairs "
               f"({len(demo_tr[4])} demo + {0 if sub is None else len(sub[4])} expl) --", flush=True)
-        wm = train_world_model(mixed, args.wm_steps, dev, tag=f"_E{E}")
+        wm = train_world_model(mixed, args.wm_steps, dev, tag=f"_E{E}", rollout_eval=expl)  # OOD rollout on diverse exploration
+        print(f"  -- E={E}: rollout held-out={wm['rollout_px']:.1f}px  OOD(exploration)={wm['rollout_ood_px']:.1f}px "
+              f"(OOD reveals off-tube dynamics) --", flush=True)
         # TEST-shift eval with BOTH the r1 default planner and the tuned (precision-fix) planner
         r_base = eval_wm_cem(wm, "test", args.eval_eps, args.seed, img, args.ep_len, args.action_repeat,
                              dev, planner=cem_plan, thresholds=THRESH)
