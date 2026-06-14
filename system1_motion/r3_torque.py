@@ -27,7 +27,7 @@ ARM_XML = """
   <option timestep="0.01" gravity="0 0 -9.81" integrator="implicitfast"/>
   <visual><global offwidth="256" offheight="256"/></visual>
   <default>
-    <joint type="hinge" damping="0.7" armature="0.1" limited="true"/>
+    <joint type="hinge" damping="0.3" armature="0.1" limited="true"/>
     <geom type="capsule" size="0.022" density="600" rgba="0.55 0.6 0.7 1"/>
     <motor ctrllimited="true" ctrlrange="-1 1"/>
   </default>
@@ -86,7 +86,7 @@ class Arm:
         for _ in range(repeat): mujoco.mj_step(self.m, self.d)
     def render(self):
         self.ren.update_scene(self.d, camera="cam"); return self.ren.render().transpose(2, 0, 1).copy()
-    def pd_reach(self, Kp=140.0, Kd=12.0):
+    def pd_reach(self, Kp=130.0, Kd=16.0):
         """privileged operational-space controller: Jacobian-transpose Cartesian PD + gravity/coriolis
         compensation -> torque ctrl. Reliably drives the ee to the target (greedy 1-step shooting could not:
         too myopic under damping to build sustained motion across the workspace)."""
@@ -115,7 +115,7 @@ def collect_exploration(n_steps, seed=0, ep_len=50, log=print):
     return (np.asarray(F_, np.uint8), np.asarray(A, np.float32), np.asarray(P, np.float32),
             np.asarray(T, np.float32), np.asarray(E, np.int64))
 
-def collect_demos(n_demos, region, seed=0, ep_len=70, keep_cm=0.07, log=print):
+def collect_demos(n_demos, region, seed=0, ep_len=100, keep_cm=0.06, log=print):
     """shooting-expert episodes to TRAIN-region targets; KEEP ONLY episodes that reach (< keep_cm) -> clean demos."""
     arm = Arm(seed + 5); demos = []; tries = 0; reached = []
     while len(demos) < n_demos and tries < n_demos * 12:
@@ -234,7 +234,7 @@ def train_bc3d(demos, adim, device, steps, lr=3e-4, batch=128, log=print, seed=0
 
 # ----------------------------- eval (true meters) -----------------------------
 @torch.no_grad()
-def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=50, thresh_cm=(5.0, 10.0)):
+def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=90, thresh_cm=(5.0, 10.0)):
     arm = Arm(seed0 + 7000); succ = {t: 0 for t in thresh_cm}; finals = []
     for e in range(n_eps):
         arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt); g = norm3(tgt)
@@ -263,9 +263,9 @@ def main():
         for region in ("train", "test", None):
             arm = Arm(0); arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt)
             print(f"\n  region={region} target={np.round(tgt,3)} |t|={np.linalg.norm(tgt):.3f} start_ee={np.round(arm.ee(),3)}", flush=True)
-            for t in range(70):
+            for t in range(100):
                 a = arm.pd_reach(); arm.step(a)
-                if t % 14 == 0 or t == 69:
+                if t % 20 == 0 or t == 99:
                     print(f"    t={t:2d} ee={np.round(arm.ee(),3)} dist={np.linalg.norm(arm.ee()-tgt)*100:5.1f}cm "
                           f"qpos={np.round(arm.d.qpos,2)} |qvel|={np.linalg.norm(arm.d.qvel):.1f} a={np.round(a,2)}", flush=True)
         return
