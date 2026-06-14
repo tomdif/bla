@@ -51,10 +51,11 @@ def main():
     idxE = np.sort(rng.choice(idx, min(args.E, len(idx)), replace=False))
     sub = (fr, ac, po, tg, idxE)
     R = {}
+    gate_kw = {"arm_gate_px": 99.0, "early_px": 99.0, "max_attempts": 1} if args.smoke else {}  # smoke can't converge in 200 steps
     for variant in ("real", "shuffle_actions", "zero_actions"):
         print(f"\n--- variant: {variant} ---", flush=True)
         wm = train_world_model(corrupt(sub, variant, seed=args.seed), args.wm_steps, dev,
-                               tag=f"_{variant}", seed=args.seed, rollout_eval=expl)
+                               tag=f"_{variant}", seed=args.seed, rollout_eval=expl, **gate_kw)
         r = eval_method("wm_cem", {"wm_cem": wm}, [], "test", args.eval_eps, args.seed,
                         args.image_size, args.ep_len, args.action_repeat, dev, (6.0, 12.0))
         R[variant] = {"succ6": r["succ"][6.0], "succ12": r["succ"][12.0], "mean_px": r["mean_px"],
