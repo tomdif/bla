@@ -38,26 +38,56 @@ Two routes (recommend **A**, fall back to **B**):
 Validate with a probe (the discipline that's paid off every time): a privileged expert pushes the target to the
 goal among decoys; a *direct* greedy push fails on contact-multimodality → confirms it's a genuine task. **(M0)**
 
-## World model — per-slot, control-trained latent
-Combine OF-JEPA structure (B) with a control objective (A), on the hard-won recipe:
-- **Encoder:** `SlotEncoder` (slot_encoder.py) → K slots = {gripper slot, object slots}. Slot binding is fragile
-  (4× retries seen) → keep the **convergence gate** + add a slot-specialization / existence objective
-  (`system1_jepa/slot_existence.py`, `id_consistency.py`) so slots bind to objects.
-- **Dynamics:** **per-slot** (`system1_jepa/slot_predictor.SlotDeltaPredictor`) — action conditions the gripper
-  slot; slot-attention propagates contact to object slots. This is the piece the flat drop-in *didn't* use.
-- **Objective (the lever):** *not* pure reconstruction. Train for control:
-  1. light per-object decode grounding (each slot → its object position),
-  2. **multi-step decode-consistency** (the torque lesson — rolled slots decode to the true per-object trajectory),
-  3. a **value/reward head** (TD-MPC2-style) so the latent is shaped for the push task, not for pixels.
-- **Per-object decode:** each object-slot decodes its object's position (the object-file).
+## World model — per-slot RELATIONAL dynamics, control-trained latent
+The flat OF-JEPA result refuted the *cheap drop-in* (slots → flatten → same dynamics → single object → reconstruction),
+not OF-JEPA. The literature (TD-MPC2, Dreamer 4, C-SWM, SlotFormer, SOLD, Interaction Networks / GNS) is unanimous:
+object structure pays off only with **object-level relational dynamics + control/value objectives + multi-step
+prediction + stable binding**. So the model is:
+
+- **Slots — ORACLE FIRST (decisive methodological fix).** `M1a` uses **simulator object states** as slots
+  (pusher + each puck + goal) — *no* slot attention. This isolates the real question (can per-slot control dynamics
+  break 0.42?) from binding fragility (the 4-attempt problem). Only `M1b` swaps in **learned visual slots**, and only
+  then with the published binding fixes (SAVi temporal slots / DINOSAUR feature-recon / Slot-Contrast / first-frame cue)
+  — *never* test learned slots + dynamics together first, or a binding failure masquerades as a dynamics failure.
+- **Dynamics — RELATIONAL message passing, NOT flat-MLP** (Interaction Networks / GNS / C-SWM). Slots are graph nodes;
+  contact/proximity/action are edges:
+  ```
+  gripper_delta   = f_g(g_t, a_t, Σ_j m(g_t, o_j, e))
+  object_delta_i  = o_i + f_o(o_i, Σ_j m(o_i, s_j, e_ij))   # action enters ONLY the gripper node;
+                                                            # contact messages propagate to objects; decoys inert until hit
+  ```
+  Flattening slots → MLP destroys the structure — that was the flat-swap failure.
+- **Objective — CONTROL owns the latent, reconstruction is auxiliary** (TD-MPC2 decoder-free; Dreamer 4 x-prediction):
+  | loss | role |
+  |---|---|
+  | `L_action_cos` | action → controlled-object delta **direction** (the 0.42 metric, now primary) |
+  | `L_goal_value` | predicts goal progress / reward / success (control latent) |
+  | `L_multistep` | predicted object states match **t+k endpoints** (x-prediction, not 1-step velocity) |
+  | `L_contact` | predicts contact event / which object moved |
+  | `L_identity` + `L_scof` | slot persistence (no swaps) + residual info retained |
+  | `L_recon` | small auxiliary health-check only |
+  Use **RMS loss normalization** across objectives (Dreamer 4). Add **policy/reward/value heads** trained in imagination.
 
 ## Milestones / build sequence
-| # | Milestone | Gate | Reuses |
+| # | Milestone | Gate | Status |
 |---|---|---|---|
-| **M0** | multi-object push env + probe | direct-push fails, expert-push works, decoys present | r3_fetch3d / r3_torque, probe pattern |
-| **M1** | per-slot control-latent WM + per-object action-authority | **object-cosine > 0.42** | SlotEncoder, SlotDeltaPredictor, gate, consistency, `action_authority` |
-| **M2** | moat eval (shifted goals + right-object) | WM ≫ BC, margin > torque moat | eval_method3d, BC3D |
-| **M3** | planner A/B + ensemble re-test | stack > CEM; disagreement sep > 1.6× | proposal_stack, ensemble_dynamics, imagination_policy |
+| **M0** | multi-object push env + probe | direct fails (0/5), contact works (4/5), expert solves clean cases (3/5) | **DONE** (`probe_push.py`) |
+| **M1a** | **ORACLE-slot** dynamics: monolithic-MLP vs flat-slot vs **relational/contact** on sim states | per-object (contacted-puck) **action-cosine > 0.42**; contact-class works; multi-step stable | **next** |
+| **M1b** | learned **visual** slots (SAVi/DINOSAUR/Slot-Contrast/first-frame cue) | recovers most of M1a; binding stable across seeds (no 4× fragility) | after M1a |
+| **M2** | moat eval (shifted goals + right-object among decoys) | WM ≫ BC, margin > single-object torque moat | after M1b |
+| **M3** | planner: stack / TD-MPC / learned proposals (Diffusion-MPC, Dream-MPC) + ensemble | stack > CEM; disagreement flags exploitation; gain isn't model-error exploitation | after M2 |
+
+**M1a is the true core test** and it's *cheap* (state-based — no rendering): given *perfect* object states, can per-slot
+**relational/contact** dynamics + a control objective predict the controlled-object delta faithfully (>0.42)?
+- **If yes** → the 0.42 ceiling was **perception** (the reconstruction latent), and the fix is a control-trained latent
+  feeding relational dynamics → M1b/M2.
+- **If even oracle-state relational dynamics is ~0.42** → the bottleneck is the **contact dynamics / objective itself**,
+  not perception — a deeper scientific result.
+- **Decompose, don't conflate:** M1a removes perception (oracle slots) so a low cosine can't be blamed on binding;
+  M1b adds perception back only once the dynamics question is answered.
+
+**Deferred per literature:** learned-slot binding fixes → M1b only; learned action proposals / gradient planning
+(Diffusion-MPC, Dream-MPC) → M3 only (planner upgrades are meaningless until the model is faithful).
 
 ## Reuse inventory (don't rebuild)
 - **Recipe & discipline:** convergence gate, multi-step decode-consistency, action-coverage exploration,
