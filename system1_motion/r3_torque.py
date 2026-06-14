@@ -320,6 +320,7 @@ def action_authority(wm, device, n=300, seed=0):
 
 
 def main():
+    global AR, IMG
     ap = argparse.ArgumentParser()
     ap.add_argument("--explore", type=int, default=20000); ap.add_argument("--demos", type=int, default=160)
     ap.add_argument("--wm-steps", type=int, default=8000); ap.add_argument("--bc-steps", type=int, default=5000)
@@ -334,8 +335,9 @@ def main():
     ap.add_argument("--eval-eplen", type=int, default=90); ap.add_argument("--keep-cm", type=float, default=0.06)
     ap.add_argument("--rand-frac", type=float, default=0.5)     # fraction of random-torque (action-coverage) episodes
     ap.add_argument("--cons-k", type=int, default=4); ap.add_argument("--cons-w", type=float, default=15.0)  # decode consistency
+    ap.add_argument("--img", type=int, default=IMG)             # perception resolution (faithfulness lever)
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
-    global AR; AR = args.action_repeat                     # set BEFORE any Arm() is built (diag/eval/collect all read it)
+    AR = args.action_repeat; IMG = args.img                    # set BEFORE any Arm()/encoder is built
     if args.planner_ab:
         wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); bc = load_bc3d("runs/r3t_ckpt/bc3dt.pt", dev); ne = args.eval_eps
         print(f"[r3t] PLANNER A/B on saved ckpt (AR={AR}, {ne} eps/region) -- CEM vs proposal-stack(MPPI) vs BC", flush=True)
