@@ -98,8 +98,8 @@
 const SUCC=12, NEAR=6;                        // px thresholds (model-space): reached / locked
 let DISP=440, running=true, auto=false, autoT=0;
 let goalUV={u:0.72,v:0.40}, goalAnim={u:0.72,v:0.40};
+const G=document.getElementById.bind(document);   // must precede sides: mk() uses G (TDZ otherwise)
 const sides={wm:mk('wm'),bc:mk('bc')};
-const G=document.getElementById.bind(document);
 
 function mk(id){
   const cv=G('cv_'+id); const ctx=cv.getContext('2d');
