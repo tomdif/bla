@@ -8,7 +8,7 @@ planner's IMAGINED rollout, and a verify panel (gate arm_px + held-out OOD rollo
   (then expose port 8000 on RunPod and open the proxied URL)
 """
 import argparse, base64, json
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import numpy as np
 import torch
 from system1_motion.wm_demo import load_wm, load_bc, DemoEngine, CKPT
@@ -104,10 +104,11 @@ def main():
     global ENG
     ap = argparse.ArgumentParser(); ap.add_argument("--port", type=int, default=8000); args = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"[demo-server] loading checkpoints from {CKPT}/ on {dev} ...", flush=True)
     ENG = DemoEngine(load_wm(f"{CKPT}/wm.pt", dev), load_bc(f"{CKPT}/bc.pt", dev), dev)
     print(f"[demo-server] loaded gated WM (arm_px={ENG.wm['arm_px']:.1f}, OOD={ENG.wm['rollout_ood_px']:.1f}) + BC", flush=True)
     print(f"[demo-server] serving on 0.0.0.0:{args.port} -- expose this port on RunPod and open the proxied URL", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", args.port), H).serve_forever()
+    HTTPServer(("0.0.0.0", args.port), H).serve_forever()  # single-threaded: MuJoCo EGL renderer is thread-bound
 
 
 if __name__ == "__main__":
