@@ -89,6 +89,9 @@ class Arm:
         for _ in range(self.ar if repeat is None else repeat): mujoco.mj_step(self.m, self.d)
     def render(self):
         self.ren.update_scene(self.d, camera="cam"); return self.ren.render().transpose(2, 0, 1).copy()
+    def close(self):
+        try: self.ren.close()                                  # free the EGL render context (avoid exhaustion across many Arms)
+        except Exception: pass
     def pd_reach(self, Kp=130.0, Kd=16.0):
         """privileged operational-space controller: Jacobian-transpose Cartesian PD + gravity/coriolis
         compensation -> torque ctrl. Reliably drives the ee to the target (greedy 1-step shooting could not:
@@ -284,6 +287,7 @@ def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=90, thres
         d_cm = float(np.linalg.norm(arm.ee() - tgt)) * 100.0; finals.append(d_cm)
         for t in thresh_cm:
             if d_cm <= t: succ[t] += 1
+    arm.close()
     return {f"succ@{int(t)}cm": succ[t] / n_eps for t in thresh_cm} | {"mean_cm": float(np.mean(finals))}
 
 
@@ -309,6 +313,7 @@ def action_authority(wm, device, n=300, seed=0):
         arm.d.qpos[:] = s; arm.d.qvel[:] = v; mujoco.mj_forward(arm.m, arm.d)
         arm.step(np.clip(arm.pd_reach() + arm.rng.normal(0, 0.4, ADIM), -1, 1).astype(np.float32)); on += 1
         if on >= 25: arm.reset(); arm.set_target(arm.sample_target()); on = 0
+    arm.close()
     return {"real_cm": float(np.mean(r_auth)), "model_cm": float(np.mean(m_auth)),
             "ratio": float(np.mean(m_auth) / max(1e-6, np.mean(r_auth))),
             "cosine": float(np.mean(cosd) if cosd else 0.0), "pred_err_cm": float(np.mean(perr))}
@@ -334,11 +339,13 @@ def main():
     if args.planner_ab:
         wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); bc = load_bc3d("runs/r3t_ckpt/bc3dt.pt", dev); ne = args.eval_eps
         print(f"[r3t] PLANNER A/B on saved ckpt (AR={AR}, {ne} eps/region) -- CEM vs proposal-stack(MPPI) vs BC", flush=True)
-        for r in ("train", "test"):
-            cem = eval_method3d("wm_cem", {"wm": wm}, r, ne, 0, dev, ep_len=args.eval_eplen, planner="cem")
-            stk = eval_method3d("wm_cem", {"wm": wm}, r, ne, 0, dev, ep_len=args.eval_eplen, planner="stack")
-            b = eval_method3d("bc", {"bc": bc}, r, ne, 0, dev, ep_len=args.eval_eplen)
-            print(f"  [{r:5}] CEM {cem}\n         STACK {stk}\n         BC   {b}", flush=True)
+        jobs = [(r, label, planner) for r in ("test", "train")            # test first (the moat region)
+                for label, planner in (("CEM", "cem"), ("STACK", "stack"), ("BC", "bc"))]
+        for r, label, planner in jobs:                                    # print each line as computed -> survives any crash
+            torch.cuda.empty_cache()
+            if planner == "bc": res = eval_method3d("bc", {"bc": bc}, r, ne, 0, dev, ep_len=args.eval_eplen)
+            else: res = eval_method3d("wm_cem", {"wm": wm}, r, ne, 0, dev, ep_len=args.eval_eplen, planner=planner)
+            print(f"  [{r:5}] {label:5} {res}", flush=True)
         return
     if args.diag:
         wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); a = action_authority(wm, dev)
