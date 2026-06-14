@@ -259,8 +259,19 @@ def main():
     ap.add_argument("--wm-steps", type=int, default=8000); ap.add_argument("--bc-steps", type=int, default=5000)
     ap.add_argument("--eval-eps", type=int, default=30); ap.add_argument("--validate", action="store_true")
     ap.add_argument("--gate-cm", type=float, default=4.0); ap.add_argument("--max-attempts", type=int, default=6)
-    ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--smoke", action="store_true"); ap.add_argument("--testexpert", action="store_true")
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.testexpert:                                        # isolate: does render() (or anything) break the reach?
+        for label, do_render in (("NO-render", False), ("WITH-render", True)):
+            arm = Arm(0); ds = []
+            for _ in range(6):
+                arm.reset(); tgt = arm.sample_target("train"); arm.set_target(tgt)
+                for _ in range(70):
+                    if do_render: arm.render()
+                    a = arm.shoot(K=96); arm.step(a)
+                ds.append(np.linalg.norm(arm.ee() - tgt) * 100)
+            print(f"  {label:12} reach cm: {[round(x,1) for x in ds]}", flush=True)
+        return
     if args.smoke:
         args.explore, args.demos, args.wm_steps, args.bc_steps, args.eval_eps = 800, 6, 200, 200, 3
         args.gate_cm, args.max_attempts = 999.0, 1
