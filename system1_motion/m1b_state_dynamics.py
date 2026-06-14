@@ -50,9 +50,9 @@ def collect(n_steps, seed=0, ar=12, rand_frac=0.6, log=print):
 
 class StateWM(nn.Module):
     """2-frame encoder -> clean state [pos,vel]; dynamics MLP operates in STATE space (not the latent)."""
-    def __init__(self, d_z=256):
+    def __init__(self, d_z=384):
         super().__init__()
-        self.enc = ViTEncoder(IMG, 8, 6, d_z, 4)               # 6 channels = 2 stacked frames
+        self.enc = ViTEncoder(IMG, 8, 6, d_z, 4)               # (img,patch,in_ch=6 [2 frames],d_z,depth); heads=6 default | 384%6==0
         self.dec_state = DecodeHead(d_z, out_dim=6)            # [pos3, vel3]
         self.dyn = nn.Sequential(nn.Linear(6 + ADIM, 128), nn.SiLU(), nn.Linear(128, 128), nn.SiLU(), nn.Linear(128, 6))
     def perceive(self, stack): return self.dec_state(self.enc(stack))      # pixels -> state
