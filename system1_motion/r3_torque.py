@@ -21,6 +21,9 @@ LO = np.array([-0.42, -0.42, 0.04]); HI = np.array([0.42, 0.42, 0.46]); SPAN = H
 M2CM = float(np.mean(SPAN)) * 100.0                          # approx cm per normalized unit (gate metric only; eval uses true m)
 RMIN, RMAX = 0.16, 0.36                                     # reliably-reachable shell radius (front zone)
 ADIM = 3
+AR = 2                                                      # action_repeat (substeps/control step); set from --action-repeat.
+# Larger AR -> bigger per-step action authority. At AR=2 the 1-step EE effect (~0.11cm) was ~30x BELOW the model's
+# ~3cm decode noise, so the action->effector map was unlearnable (diag: ratio 4.9, cosine -0.21). Raising AR lifts it.
 
 ARM_XML = """
 <mujoco model="arm3d">
@@ -70,7 +73,7 @@ class Arm:
         self.m = mujoco.MjModel.from_xml_string(ARM_XML); self.d = mujoco.MjData(self.m)
         self.ren = mujoco.Renderer(self.m, IMG, IMG)
         self.eid = mujoco.mj_name2id(self.m, mujoco.mjtObj.mjOBJ_SITE, "ee")
-        self.rng = np.random.RandomState(seed)
+        self.rng = np.random.RandomState(seed); self.ar = AR
     def ee(self):  return self.d.site_xpos[self.eid].copy()
     def tgt(self): return self.d.mocap_pos[0].copy()
     def reset(self):
@@ -81,9 +84,9 @@ class Arm:
         while True:                                            # FRONT zone (x>0) -> reliably reachable; split left/right by y
             c = self.rng.uniform([0.10, -0.35, 0.08], [0.38, 0.35, 0.42])
             if RMIN < np.linalg.norm(c) < RMAX and (region is None or region_of3d(c) == region): return c
-    def step(self, ctrl, repeat=2):
+    def step(self, ctrl, repeat=None):
         self.d.ctrl[:] = np.clip(ctrl, -1, 1)
-        for _ in range(repeat): mujoco.mj_step(self.m, self.d)
+        for _ in range(self.ar if repeat is None else repeat): mujoco.mj_step(self.m, self.d)
     def render(self):
         self.ren.update_scene(self.d, camera="cam"); return self.ren.render().transpose(2, 0, 1).copy()
     def pd_reach(self, Kp=130.0, Kd=16.0):
@@ -264,6 +267,33 @@ def eval_method3d(method, models, region, n_eps, seed0, device, ep_len=90, thres
     return {f"succ@{int(t)}cm": succ[t] / n_eps for t in thresh_cm} | {"mean_cm": float(np.mean(finals))}
 
 
+@torch.no_grad()
+def action_authority(wm, device, n=300, seed=0):
+    """Counterfactual: from the same state, how far apart is the decoded ee under a random action vs zero --
+    in the MODEL vs the REAL sim? ratio~1 + cosine>0 => action map is faithful (planner is the bottleneck);
+    ratio off / cosine<=0 => the world model never learned action->effector (fix the WM, not the planner)."""
+    arm = Arm(seed); arm.reset(); arm.set_target(arm.sample_target()); on = 0
+    m_auth, r_auth, perr, cosd = [], [], [], []
+    for _ in range(n):
+        x = torch.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(device); z = wm["enc"](x)
+        a = arm.rng.uniform(-1, 1, ADIM).astype(np.float32)
+        ee_a = wm["dec_g"](wm["dyn"](z, torch.tensor(a)[None].to(device)))[0].cpu().numpy() * SPAN + LO
+        ee_0 = wm["dec_g"](wm["dyn"](z, torch.zeros(1, ADIM).to(device)))[0].cpu().numpy() * SPAN + LO
+        m_auth.append(np.linalg.norm(ee_a - ee_0) * 100)
+        s, v = arm.d.qpos.copy(), arm.d.qvel.copy()
+        arm.step(a); ee_ra = arm.ee().copy()
+        arm.d.qpos[:] = s; arm.d.qvel[:] = v; mujoco.mj_forward(arm.m, arm.d); arm.step(np.zeros(ADIM, np.float32)); ee_r0 = arm.ee().copy()
+        r_auth.append(np.linalg.norm(ee_ra - ee_r0) * 100); perr.append(np.linalg.norm(ee_a - ee_ra) * 100)
+        dm, dr = ee_a - ee_0, ee_ra - ee_r0
+        if np.linalg.norm(dm) > 1e-6 and np.linalg.norm(dr) > 1e-6: cosd.append(float(dm @ dr / (np.linalg.norm(dm) * np.linalg.norm(dr))))
+        arm.d.qpos[:] = s; arm.d.qvel[:] = v; mujoco.mj_forward(arm.m, arm.d)
+        arm.step(np.clip(arm.pd_reach() + arm.rng.normal(0, 0.4, ADIM), -1, 1).astype(np.float32)); on += 1
+        if on >= 25: arm.reset(); arm.set_target(arm.sample_target()); on = 0
+    return {"real_cm": float(np.mean(r_auth)), "model_cm": float(np.mean(m_auth)),
+            "ratio": float(np.mean(m_auth) / max(1e-6, np.mean(r_auth))),
+            "cosine": float(np.mean(cosd) if cosd else 0.0), "pred_err_cm": float(np.mean(perr))}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--explore", type=int, default=20000); ap.add_argument("--demos", type=int, default=160)
@@ -273,32 +303,16 @@ def main():
     ap.add_argument("--smoke", action="store_true"); ap.add_argument("--testexpert", action="store_true")
     ap.add_argument("--evalonly", action="store_true")     # reuse saved ckpt; sweep CEM horizon (no retrain)
     ap.add_argument("--diag", action="store_true")         # action-sensitivity: does dyn respond to actions like reality?
+    ap.add_argument("--action-repeat", type=int, default=2)    # substeps/control step; raise to lift action authority
+    ap.add_argument("--explore-eplen", type=int, default=50); ap.add_argument("--demo-eplen", type=int, default=100)
+    ap.add_argument("--eval-eplen", type=int, default=90); ap.add_argument("--keep-cm", type=float, default=0.06)
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
+    global AR; AR = args.action_repeat                     # set BEFORE any Arm() is built (diag/eval/collect all read it)
     if args.diag:
-        import torch as T
-        wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); arm = Arm(0)
-        arm.reset(); arm.set_target(arm.sample_target()); on = 0
-        m_auth, r_auth, perr, cosd = [], [], [], []
-        for i in range(300):
-            x = T.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(dev); z = wm["enc"](x)
-            a = arm.rng.uniform(-1, 1, ADIM).astype(np.float32)
-            with T.no_grad():                              # MODEL counterfactual: decoded ee under a vs under 0
-                ee_a = wm["dec_g"](wm["dyn"](z, T.tensor(a)[None].to(dev)))[0].cpu().numpy() * SPAN + LO
-                ee_0 = wm["dec_g"](wm["dyn"](z, T.zeros(1, ADIM).to(dev)))[0].cpu().numpy() * SPAN + LO
-            m_auth.append(np.linalg.norm(ee_a - ee_0) * 100)
-            s, v = arm.d.qpos.copy(), arm.d.qvel.copy()    # REAL counterfactual from the same state
-            arm.step(a); ee_ra = arm.ee().copy()
-            arm.d.qpos[:] = s; arm.d.qvel[:] = v; mujoco.mj_forward(arm.m, arm.d); arm.step(np.zeros(ADIM, np.float32)); ee_r0 = arm.ee().copy()
-            r_auth.append(np.linalg.norm(ee_ra - ee_r0) * 100); perr.append(np.linalg.norm(ee_a - ee_ra) * 100)
-            dm, dr = ee_a - ee_0, ee_ra - ee_r0
-            if np.linalg.norm(dm) > 1e-6 and np.linalg.norm(dr) > 1e-6: cosd.append(float(dm @ dr / (np.linalg.norm(dm) * np.linalg.norm(dr))))
-            arm.d.qpos[:] = s; arm.d.qvel[:] = v; mujoco.mj_forward(arm.m, arm.d)   # advance trajectory with explorer
-            arm.step(np.clip(arm.pd_reach() + arm.rng.normal(0, 0.4, ADIM), -1, 1).astype(np.float32)); on += 1
-            if on >= 25: arm.reset(); arm.set_target(arm.sample_target()); on = 0
-        print(f"[diag] ACTION AUTHORITY (1 step): real={np.mean(r_auth):.2f}cm  model={np.mean(m_auth):.2f}cm  "
-              f"ratio model/real={np.mean(m_auth)/max(1e-6,np.mean(r_auth)):.2f}", flush=True)
-        print(f"[diag] direction cosine(model,real) = {np.mean(cosd):.2f}   |   1-step decode-pred err = {np.mean(perr):.2f}cm", flush=True)
-        print(f"[diag] verdict: {'ACTION-FAITHFUL (planner is the issue)' if np.mean(m_auth)/max(1e-6,np.mean(r_auth))>0.5 and np.mean(cosd)>0.5 else 'ACTION-INSENSITIVE dynamics (fix the world model, not the planner)'}", flush=True)
+        wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); a = action_authority(wm, dev)
+        print(f"[diag] ACTION AUTHORITY (1 step, AR={AR}): real={a['real_cm']:.2f}cm  model={a['model_cm']:.2f}cm  ratio={a['ratio']:.2f}", flush=True)
+        print(f"[diag] direction cosine(model,real) = {a['cosine']:.2f}   |   1-step decode-pred err = {a['pred_err_cm']:.2f}cm", flush=True)
+        print(f"[diag] verdict: {'ACTION-FAITHFUL (planner is the issue)' if a['ratio'] > 0.5 and a['cosine'] > 0.5 else 'ACTION-INSENSITIVE dynamics (fix the world model, not the planner)'}", flush=True)
         return
     if args.evalonly:
         wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); bc = load_bc3d("runs/r3t_ckpt/bc3dt.pt", dev)
@@ -324,11 +338,11 @@ def main():
     if args.smoke:
         args.explore, args.demos, args.wm_steps, args.bc_steps, args.eval_eps = 800, 6, 200, 200, 3
         args.gate_cm, args.max_attempts = 999.0, 1
-    print(f"[r3t] TORQUE 3D moat test on {dev} | 3-DOF arm IMG={IMG} split=y<0 smoke={args.smoke}", flush=True)
+    print(f"[r3t] TORQUE 3D moat test on {dev} | IMG={IMG} action_repeat={AR} split=y<0 smoke={args.smoke}", flush=True)
     print("[r3t] collecting goal-agnostic torque exploration ...", flush=True)
-    expl = collect_exploration(args.explore)
+    expl = collect_exploration(args.explore, ep_len=args.explore_eplen)
     print("[r3t] collecting TRAIN-region shooting-expert demos ...", flush=True)
-    demos = collect_demos(args.demos, "train")
+    demos = collect_demos(args.demos, "train", ep_len=args.demo_eplen, keep_cm=args.keep_cm)
     if len(demos) < 2: raise RuntimeError(f"[r3t] expert produced only {len(demos)} clean demos -- expert too weak; tune shoot/keep_cm.")
     print("[r3t] training GATED torque world model ...", flush=True)
     wm = train_wm3d(expl, args.wm_steps, dev, tag="_3dt", rollout_eval=expl, gate_cm=args.gate_cm,
@@ -345,11 +359,14 @@ def main():
     print("\n[r3t] ===== MOAT EVAL (zero-shot, frozen, real torque dynamics) =====", flush=True)
     out = {}
     for region in ("train", "test"):
-        out[("wm", region)] = eval_method3d("wm_cem", {"wm": wm}, region, args.eval_eps, 0, dev)
-        out[("bc", region)] = eval_method3d("bc", {"bc": bc}, region, args.eval_eps, 0, dev)
+        out[("wm", region)] = eval_method3d("wm_cem", {"wm": wm}, region, args.eval_eps, 0, dev, ep_len=args.eval_eplen)
+        out[("bc", region)] = eval_method3d("bc", {"bc": bc}, region, args.eval_eps, 0, dev, ep_len=args.eval_eplen)
         print(f"  [{region:5}] WM {out[('wm',region)]}   |   BC {out[('bc',region)]}", flush=True)
     wt, bt = out[("wm", "test")]["succ@5cm"], out[("bc", "test")]["succ@5cm"]
+    auth = action_authority(wm, dev)                         # did raising action_repeat make the action map faithful?
     print(f"\n  GATE: grip_cm={wm['grip_cm']:.2f} held-rollout={wm['rollout_cm']:.1f}cm OOD-rollout={wm['rollout_ood_cm']:.1f}cm", flush=True)
+    print(f"  ACTION AUTHORITY: real={auth['real_cm']:.2f}cm model={auth['model_cm']:.2f}cm ratio={auth['ratio']:.2f} "
+          f"cosine={auth['cosine']:.2f} pred_err={auth['pred_err_cm']:.2f}cm", flush=True)
     print(f"  MOAT @5cm SHIFTED(test): WM={wt:.2f} vs BC={bt:.2f} -> {'HOLDS' if wt-bt>=0.3 else 'WEAK/ABSENT'} (margin {wt-bt:+.2f})", flush=True)
 
 
