@@ -145,7 +145,7 @@ def rollout_error_px(enc, dyn, dec_arm, transitions, device, horizon=8, n=512):
 
 
 def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, beta_var=1.0, init_enc=None,
-                      log=print, tag="", seed=0, arm_gate_px=5.0, early_px=9.0, max_attempts=4):
+                      log=print, tag="", seed=0, arm_gate_px=5.0, early_px=9.0, max_attempts=6):
     """JEPA world model with an AUDIT-HARDENED training loop:
       - F3 (reproducible): torch+numpy seeded per attempt.
       - A1 (CONVERGENCE GATE): the arm (moving fingertip) decode is the planner's cost and converges
@@ -196,8 +196,9 @@ def train_world_model(transitions, steps, device, d_z=384, lr=3e-4, batch=128, b
             log(f"[wm{tag}] CONVERGED arm_px={cur_arm:.1f}<={arm_gate_px} rollout_px={roll:.1f} (attempt {attempt+1})", flush=True)
             wm["converged"] = True; return wm
         log(f"[wm{tag} a{attempt+1}] GATE FAIL arm_px={cur_arm:.1f}>{arm_gate_px}; retry", flush=True); last = wm
-    log(f"[wm{tag}] WARNING: did NOT converge in {max_attempts} attempts (arm_px={last['arm_px']:.1f}) -- results suspect", flush=True)
-    last["converged"] = False; return last
+    # AUDIT N2: refuse to return an unverified WM -- raise so a caller can NEVER silently use a bad one.
+    raise RuntimeError(f"[wm{tag}] WM did NOT converge in {max_attempts} attempts (best arm_px={last['arm_px']:.1f} > "
+                       f"{arm_gate_px}px). Refusing to return an unverified world model (audit N2).")
 
 
 # ----------------------------- CEM-MPC planner (uses the LEARNED model only) -----------------------------
