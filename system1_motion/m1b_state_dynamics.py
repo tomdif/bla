@@ -30,22 +30,23 @@ def state_of(arm):
     return np.concatenate([norm3(arm.ee()), ee_vel(arm)]).astype(np.float32)   # [pos3, vel3]
 
 
-def collect(n_steps, seed=0, ar=12, rand_frac=0.6, log=print):
-    """torque-arm exploration; record 2-frame stacks + clean states (pos+vel). stack_t = [frame_{t-1}, frame_t]."""
+def collect(n_steps, seed=0, ar=12, rand_frac=0.6, ep_len=26, log=print):
+    """torque-arm exploration; record 2-frame stacks + clean states (pos+vel) + episode id (for K-step windows).
+    stack_t = [frame_{t-1}, frame_t]; the transition (ST[i],A[i]) -> S[i+1] when same episode."""
     arm = Arm(seed); rng = np.random.RandomState(seed)
-    ST, A, S, S1 = [], [], [], []; arm.reset(); prev = arm.render(); on = 0; mode = int(rng.rand() < rand_frac)
+    ST, A, S, EP = [], [], [], []; arm.reset(); prev = arm.render(); ep = on = 0; mode = int(rng.rand() < rand_frac)
     t0 = time.time()
     for i in range(n_steps):
         cur = arm.render(); s = state_of(arm)
         a = arm.rng.uniform(-1, 1, ADIM).astype(np.float32) if mode else \
             np.clip(arm.pd_reach() + arm.rng.normal(0, 0.35, ADIM), -1, 1).astype(np.float32)
-        arm.step(a); s1 = state_of(arm); nxt = arm.render()
-        ST.append(np.concatenate([prev, cur], 0)); A.append(a); S.append(s); S1.append(s1)   # [6,H,W]
+        arm.step(a)
+        ST.append(np.concatenate([prev, cur], 0)); A.append(a); S.append(s); EP.append(ep)        # [6,H,W]
         prev = cur; on += 1
-        if (i + 1) % 26 == 0: arm.reset(); prev = arm.render(); mode = int(rng.rand() < rand_frac); on = 0
+        if (i + 1) % ep_len == 0: arm.reset(); prev = arm.render(); ep += 1; mode = int(rng.rand() < rand_frac); on = 0
         if (i + 1) % 5000 == 0: log(f"  [collect] {i+1}/{n_steps} ({time.time()-t0:.0f}s)", flush=True)
     arm.close()
-    return (np.array(ST, np.uint8), np.array(A, np.float32), np.array(S, np.float32), np.array(S1, np.float32))
+    return (np.array(ST, np.uint8), np.array(A, np.float32), np.array(S, np.float32), np.array(EP, np.int64))
 
 
 class StateWM(nn.Module):
@@ -59,23 +60,28 @@ class StateWM(nn.Module):
     def step_state(self, s, a): return s + self.dyn(torch.cat([s, a], -1)) # clean state-space dynamics (delta)
 
 
-def train(model, data, device, steps=8000, lr=3e-4, batch=128, log=print):
-    ST, A, S, S1 = data
-    st = torch.from_numpy(ST); a_t = torch.from_numpy(A).to(device)
-    s_t = torch.from_numpy(S).to(device); s1_t = torch.from_numpy(S1).to(device)
+def train(model, data, device, steps=8000, lr=3e-4, batch=128, cons_k=6, log=print):
+    """decode grounding (pixels->state) + MULTI-STEP rollout of the state dynamics (roll cons_k steps, supervise
+    against the true state trajectory) -- the planning-relevant signal the one-step probe was missing."""
+    ST, A, S, EP = data
+    st = torch.from_numpy(ST); a_t = torch.from_numpy(A).to(device); s_t = torch.from_numpy(S).to(device)
+    idx = np.where(EP[:-1] == EP[1:])[0]                        # valid single-step starts (same episode)
+    idxset = set(int(x) for x in idx)
+    kstarts = np.array([b for b in idx if all((int(b) + k) in idxset for k in range(cons_k))])
     opt = torch.optim.AdamW(model.parameters(), lr=lr); rng = np.random.RandomState(0); t0 = time.time()
     for step in range(steps):
-        b = rng.randint(0, len(ST), batch)
-        x = st[b].float().to(device) / 255.0
-        s_pred = model.perceive(x)                              # perception: pixels -> state
-        dec = F.mse_loss(s_pred, s_t[b])                        # decode grounding (pos+vel)
-        dyn = F.mse_loss(model.step_state(s_t[b], a_t[b]), s1_t[b])   # CLEAN state-space dynamics (M1a-style)
+        b = rng.choice(idx, batch)
+        s_pred = model.perceive(st[b].float().to(device) / 255.0); dec = F.mse_loss(s_pred, s_t[b])   # perception
+        bw = rng.choice(kstarts, batch); s = s_t[bw]; dyn = 0.0          # MULTI-STEP state-space rollout (from true state)
+        for k in range(cons_k):
+            s = model.step_state(s, a_t[bw + k]); dyn = dyn + F.mse_loss(s, s_t[bw + k + 1])
+        dyn = dyn / cons_k
         loss = dec + dyn
         opt.zero_grad(); loss.backward(); opt.step()
         if step % max(1, steps // 5) == 0 or step == steps - 1:
             with torch.no_grad():
                 pos_cm = ((s_pred[:, :3] - s_t[b][:, :3]) * span_t).pow(2).sum(-1).sqrt().mean().item() * 100
-            log(f"[m1b {step}/{steps}] dec={dec.item():.4f} dyn={dyn.item():.4f} pos_cm={pos_cm:.2f} ({time.time()-t0:.0f}s)", flush=True)
+            log(f"[m1b {step}/{steps}] dec={dec.item():.4f} dyn_k={dyn.item():.4f} pos_cm={pos_cm:.2f} ({time.time()-t0:.0f}s)", flush=True)
     return model.eval()
 
 
