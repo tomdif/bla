@@ -86,7 +86,7 @@ class Arm:
         for _ in range(repeat): mujoco.mj_step(self.m, self.d)
     def render(self):
         self.ren.update_scene(self.d, camera="cam"); return self.ren.render().transpose(2, 0, 1).copy()
-    def pd_reach(self, Kp=45.0, Kd=5.0):
+    def pd_reach(self, Kp=140.0, Kd=12.0):
         """privileged operational-space controller: Jacobian-transpose Cartesian PD + gravity/coriolis
         compensation -> torque ctrl. Reliably drives the ee to the target (greedy 1-step shooting could not:
         too myopic under damping to build sustained motion across the workspace)."""
