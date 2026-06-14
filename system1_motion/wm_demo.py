@@ -91,11 +91,11 @@ class DemoEngine:
         self.env.reset(); return self._obs()
 
     def set_goal(self, xy_world):
-        """move the Reacher target to xy_world (the user's dragged goal). Reacher qpos=[armj0,armj1,tx,ty]."""
+        """move the Reacher target to the user's dragged goal. dm_control Reacher positions the target via
+        model.geom_pos['target'] (a static geom), NOT a joint -- setting qpos does nothing."""
         xy = np.clip(np.asarray(xy_world, np.float64), -EXTENT * 0.8, EXTENT * 0.8)
-        qpos = self.env.physics.data.qpos
-        if len(qpos) >= 4:
-            qpos[2], qpos[3] = xy[0], xy[1]
+        gp = self.env.physics.named.model.geom_pos
+        gp["target", "x"] = xy[0]; gp["target", "y"] = xy[1]
         self.env.physics.forward()
         return {"goal_world": xy.tolist(), "goal_px": to_px(xy, self.img).tolist()}
 
