@@ -56,7 +56,7 @@ def load_bc(path, device):
 
 # ----------------------------- CEM planner + imagination -----------------------------
 @torch.no_grad()
-def cem_imagine(wm, z0, goal_px_norm, aspec, device, horizon=8, iters=5, pop=256, elite=24, terminal_w=4.0):
+def cem_imagine(wm, z0, goal_px_norm, aspec, device, horizon=6, iters=4, pop=160, elite=20, terminal_w=4.0):
     """returns (first_action, imagined_fingertip_px[horizon,2]) -- the planner's chosen future, for overlay."""
     adim = wm["adim"]
     lo = torch.tensor(aspec.minimum, device=device, dtype=torch.float32)
