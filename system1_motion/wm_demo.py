@@ -108,7 +108,13 @@ class DemoEngine:
         tpx = to_px(target_world(self.env), self.img); imagined = None
         z0 = self.wm["enc"](x)
         if method == "wm":
-            a, imagined = cem_imagine(self.wm, z0, tpx / self.img, self.aspec, self.dev)
+            cur_px = float(np.linalg.norm(self.wm["dec_arm"](z0)[0].cpu().numpy() * self.img - tpx))
+            if cur_px < 14.0:                                   # NEAR goal: precision mode -- deep search, settle on target
+                a, imagined = cem_imagine(self.wm, z0, tpx / self.img, self.aspec, self.dev,
+                                          horizon=8, iters=8, pop=384, elite=32, terminal_w=10.0)
+            else:                                               # FAR: fast mode -- light search, quick approach (keeps fps up)
+                a, imagined = cem_imagine(self.wm, z0, tpx / self.img, self.aspec, self.dev,
+                                          horizon=6, iters=4, pop=160, elite=20, terminal_w=4.0)
         elif method == "bc":
             g = torch.tensor(tpx / self.img, device=self.dev).float()[None]; a = self.bc(x, g).cpu().numpy()[0]
         else:
