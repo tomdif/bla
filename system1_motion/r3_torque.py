@@ -158,8 +158,16 @@ def rollout_error_cm(enc, dyn, dec_g, trans, device, horizon=8, n=512):
             errs.append(d.mean().item() * 100.0)
     return float(np.mean(errs))
 
+def build_enc(kind, img, d_z=384):
+    """encoder factory -- the ONLY thing that differs pool vs OF-JEPA-slot (both -> [B,384]) (lever4 pattern)."""
+    if kind == "slot":
+        from system1_motion.slot_encoder import SlotEncoder
+        return SlotEncoder(in_channels=3, vit_dim=192, patch=8, depth=6, n_slots=6, slot_dim=d_z // 6)
+    return ViTEncoder(img, 8, 3, d_z, 6)
+
+
 def train_wm3d(trans, steps, device, d_z=384, lr=3e-4, batch=128, log=print, tag="", seed=0,
-               gate_cm=4.0, early_cm=7.0, max_attempts=6, rollout_eval=None, cons_k=4, cons_w=15.0):
+               gate_cm=4.0, early_cm=7.0, max_attempts=6, rollout_eval=None, cons_k=4, cons_w=15.0, enc_kind="pool"):
     F_, A, P, T, E = trans; adim = A.shape[1]; idx = np.where(E[:-1] == E[1:])[0]
     batch = min(batch, max(8, len(idx)))
     fr = torch.from_numpy(F_); ac = torch.from_numpy(A); po = torch.from_numpy(P); tg = torch.from_numpy(T)
@@ -176,7 +184,7 @@ def train_wm3d(trans, steps, device, d_z=384, lr=3e-4, batch=128, log=print, tag
     early_step = int(0.45 * steps); last = None
     for attempt in range(max_attempts):
         torch.manual_seed(seed + 1000 * attempt); np.random.seed(seed + attempt)
-        enc = ViTEncoder(IMG, 8, 3, d_z, 6).to(device); dyn = LatentDynamics(d_z, adim, 4).to(device)
+        enc = build_enc(enc_kind, IMG, d_z).to(device); dyn = LatentDynamics(d_z, adim, 4).to(device)
         dec_g = DecodeHead(d_z, out_dim=3).to(device); dec_t = DecodeHead(d_z, out_dim=3).to(device)
         opt = torch.optim.AdamW(list(enc.parameters()) + list(dyn.parameters()) + list(dec_g.parameters()) + list(dec_t.parameters()), lr=lr)
         brng = np.random.RandomState(0); t0 = time.time(); cur_cm = 99.0; stuck = False
@@ -336,6 +344,7 @@ def main():
     ap.add_argument("--rand-frac", type=float, default=0.5)     # fraction of random-torque (action-coverage) episodes
     ap.add_argument("--cons-k", type=int, default=4); ap.add_argument("--cons-w", type=float, default=15.0)  # decode consistency
     ap.add_argument("--img", type=int, default=IMG)             # perception resolution (faithfulness lever)
+    ap.add_argument("--encoder", choices=["pool", "slot"], default="pool")   # OF-JEPA structure lever
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
     AR = args.action_repeat; IMG = args.img                    # set BEFORE any Arm()/encoder is built
     if args.planner_ab:
@@ -385,9 +394,9 @@ def main():
     print("[r3t] collecting TRAIN-region shooting-expert demos ...", flush=True)
     demos = collect_demos(args.demos, "train", ep_len=args.demo_eplen, keep_cm=args.keep_cm)
     if len(demos) < 2: raise RuntimeError(f"[r3t] expert produced only {len(demos)} clean demos -- expert too weak; tune shoot/keep_cm.")
-    print(f"[r3t] training GATED torque world model (rand_frac={args.rand_frac} cons_k={args.cons_k} cons_w={args.cons_w}) ...", flush=True)
+    print(f"[r3t] training GATED torque WM (encoder={args.encoder} rand_frac={args.rand_frac} cons_k={args.cons_k}) ...", flush=True)
     wm = train_wm3d(expl, args.wm_steps, dev, tag="_3dt", rollout_eval=expl, gate_cm=args.gate_cm,
-                    early_cm=args.gate_cm * 1.6, max_attempts=args.max_attempts, cons_k=args.cons_k, cons_w=args.cons_w)
+                    early_cm=args.gate_cm * 1.6, max_attempts=args.max_attempts, cons_k=args.cons_k, cons_w=args.cons_w, enc_kind=args.encoder)
     print("[r3t] training goal-conditioned BC ...", flush=True)
     bc = train_bc3d(demos, ADIM, dev, args.bc_steps)
     if not args.smoke:
