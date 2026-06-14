@@ -272,7 +272,34 @@ def main():
     ap.add_argument("--gate-cm", type=float, default=4.0); ap.add_argument("--max-attempts", type=int, default=6)
     ap.add_argument("--smoke", action="store_true"); ap.add_argument("--testexpert", action="store_true")
     ap.add_argument("--evalonly", action="store_true")     # reuse saved ckpt; sweep CEM horizon (no retrain)
+    ap.add_argument("--diag", action="store_true")         # action-sensitivity: does dyn respond to actions like reality?
     args = ap.parse_args(); dev = "cuda" if torch.cuda.is_available() else "cpu"
+    if args.diag:
+        import torch as T
+        wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); arm = Arm(0)
+        arm.reset(); arm.set_target(arm.sample_target()); on = 0
+        m_auth, r_auth, perr, cosd = [], [], [], []
+        for i in range(300):
+            x = T.from_numpy(arm.render().astype(np.float32) / 255.0)[None].to(dev); z = wm["enc"](x)
+            a = arm.rng.uniform(-1, 1, ADIM).astype(np.float32)
+            with T.no_grad():                              # MODEL counterfactual: decoded ee under a vs under 0
+                ee_a = wm["dec_g"](wm["dyn"](z, T.tensor(a)[None].to(dev)))[0].cpu().numpy() * SPAN + LO
+                ee_0 = wm["dec_g"](wm["dyn"](z, T.zeros(1, ADIM).to(dev)))[0].cpu().numpy() * SPAN + LO
+            m_auth.append(np.linalg.norm(ee_a - ee_0) * 100)
+            s, v = arm.d.qpos.copy(), arm.d.qvel.copy()    # REAL counterfactual from the same state
+            arm.step(a); ee_ra = arm.ee().copy()
+            arm.d.qpos[:] = s; arm.d.qvel[:] = v; mujoco.mj_forward(arm.m, arm.d); arm.step(np.zeros(ADIM, np.float32)); ee_r0 = arm.ee().copy()
+            r_auth.append(np.linalg.norm(ee_ra - ee_r0) * 100); perr.append(np.linalg.norm(ee_a - ee_ra) * 100)
+            dm, dr = ee_a - ee_0, ee_ra - ee_r0
+            if np.linalg.norm(dm) > 1e-6 and np.linalg.norm(dr) > 1e-6: cosd.append(float(dm @ dr / (np.linalg.norm(dm) * np.linalg.norm(dr))))
+            arm.d.qpos[:] = s; arm.d.qvel[:] = v; mujoco.mj_forward(arm.m, arm.d)   # advance trajectory with explorer
+            arm.step(np.clip(arm.pd_reach() + arm.rng.normal(0, 0.4, ADIM), -1, 1).astype(np.float32)); on += 1
+            if on >= 25: arm.reset(); arm.set_target(arm.sample_target()); on = 0
+        print(f"[diag] ACTION AUTHORITY (1 step): real={np.mean(r_auth):.2f}cm  model={np.mean(m_auth):.2f}cm  "
+              f"ratio model/real={np.mean(m_auth)/max(1e-6,np.mean(r_auth)):.2f}", flush=True)
+        print(f"[diag] direction cosine(model,real) = {np.mean(cosd):.2f}   |   1-step decode-pred err = {np.mean(perr):.2f}cm", flush=True)
+        print(f"[diag] verdict: {'ACTION-FAITHFUL (planner is the issue)' if np.mean(m_auth)/max(1e-6,np.mean(r_auth))>0.5 and np.mean(cosd)>0.5 else 'ACTION-INSENSITIVE dynamics (fix the world model, not the planner)'}", flush=True)
+        return
     if args.evalonly:
         wm = load_wm3d("runs/r3t_ckpt/wm3dt.pt", dev); bc = load_bc3d("runs/r3t_ckpt/bc3dt.pt", dev)
         ne = min(args.eval_eps, 15)
