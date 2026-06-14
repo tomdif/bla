@@ -104,10 +104,43 @@ def action_cosine(model, device, n=800, seed=0, ar=12):
     return float(np.mean(cos)), float(np.mean(real_auth)), float(np.mean(model_auth))
 
 
+@torch.no_grad()
+def cem_state(model, s0, goal, device, horizon=8, iters=5, pop=256, elite=32, terminal_w=5.0):
+    """CEM-MPC rolling the FAITHFUL state-space dynamics; cost = predicted ee-pos -> goal."""
+    mu = torch.zeros(horizon, ADIM, device=device); sigma = torch.ones(horizon, ADIM, device=device) * 0.6
+    g = torch.tensor(goal, device=device).float()
+    for _ in range(iters):
+        seqs = (mu[None] + sigma[None] * torch.randn(pop, horizon, ADIM, device=device)).clamp(-1, 1)
+        s = s0.expand(pop, -1).clone(); cost = torch.zeros(pop, device=device)
+        for h in range(horizon):
+            s = model.step_state(s, seqs[:, h]); d = (s[:, :3] - g[None]).norm(dim=-1)
+            cost = cost + d * (terminal_w if h == horizon - 1 else 1.0)
+        e = seqs[cost.topk(elite, largest=False).indices]; mu = e.mean(0); sigma = e.std(0) + 1e-3
+    return mu[0].cpu().numpy()
+
+
+@torch.no_grad()
+def eval_reach(model, device, region, n_eps, ar, ep_len=26, seed0=7000):
+    """MPC with the faithful StateWM: 2-frame perceive -> state -> CEM -> act. Measure reach on shifted goals."""
+    from system1_motion.r3_torque import region_of3d
+    arm = Arm(seed0); succ5 = succ10 = 0; finals = []
+    for e in range(n_eps):
+        arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt); g = norm3(tgt); prev = arm.render()
+        for t in range(ep_len):
+            cur = arm.render(); stack = torch.from_numpy(np.concatenate([prev, cur], 0).astype(np.float32) / 255.0)[None].to(device)
+            s0 = model.perceive(stack); a = cem_state(model, s0, g, device)
+            arm.step(np.clip(a, -1, 1)); prev = cur
+        d_cm = float(np.linalg.norm(arm.ee() - tgt)) * 100; finals.append(d_cm)
+        succ5 += d_cm <= 5; succ10 += d_cm <= 10
+    arm.close()
+    return {"reach@5": succ5 / n_eps, "reach@10": succ10 / n_eps, "mean_cm": float(np.mean(finals))}
+
+
 def main():
     global span_t
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", action="store_true"); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--plan", action="store_true")
     ap.add_argument("--collect", type=int, default=24000); ap.add_argument("--steps", type=int, default=8000)
     ap.add_argument("--ar", type=int, default=12); args = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"; R.AR = args.ar; span_t = torch.tensor(SPAN, device=dev).float()
@@ -120,6 +153,11 @@ def main():
     print("\n[m1b] ===== ACTION-COSINE from PIXELS (state-space dynamics, pos+vel) =====", flush=True)
     print(f"  cosine={c:.2f}  real_auth={ra:.2f}cm  model_auth={ma:.2f}cm   (latent-dynamics baseline was 0.42)", flush=True)
     print(f"  VERDICT: {'STATE-SPACE FIX CONFIRMED from pixels (broke 0.42 -> M1a mechanism holds)' if c > 0.55 else 'partial (>0.42 but <0.55)' if c > 0.45 else 'state-space alone did NOT break 0.42 -- velocity/perception still limiting'}", flush=True)
+    if args.plan:
+        print("\n[m1b] ===== REACH (CEM-MPC on the FAITHFUL StateWM) vs old latent-WM (@5cm~0.17 @10cm~0.4) =====", flush=True)
+        for region in ("train", "test"):
+            r = eval_reach(model, dev, region, 30, args.ar)
+            print(f"  [{region:5}] {r}", flush=True)
 
 
 if __name__ == "__main__":
