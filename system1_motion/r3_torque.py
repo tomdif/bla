@@ -86,7 +86,9 @@ class Arm:
         for _ in range(repeat): mujoco.mj_step(self.m, self.d)
     def render(self):
         self.ren.update_scene(self.d, camera="cam"); return self.ren.render().transpose(2, 0, 1).copy()
-    def shoot(self, K=96, repeat=2, vel_w=0.06):                # privileged shooting expert (settle-aware)
+    def shoot(self, K=96, repeat=2, vel_w=0.01):                # privileged shooting expert; vel_w = gentle settle
+        # NOTE: vel_w must stay SMALL -- ee dist is in meters (~0.1-0.3) but qvel is rad/s (~3-8); a large weight
+        # makes "hold still" beat "reach the target" (that bug gave 27-43cm median reach).
         s, v, t = self.d.qpos.copy(), self.d.qvel.copy(), self.tgt(); best_a, best_c = None, 1e9
         for _ in range(K):
             a = self.rng.uniform(-1, 1, self.m.nu); self.d.qpos[:] = s; self.d.qvel[:] = v; self.d.ctrl[:] = a
