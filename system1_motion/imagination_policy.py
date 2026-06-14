@@ -126,14 +126,17 @@ def train_policy_v2(wm, device, steps=6000, H=10, gamma=0.97, lam=0.95, lr=3e-4,
         for h in range(H):
             a = pol(zcur, g, zone); acts.append(a); zcur = wm["dyn"](zcur, a)
             rews.append(-imag_cost(wm["dec_g"](zcur), g, zone)); states.append(zcur)
-        V = [val(s, g, zone) for s in states]                 # V[0..H]
-        ret = [None] * H; last = V[H]
-        for h in reversed(range(H)):                          # Dreamer lambda-return
-            last = rews[h] + gamma * ((1 - lam) * V[h + 1] + lam * last); ret[h] = last
-        R = torch.stack(ret)                                  # [H,B]
-        actor_loss = -R.mean() + areg * torch.stack(acts).pow(2).mean()
-        oa.zero_grad(); actor_loss.backward(retain_graph=True); nn.utils.clip_grad_norm_(pol.parameters(), 1.0); oa.step()
-        critic_loss = sum(F.mse_loss(V[h], R[h].detach()) for h in range(H)) / H
+        Vb = [val(s, g, zone).detach() for s in states]       # detached bootstrap -> actor grad flows only via rewards
+        ret = [None] * H; last = Vb[H]
+        for h in reversed(range(H)):                           # Dreamer lambda-return (rews keep grad to the policy)
+            last = rews[h] + gamma * ((1 - lam) * Vb[h + 1] + lam * last); ret[h] = last
+        actor_loss = -torch.stack(ret).mean() + areg * torch.stack(acts).pow(2).mean()
+        oa.zero_grad(); actor_loss.backward(); nn.utils.clip_grad_norm_(pol.parameters(), 1.0); oa.step()
+        Vc = [val(states[h].detach(), g, zone) for h in range(H)]   # critic graph independent of policy -> no in-place conflict
+        tgt = [None] * H; last = Vb[H]
+        for h in reversed(range(H)):
+            last = rews[h].detach() + gamma * ((1 - lam) * Vb[h + 1] + lam * last); tgt[h] = last
+        critic_loss = sum(F.mse_loss(Vc[h], tgt[h]) for h in range(H)) / H
         ov.zero_grad(); critic_loss.backward(); nn.utils.clip_grad_norm_(val.parameters(), 1.0); ov.step()
         if step % max(1, steps // 12) == 0 or step == steps - 1:
             with torch.no_grad(): fin_cm = ((wm["dec_g"](zcur) - g) * span_t).pow(2).sum(-1).sqrt().mean().item() * 100
