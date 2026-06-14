@@ -142,11 +142,37 @@ def eval_reach(model, device, region, n_eps, ar, ep_len=26, seed0=7000):
     return {"reach@5": succ5 / n_eps, "reach@10": succ10 / n_eps, "mean_cm": float(np.mean(finals))}
 
 
+@torch.no_grad()
+def eval_vel_ablation(model, device, region, n_eps, ar, ep_len=26, seed0=7000, log=print):
+    """P0+P1: SEEDED PAIRED reach eval isolating velocity-estimation. 3 state sources for the planner:
+    perceived[pos,vel] | oracle-vel[perceived pos, SIM vel] | oracle-full[SIM pos, SIM vel]. Paired goals (Arm
+    seed per episode) + paired CEM noise (torch seed per step) -> reads small @5cm deltas reliably."""
+    SRCS = ("perceive", "oracle_vel", "oracle_full")
+    fin = {s: [] for s in SRCS}; s5 = {s: 0 for s in SRCS}; s10 = {s: 0 for s in SRCS}
+    for e in range(n_eps):
+        for src in SRCS:
+            arm = Arm(seed0 + e); arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt)
+            g = norm3(tgt); prev = arm.render()
+            for t in range(ep_len):
+                cur = arm.render()
+                stack = torch.from_numpy(np.concatenate([prev, cur], 0).astype(np.float32) / 255.0)[None].to(device)
+                p = model.perceive(stack)
+                ov = torch.tensor(ee_vel(arm), device=device).float()[None]; op = torch.tensor(norm3(arm.ee()), device=device).float()[None]
+                s0 = p if src == "perceive" else torch.cat([p[:, :3], ov], -1) if src == "oracle_vel" else torch.cat([op, ov], -1)
+                torch.manual_seed(e * 1000 + t); a = cem_state(model, s0, g, device)
+                arm.step(np.clip(a, -1, 1)); prev = cur
+            d = float(np.linalg.norm(arm.ee() - tgt)) * 100; fin[src].append(d); s5[src] += d <= 5; s10[src] += d <= 10
+            arm.close()
+    for src in SRCS:
+        m = float(np.mean(fin[src])); se = float(np.std(fin[src]) / np.sqrt(n_eps))
+        log(f"  [{region} | {src:11}] @5cm={s5[src]/n_eps:.2f}  @10cm={s10[src]/n_eps:.2f}  mean={m:.1f}±{se:.1f}cm", flush=True)
+
+
 def main():
     global span_t
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", action="store_true"); ap.add_argument("--smoke", action="store_true")
-    ap.add_argument("--plan", action="store_true")
+    ap.add_argument("--plan", action="store_true"); ap.add_argument("--ablate", action="store_true")
     ap.add_argument("--collect", type=int, default=24000); ap.add_argument("--steps", type=int, default=8000)
     ap.add_argument("--ar", type=int, default=12); args = ap.parse_args()
     dev = "cuda" if torch.cuda.is_available() else "cpu"; R.AR = args.ar; span_t = torch.tensor(SPAN, device=dev).float()
@@ -164,6 +190,11 @@ def main():
         for region in ("train", "test"):
             r = eval_reach(model, dev, region, 30, args.ar)
             print(f"  [{region:5}] {r}", flush=True)
+    if args.ablate:
+        print("\n[m1b] ===== P0+P1 SEEDED PAIRED velocity ablation (100 eps) -- is @5cm state-estimation or planner? =====", flush=True)
+        eval_vel_ablation(model, dev, "test", 100, args.ar)
+        print("  READ: oracle_vel >> perceive @5cm -> VELOCITY ESTIMATION is the wall (build a vel head/filter).", flush=True)
+        print("        oracle_full >> oracle_vel -> position est. matters too. all ~equal -> PLANNER/CONTROL is the wall.", flush=True)
 
 
 if __name__ == "__main__":
