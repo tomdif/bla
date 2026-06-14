@@ -67,7 +67,21 @@ VERDICT: MECHANISM IS CAUSAL
   the held-out OOD rollout flags the corruption (real 9.0 vs shuffled 15.1 / zero 14.9). "Use a VERIFIED
   world model" => verified on held-out DYNAMICS, not just decode.
 
-## Hardening checks before a broad claim (next)
+## Hardening checks (DONE)
+**Multi-seed (n=3)** — curve robust; @12: E0 0.23±.03, E2k 0.49±.07, E8k 0.81±.07, E30k 0.90±.04,
+full 0.95±.02. The single-seed E=41650 "regression" (0.97→0.88) was NOISE: 3-seed mean at full = 0.95,
+within error of E=30000. All 3 seeds: MOAT CONFIRMED.
+
+**Stronger BC** — MOAT SURVIVES (+0.45 over strongest). @12 on shift: wm_cem 0.97; wmrep_bc (BC on FROZEN
+WM encoder) 0.53; HER_bc 0.17; bc_goal 0.10; bc_goal@1000 0.12 (more demos don't help). DECOMPOSITION: ~half
+the advantage (0.10→0.53) is the learned REPRESENTATION, the other half (0.53→0.97) is the PLANNER.
+
+**Concept discovery** — SURPRISING positive (scrutinize). Target (never supervised) decodes to 1.77px from
+the arm-only latent (control WM_both 0.58px, random 14.35px). Emergence yes, but likely via incidental
+VISUAL encoding of a salient static feature, NOT causal-necessity (target doesn't affect arm dynamics);
+contradicts the dissociation prior. Needs linear-probe + occlusion follow-up.
+
+## (original) hardening list, for reference
 1. **Multi-seed curve** — ≥3 seeds at E∈{0,2000,8000,30000,full}, report mean ± SE.
 2. **Cost-normalized** — $ / time: BC cost to reach 0.28 vs WM cost to reach 0.97.
 3. **Stronger imitation baselines** — goal-conditioned BC, hindsight-relabel BC, BC w/ WM's representation,
