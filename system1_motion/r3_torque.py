@@ -86,12 +86,12 @@ class Arm:
         for _ in range(repeat): mujoco.mj_step(self.m, self.d)
     def render(self):
         self.ren.update_scene(self.d, camera="cam"); return self.ren.render().transpose(2, 0, 1).copy()
-    def shoot(self, K=96, repeat=2):                            # privileged shooting expert (settle-aware)
+    def shoot(self, K=96, repeat=2, vel_w=0.06):                # privileged shooting expert (settle-aware)
         s, v, t = self.d.qpos.copy(), self.d.qvel.copy(), self.tgt(); best_a, best_c = None, 1e9
         for _ in range(K):
             a = self.rng.uniform(-1, 1, self.m.nu); self.d.qpos[:] = s; self.d.qvel[:] = v; self.d.ctrl[:] = a
             for _ in range(repeat): mujoco.mj_step(self.m, self.d)
-            c = np.linalg.norm(self.ee() - t) + 0.04 * np.linalg.norm(self.d.qvel)   # + velocity -> settle, no overshoot
+            c = np.linalg.norm(self.ee() - t) + vel_w * np.linalg.norm(self.d.qvel)   # + velocity -> settle, no overshoot
             if c < best_c: best_c, best_a = c, a
         self.d.qpos[:] = s; self.d.qvel[:] = v; mujoco.mj_forward(self.m, self.d); return best_a.astype(np.float32)
 
@@ -115,19 +115,20 @@ def collect_exploration(n_steps, seed=0, ep_len=50, log=print):
     return (np.asarray(F_, np.uint8), np.asarray(A, np.float32), np.asarray(P, np.float32),
             np.asarray(T, np.float32), np.asarray(E, np.int64))
 
-def collect_demos(n_demos, region, seed=0, ep_len=45, log=print):
-    """shooting-expert episodes to TRAIN-region targets; KEEP ONLY episodes that actually reach (<5cm)."""
-    arm = Arm(seed + 5); demos = []; tries = 0
-    while len(demos) < n_demos and tries < n_demos * 8:
+def collect_demos(n_demos, region, seed=0, ep_len=70, keep_cm=0.07, log=print):
+    """shooting-expert episodes to TRAIN-region targets; KEEP ONLY episodes that reach (< keep_cm) -> clean demos."""
+    arm = Arm(seed + 5); demos = []; tries = 0; reached = []
+    while len(demos) < n_demos and tries < n_demos * 12:
         tries += 1; arm.reset(); tgt = arm.sample_target(region); arm.set_target(tgt); g = norm3(tgt)
         frames, actions, ee = [], [], []
         for _ in range(ep_len):
             frames.append(arm.render()); ee.append(norm3(arm.ee()))
-            a = arm.shoot(K=96); actions.append(a); arm.step(a)
-        if np.linalg.norm(arm.ee() - tgt) > 0.05: continue       # reject failed reaches -> clean demos
+            a = arm.shoot(K=128); actions.append(a); arm.step(a)
+        fd = float(np.linalg.norm(arm.ee() - tgt)); reached.append(fd)
+        if fd > keep_cm: continue
         demos.append({"frames": np.asarray(frames, np.uint8), "actions": np.asarray(actions, np.float32),
                       "ee": np.asarray(ee, np.float32), "goal": g.astype(np.float32)})
-    log(f"  [demos:{region}] {len(demos)} clean episodes ({tries} attempts)", flush=True)
+    log(f"  [demos:{region}] {len(demos)} clean episodes / {tries} attempts (median reach {np.median(reached)*100:.1f}cm)", flush=True)
     return demos
 
 
@@ -266,6 +267,7 @@ def main():
     expl = collect_exploration(args.explore)
     print("[r3t] collecting TRAIN-region shooting-expert demos ...", flush=True)
     demos = collect_demos(args.demos, "train")
+    if len(demos) < 2: raise RuntimeError(f"[r3t] expert produced only {len(demos)} clean demos -- expert too weak; tune shoot/keep_cm.")
     print("[r3t] training GATED torque world model ...", flush=True)
     wm = train_wm3d(expl, args.wm_steps, dev, tag="_3dt", rollout_eval=expl, gate_cm=args.gate_cm,
                     early_cm=args.gate_cm * 1.6, max_attempts=args.max_attempts)
