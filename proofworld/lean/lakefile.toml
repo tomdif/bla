@@ -1,0 +1,13 @@
+name = "proofworldlean"
+version = "0.1.0"
+defaultTargets = ["ProofWorldLean"]
+
+# Mathlib pinned to a rev whose toolchain (v4.30.0-rc2) has a public olean cache.
+# `lake exe cache get` downloads the prebuilt oleans -- no full compile, fully portable.
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+version = "git#7fcea958055b9540fbbe322f0348ebf0f0451875"
+
+[[lean_lib]]
+name = "ProofWorldLean"

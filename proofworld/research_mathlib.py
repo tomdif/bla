@@ -23,20 +23,27 @@ import os, glob, subprocess, tempfile
 def _installed_toolchains():
     return {os.path.basename(p).split("---")[-1] for p in glob.glob(os.path.expanduser("~/.elan/toolchains/leanprover--lean4---*"))}
 
+def _has_mathlib(proj, installed):
+    olean = os.path.join(proj, ".lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean")
+    try:
+        tc = open(os.path.join(proj, "lean-toolchain")).read().strip().split(":")[-1]
+    except OSError:
+        return False
+    return os.path.exists(olean) and tc in installed
+
 def find_mathlib_project():
+    """prefer the PORTABLE, repo-local project (self-contained: `lake exe cache get` materializes it on any
+    checkout). Fall back to borrowing a built Mathlib from one of the user's other Lean projects."""
     if os.environ.get("PROOFWORLD_MATHLIB_PROJECT"):
         return os.environ["PROOFWORLD_MATHLIB_PROJECT"]
-    home = os.path.expanduser("~"); installed = _installed_toolchains()
-    preferred = ["categorical_rh", "PlonkLean", "RamanujanTau", "unifiedtheory", "pfr", "carleson"]
-    for name in preferred:
+    installed = _installed_toolchains()
+    portable = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lean")   # bla/proofworld/lean
+    if _has_mathlib(portable, installed):
+        return portable
+    home = os.path.expanduser("~")
+    for name in ["categorical_rh", "PlonkLean", "RamanujanTau", "unifiedtheory", "pfr", "carleson"]:
         proj = os.path.join(home, name)
-        olean = os.path.join(proj, ".lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean")
-        tc = ""
-        try:
-            tc = open(os.path.join(proj, "lean-toolchain")).read().strip().split(":")[-1]
-        except OSError:
-            continue
-        if os.path.exists(olean) and tc in installed:
+        if _has_mathlib(proj, installed):
             return proj
     return None
 
