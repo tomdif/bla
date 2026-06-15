@@ -54,7 +54,7 @@ def monomials(vs, d):
             out.append(exps)
     return sorted(out, key=lambda e: (sum(e), e))
 
-def find_gram(p, vs):
+def find_gram(p, vs, eps=0.0):
     import cvxpy as cp
     P = sp.Poly(p, *vs); deg = P.total_degree()
     if deg % 2: return None, None, "odd degree -> not SOS"
@@ -67,8 +67,9 @@ def find_gram(p, vs):
         for j in range(n):
             mu = tuple(a + b for a, b in zip(z[i], z[j]))
             groups.setdefault(mu, []).append((i, j))
-    Q = cp.Variable((n, n), PSD=True)                                # Q >= 0 (allows rank-deficient certificates)
-    cons = [cp.sum([Q[i, j] for (i, j) in pairs]) == pcoeff.get(mu, 0.0) for mu, pairs in groups.items()]
+    Q = cp.Variable((n, n), symmetric=True)
+    cons = [Q - eps * np.eye(n) >> 0]                                # Q >= eps*I (eps=0 -> PSD; eps>0 -> rounding room)
+    cons += [cp.sum([Q[i, j] for (i, j) in pairs]) == pcoeff.get(mu, 0.0) for mu, pairs in groups.items()]
     ok = False
     for solver in (cp.CLARABEL, cp.SCS):
         try:
@@ -76,7 +77,7 @@ def find_gram(p, vs):
             if ok: break
         except Exception:
             continue
-    if not ok: return None, None, "SDP infeasible (not a sum of squares at this degree)"
+    if not ok: return None, None, "SDP infeasible"
     return np.array(Q.value), z, None
 
 
@@ -101,63 +102,98 @@ def _rational_ldl(Q):
 def exact_sos(p, vs, Qnum, z):
     n = len(z); zexpr = sp.Matrix([sp.prod([v ** e for v, e in zip(vs, m)]) for m in z])
     gram_ok = lambda Q: sp.expand(p - (zexpr.T * Q * zexpr)[0]) == 0
-    # round, snapping near-zero entries to exactly 0 to kill SDP noise
-    def rnd(x):
-        r = sp.nsimplify(x, rational=True, tolerance=1e-6)
-        return sp.Integer(0) if abs(float(x)) < 1e-6 else r
-    Q = sp.Matrix(n, n, lambda i, j: rnd(Qnum[i, j])); Q = (Q + Q.T) / 2
-    if not gram_ok(Q):
-        Q = _project_exact(p, vs, Q, zexpr, n)
-        if Q is None or not gram_ok(Q): return None
-    sq = _rational_ldl(Q)
-    if sq is None: return None
-    return [(w, sp.expand((l.T * zexpr)[0])) for w, l in sq] or None
+    def rnd(x, t):
+        return sp.Integer(0) if abs(float(x)) < t else sp.nsimplify(x, rational=True, tolerance=t)
+    for tol in (3e-2, 1e-2, 5e-3, 2e-3, 1e-3, 5e-4):               # coarse->fine: coarse can snap onto the true rational
+        Q0 = sp.Matrix(n, n, lambda i, j: rnd(Qnum[i, j], tol)); Q0 = (Q0 + Q0.T) / 2
+        Q = Q0 if gram_ok(Q0) else _project_exact(p, vs, Q0, z)    # Peyrl-Parrilo: rational projection onto {p=z^TQz}
+        if Q is None or not gram_ok(Q): continue
+        sq = _rational_ldl(Q)                                      # exact PSD check (negative pivot -> reject)
+        if sq:
+            return [(w, sp.expand((l.T * zexpr)[0])) for w, l in sq]
+    return None
 
-def _project_exact(p, vs, Q0, zexpr, n):
-    """force exact constraints p = z^T Q z: pin Q's free entries to the rounded values, solve the rest exactly."""
-    idx = [(i, j) for i in range(n) for j in range(i, n)]
-    syms = sp.symbols(f"qv0:{len(idx)}"); Q = sp.zeros(n, n)
-    for s, (i, j) in zip(syms, idx):
-        Q[i, j] = s; Q[j, i] = s
-    eqs = [sp.Eq(co, 0) for _, co in sp.Poly(sp.expand(p - (zexpr.T * Q * zexpr)[0]), *vs).terms()]
-    sol = sp.solve(eqs, syms, dict=True)
-    if not sol: return None
-    sol = sol[0]
-    subs = {s: Q0[idx[k][0], idx[k][1]] for k, s in enumerate(syms) if s not in sol}   # free -> rounded
-    Qr = sp.zeros(n, n)
-    for s, (i, j) in zip(syms, idx):
-        val = sol[s].subs(subs) if s in sol else subs.get(s, 0)
-        Qr[i, j] = Qr[j, i] = sp.nsimplify(val)
+def _project_exact(p, vs, Q0, z):
+    """exact rational least-norm projection of Q0 onto the affine space {Q : p = z^T Q z}, via A,b matrices:
+    vech(Qr) = vech(Q0) + A^T (A A^T)^{-1} (b - A vech(Q0)). Soundness is re-checked by gram_ok afterward."""
+    n = len(z); idx = [(i, j) for i in range(n) for j in range(i, n)]
+    P = sp.Poly(p, *vs); pc = {tuple(m): sp.Rational(c) for m, c in P.terms()}
+    monos = set()
+    for i in range(n):
+        for j in range(n):
+            monos.add(tuple(a + b for a, b in zip(z[i], z[j])))
+    monos = sorted(monos)
+    A = sp.zeros(len(monos), len(idx)); b = sp.zeros(len(monos), 1)
+    for r, mu in enumerate(monos):
+        b[r] = pc.get(mu, sp.Integer(0))
+        for k, (i, j) in enumerate(idx):
+            mult = (1 if tuple(a + c for a, c in zip(z[i], z[j])) == mu else 0)
+            if i != j and tuple(a + c for a, c in zip(z[j], z[i])) == mu: mult += 1
+            A[r, k] = mult
+    v0 = sp.Matrix([Q0[i, j] for (i, j) in idx])
+    try:
+        corr = A.T * (A * A.T).inv() * (b - A * v0)
+    except Exception:
+        return None
+    v = v0 + corr; Qr = sp.zeros(n, n)
+    for k, (i, j) in enumerate(idx):
+        Qr[i, j] = Qr[j, i] = sp.nsimplify(v[k])
     return Qr
 
 
+# ---------------- certificate search: direct SOS, then Positivstellensatz multipliers ----------------
+def sos_certificate(p, vs, log=print):
+    """find (m, squares) with m*p = sum w_k (l_k.z)^2, m a positive multiplier. m=1 is direct SOS; otherwise
+    m=(1+sum x^2)^k > 0 (Positivstellensatz) so m*p >= 0 and m > 0 imply p >= 0."""
+    s = sp.expand(1 + sum(v ** 2 for v in vs))
+    for m in [sp.Integer(1), s, sp.expand(s ** 2)]:
+        q = sp.expand(m * p)
+        for eps in (0.0, 1e-5, 1e-4, 1e-3, 1e-2):                   # increasing margin -> rounding room (Peyrl-Parrilo)
+            Qnum, z, err = find_gram(q, vs, eps)
+            if Qnum is None:
+                if eps == 0.0: break                               # not SOS at this multiplier -> next multiplier
+                continue
+            squares = exact_sos(q, vs, Qnum, z)
+            if squares:
+                return m, squares
+    return None, None
+
+
 # ---------------- kernel verifications ----------------
-def verify_z3(p, vs, squares):
+def verify_z3(p, vs, m, squares):
     zv = {v.name: z3.Real(v.name) for v in vs}
     rhs = z3.Sum(*[s2z(w, zv) * (s2z(f, zv) ** 2) for w, f in squares]) if squares else z3.RealVal(0)
-    s = z3.Solver(); s.set("timeout", 5000); s.add(s2z(p, zv) - rhs != 0)
+    s = z3.Solver(); s.set("timeout", 5000); s.add(s2z(m, zv) * s2z(p, zv) - rhs != 0)   # exact identity m*p == SOS
     identity = s.check() == z3.unsat
-    weights_ok = all(w >= 0 for w, _ in squares)
-    return identity and weights_ok
+    return identity and all(w >= 0 for w, _ in squares)
 
 def verify_lean_batch(items):
-    """items: list of (name, p_lean, [forms_lean]). One Lean file: nlinarith with the discovered square hints."""
-    body = ""
-    for nm, plean, forms in items:
-        vs = sorted(set(re.findall(r"[a-z]", plean)))
+    """items: (name, m_lean, p_lean, [(w_lean, form_lean)]). Structured proof: the multiplier identity m*p = SOS by
+    ring, m > 0 by positivity, then nlinarith. Handles direct SOS (m=1) and Positivstellensatz (m=1+sum x^2) uniformly.
+    Each theorem is a 4-line block so we map errors to the right goal."""
+    blocks = []
+    for nm, mlean, plean, sq in items:
+        vs = sorted(set(re.findall(r"[a-z]", plean + " " + mlean)))
         binders = " ".join(vs)
-        hints = ", ".join(f"sq_nonneg ({f})" for f in forms)
-        body += f"theorem {nm} ({binders} : ℝ) : {plean} ≥ 0 := by nlinarith [{hints}]\n"
-    src = "import Mathlib.Tactic\n" + body
+        sos = " + ".join(f"({w})*({f})^2" for w, f in sq) if sq else "0"
+        hints = ", ".join(["h", "hm"] + [f"sq_nonneg ({f})" for _, f in sq])
+        blocks.append(f"theorem {nm} ({binders} : ℝ) : {plean} ≥ 0 := by\n"
+                      f"  have h : ({mlean}) * ({plean}) = {sos} := by ring\n"
+                      f"  have hm : (0:ℝ) < {mlean} := by positivity\n"
+                      f"  nlinarith [{hints}]")
+    src = "import Mathlib.Tactic\n" + "\n".join(blocks) + "\n"
     with tempfile.TemporaryDirectory() as td:
         f = os.path.join(td, "S.lean"); open(f, "w").write(src)
         try:
-            r = subprocess.run(["lake", "env", "lean", f], cwd=LEAN_PROJECT, capture_output=True, text=True, timeout=200)
+            r = subprocess.run(["lake", "env", "lean", f], cwd=LEAN_PROJECT, capture_output=True, text=True, timeout=240)
         except subprocess.TimeoutExpired:
-            return {nm: False for nm, _, _ in items}
+            return {it[0]: False for it in items}
     out = r.stdout + r.stderr
     bad = {int(m.group(1)) for m in re.finditer(r"S\.lean:(\d+):\d+: error:", out)}
-    return {items[k][0]: (2 + k) not in bad for k in range(len(items))}   # 1 import line + theorem k on line 2+k
+    res, line = {}, 2                                              # 1 import line; each block is 4 lines
+    for nm, _, _, _ in items:
+        res[nm] = not any(line + k in bad for k in range(4)); line += 4
+    return res
 
 
 def lean_str(e):
@@ -171,18 +207,17 @@ def certify(name, poly_str, log=print):
     truth, cx = z3_truth(p, vs)
     if truth == "false":
         log(f"  PRE-SCREEN (z3): FALSE -- counterexample {cx}. No proof attempted (computation saved the effort)."); return None
-    log(f"  PRE-SCREEN (z3): no counterexample (looks true) -> search for an SOS certificate")
-    Qnum, z, err = find_gram(p, vs)
-    if Qnum is None:
-        log(f"  SDP: {err}.  (true but NOT sum-of-squares -- would need Positivstellensatz multipliers; honest stop)"); return None
-    squares = exact_sos(p, vs, Qnum, z)
+    log(f"  PRE-SCREEN (z3): no counterexample (looks true) -> search for an SOS / Positivstellensatz certificate")
+    m, squares = sos_certificate(p, vs)
     if not squares:
-        log(f"  EXACTIFY: could not extract an exact rational certificate (numerics too far from a rational PSD point)."); return None
-    log(f"  COMPUTED SOS shape (exact): {poly_str} = " + " + ".join(f"({sp.nsimplify(w)})*({f})^2" for w, f in squares))
-    ok_z3 = verify_z3(p, vs, squares)
-    log(f"  VERIFY z3 (exact identity + weights>=0): {'PASS' if ok_z3 else 'FAIL'}")
-    return {"name": re.sub(r'[^a-zA-Z0-9]', '_', name).lower(), "p_lean": lean_str(p),
-            "forms": [lean_str(f) for _, f in squares], "z3": ok_z3}
+        log(f"  no certificate found at the tried degrees (direct SOS and (1+sum x^2)^<=2 multipliers)."); return None
+    kind = "direct SOS" if m == 1 else f"Positivstellensatz, multiplier ({sp.simplify(m)})"
+    pref = poly_str if m == 1 else f"({sp.simplify(m)})*({poly_str})"
+    log(f"  COMPUTED [{kind}] (exact): {pref} = " + " + ".join(f"({sp.nsimplify(w)})*({f})^2" for w, f in squares))
+    ok_z3 = verify_z3(p, vs, m, squares)
+    log(f"  VERIFY z3 (exact identity m*p == SOS + weights>=0): {'PASS' if ok_z3 else 'FAIL'}")
+    return {"name": re.sub(r'[^a-zA-Z0-9]', '_', name).lower(), "m_lean": lean_str(m), "p_lean": lean_str(p),
+            "sq": [(lean_str(sp.nsimplify(w)), lean_str(f)) for w, f in squares], "z3": ok_z3}
 
 
 def main():
@@ -198,8 +233,8 @@ def main():
     certified = []
     for nm, ps in goals:
         c = certify(nm, ps)
-        if c and c["z3"]: certified.append((c["name"], c["p_lean"], c["forms"]))
-    print(f"\n=== FORMALIZE: Lean nlinarith with the SDP-discovered squares as hints ({len(certified)} certs) ===")
+        if c and c["z3"]: certified.append((c["name"], c["m_lean"], c["p_lean"], c["sq"]))
+    print(f"\n=== FORMALIZE: Lean (multiplier identity by ring, m>0 by positivity, nlinarith) ({len(certified)} certs) ===")
     if certified:
         res = verify_lean_batch(certified)
         for nm, ok in res.items():
