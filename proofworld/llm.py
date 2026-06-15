@@ -15,7 +15,7 @@ Run:  PROOFWORLD_LLM=1 python3 -m proofworld.llm
 from __future__ import annotations
 import os, json, z3
 
-MODEL = os.environ.get("PROOFWORLD_LLM_MODEL", "claude-sonnet-4-6")
+MODEL = os.environ.get("PROOFWORLD_LLM_MODEL", "claude-opus-4-8")
 VARS = {n: z3.Real(n) for n in ("x", "y", "z")}                  # the fixed vocabulary the LLM may use
 
 # the goal to prove (true for all reals; an SOS-style auxiliary lemma helps)

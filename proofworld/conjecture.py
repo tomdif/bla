@@ -67,7 +67,7 @@ def llm_propose(data, log=print):
               "Use ** for power. Restrict the domain if a law only holds for primes. No prose, keep reasons very short.")
     try:
         msg = anthropic.Anthropic().messages.create(
-            model=os.environ.get("PROOFWORLD_LLM_MODEL", "claude-sonnet-4-6"), max_tokens=1500,
+            model=os.environ.get("PROOFWORLD_LLM_MODEL", "claude-opus-4-8"), max_tokens=1500,
             messages=[{"role": "user", "content": prompt}])
         text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()
         mm = re.search(r"\[.*\]", text, re.DOTALL)          # robustly extract the JSON array from any prose/fences

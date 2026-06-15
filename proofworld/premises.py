@@ -150,7 +150,7 @@ def few_shot_prompt(goal, k=4):
     if os.environ.get("PROOFWORLD_LLM") == "1" and os.environ.get("ANTHROPIC_API_KEY"):
         import anthropic
         msg = anthropic.Anthropic().messages.create(
-            model=os.environ.get("PROOFWORLD_LLM_MODEL", "claude-sonnet-4-6"), max_tokens=300,
+            model=os.environ.get("PROOFWORLD_LLM_MODEL", "claude-opus-4-8"), max_tokens=300,
             messages=[{"role": "user", "content": prompt}])
         out = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()
         print(f"\n  --- LLM premise suggestion (conditioned on retrieved verified neighbours) ---\n  {out[:500]}")

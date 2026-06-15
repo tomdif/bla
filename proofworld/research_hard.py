@@ -74,7 +74,7 @@ def llm_dream_lemmas(log=print):
         "from the established facts. Use ONLY variables A,B,C,D,E and one comparator (>=, <=) per lemma. "
         'Reply ONLY with a JSON array of strings, e.g. ["A >= 0", "B >= 0"]. No prose.'
     )
-    msg = client.messages.create(model=os.environ.get("PROOFWORLD_LLM_MODEL", "claude-sonnet-4-6"),
+    msg = client.messages.create(model=os.environ.get("PROOFWORLD_LLM_MODEL", "claude-opus-4-8"),
                                  max_tokens=400, messages=[{"role": "user", "content": prompt}])
     text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()
     if text.startswith("```"): text = text.split("```")[1].lstrip("json").strip()
