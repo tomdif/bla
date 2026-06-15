@@ -54,12 +54,14 @@ def monomials(vs, d):
             out.append(exps)
     return sorted(out, key=lambda e: (sum(e), e))
 
-def find_gram(p, vs, eps=0.0):
+def find_gram(p, vs):
+    """MAXIMIZE the margin t s.t. Q - t*I >= 0 and p = z^T Q z -- the most-interior feasible Gram matrix gives the
+    most rounding room for exact rational reconstruction (a boundary certificate has min-eigenvalue 0, t=0)."""
     import cvxpy as cp
     P = sp.Poly(p, *vs); deg = P.total_degree()
     if deg % 2: return None, None, "odd degree -> not SOS"
     d = deg // 2
-    homog = len({sum(m) for m, _ in P.terms()}) == 1                 # tight basis for homogeneous polynomials
+    homog = len({sum(m) for m, _ in P.terms()}) == 1
     z = [m for m in monomials(vs, d) if (sum(m) == d if homog else True)]
     n = len(z); pcoeff = {tuple(m): float(c) for m, c in P.terms()}
     groups = {}
@@ -67,18 +69,16 @@ def find_gram(p, vs, eps=0.0):
         for j in range(n):
             mu = tuple(a + b for a, b in zip(z[i], z[j]))
             groups.setdefault(mu, []).append((i, j))
-    Q = cp.Variable((n, n), symmetric=True)
-    cons = [Q - eps * np.eye(n) >> 0]                                # Q >= eps*I (eps=0 -> PSD; eps>0 -> rounding room)
+    Q = cp.Variable((n, n), symmetric=True); t = cp.Variable()
+    cons = [Q - t * np.eye(n) >> 0, t <= 100]
     cons += [cp.sum([Q[i, j] for (i, j) in pairs]) == pcoeff.get(mu, 0.0) for mu, pairs in groups.items()]
-    ok = False
     for solver in (cp.CLARABEL, cp.SCS):
         try:
-            cp.Problem(cp.Minimize(0), cons).solve(solver=solver); ok = Q.value is not None
-            if ok: break
+            cp.Problem(cp.Maximize(t), cons).solve(solver=solver)
+            if Q.value is not None: return np.array(Q.value), z, None
         except Exception:
             continue
-    if not ok: return None, None, "SDP infeasible"
-    return np.array(Q.value), z, None
+    return None, None, "SDP infeasible"
 
 
 # ---------------- exactify: exact rational certificate via affine projection + rational LDL ----------------
@@ -102,11 +102,17 @@ def _rational_ldl(Q):
 def exact_sos(p, vs, Qnum, z):
     n = len(z); zexpr = sp.Matrix([sp.prod([v ** e for v, e in zip(vs, m)]) for m in z])
     gram_ok = lambda Q: sp.expand(p - (zexpr.T * Q * zexpr)[0]) == 0
-    def rnd(x, t):
-        return sp.Integer(0) if abs(float(x)) < t else sp.nsimplify(x, rational=True, tolerance=t)
-    for tol in (3e-2, 1e-2, 5e-3, 2e-3, 1e-3, 5e-4):               # coarse->fine: coarse can snap onto the true rational
-        Q0 = sp.Matrix(n, n, lambda i, j: rnd(Qnum[i, j], tol)); Q0 = (Q0 + Q0.T) / 2
-        Q = Q0 if gram_ok(Q0) else _project_exact(p, vs, Q0, z)    # Peyrl-Parrilo: rational projection onto {p=z^TQz}
+    cands = []
+    # (a) per-entry rational rounding at several tolerances (snap-to-zero kills noise)
+    for tol in (3e-2, 1e-2, 3e-3, 1e-3):
+        cands.append(sp.Matrix(n, n, lambda i, j: (sp.Integer(0) if abs(float(Qnum[i, j])) < tol
+                     else sp.nsimplify(Qnum[i, j], rational=True, tolerance=tol))))
+    # (b) COMMON-DENOMINATOR reconstruction (LLL-style: one denominator preserves matrix structure on the boundary)
+    for N in (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256):
+        cands.append(sp.Matrix(n, n, lambda i, j: sp.Rational(int(round(Qnum[i, j] * N)), N)))
+    for Q0 in cands:
+        Q0 = (Q0 + Q0.T) / 2
+        Q = Q0 if gram_ok(Q0) else _project_exact(p, vs, Q0, z)    # exact rational projection onto {p=z^TQz}
         if Q is None or not gram_ok(Q): continue
         sq = _rational_ldl(Q)                                      # exact PSD check (negative pivot -> reject)
         if sq:
@@ -148,14 +154,12 @@ def sos_certificate(p, vs, log=print):
     s = sp.expand(1 + sum(v ** 2 for v in vs))
     for m in [sp.Integer(1), s, sp.expand(s ** 2)]:
         q = sp.expand(m * p)
-        for eps in (0.0, 1e-5, 1e-4, 1e-3, 1e-2):                   # increasing margin -> rounding room (Peyrl-Parrilo)
-            Qnum, z, err = find_gram(q, vs, eps)
-            if Qnum is None:
-                if eps == 0.0: break                               # not SOS at this multiplier -> next multiplier
-                continue
-            squares = exact_sos(q, vs, Qnum, z)
-            if squares:
-                return m, squares
+        Qnum, z, err = find_gram(q, vs)                            # max-margin (most-interior) Gram for rounding room
+        if Qnum is None:
+            continue
+        squares = exact_sos(q, vs, Qnum, z)
+        if squares:
+            return m, squares
     return None, None
 
 
