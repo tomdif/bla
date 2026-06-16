@@ -19,11 +19,14 @@ REPO = os.path.expanduser("~/RamanujanTau")
 ELAN = os.path.expanduser("~/.elan/bin")
 MODEL = os.environ.get("PROOFWORLD_LLM_MODEL", "claude-opus-4-8")
 
-# Fixed proof scaffolds: τ(p^k) from the recurrence at r=k-1, substituting the lower closed forms.
-# The ONLY free part is the proposed RHS; `ring` is the kernel's verdict on the proposal.
+# Fixed proof scaffolds: τ(p^k) from the recurrence at r=k-1, substituting the two lower closed forms
+# τ(p^{k-1}), τ(p^{k-2}). The ONLY free part is the proposed RHS; `ring` is the kernel's verdict.
+TARGETS = [4, 5, 6, 7]
 SCAFFOLD = {
     4: ("3", "4", "2", "tau_prime_cube hp, tau_prime_sq hp"),     # r, k, r-1, lower-form rewrites
     5: ("4", "5", "3", "tau_prime_p4 hp, tau_prime_cube hp"),
+    6: ("5", "6", "4", "tau_prime_p5 hp, tau_prime_p4 hp"),
+    7: ("6", "7", "5", "tau_prime_p6 hp, tau_prime_p5 hp"),
 }
 
 
@@ -62,12 +65,14 @@ def opus_propose(log=print):
         log("  gate OFF (need PROOFWORLD_LLM=1 + ANTHROPIC_API_KEY). Nothing called."); return None
     import anthropic
     client = anthropic.Anthropic()
+    keys = ", ".join(f'"p{k}"' for k in TARGETS)
     ask = (
         "In the theory of Ramanujan's tau function, the Hecke recurrence gives "
         "τ(p^{r+1}) = τ(p)·τ(p^r) − p^{11}·τ(p^{r-1}). With τ(p²)=τ(p)²−p¹¹ and τ(p³)=τ(p)³−2p¹¹τ(p), "
-        "DERIVE the closed forms for τ(p⁴) and τ(p⁵) as polynomials in τ(p) and p. "
+        f"DERIVE the closed forms for {', '.join('τ(p^'+str(k)+')' for k in TARGETS)} as polynomials in τ(p) and p. "
         "Write each as a Lean expression over ℤ using ONLY `τ p`, `(p : ℤ)`, integer literals, and + - * ^. "
-        'Reply ONLY JSON: {"p4": "...", "p5": "..."}.  Example shape: "τ p ^ 4 - 3 * (p:ℤ)^11 * τ p ^ 2 + (p:ℤ)^22".'
+        f'Reply ONLY JSON with keys {keys}, e.g. '
+        '{"p4": "τ p ^ 4 - 3 * (p:ℤ)^11 * τ p ^ 2 + (p:ℤ)^22", ...}.'
     )
     msg = client.messages.create(model=MODEL, max_tokens=4000,
                                  messages=[{"role": "user", "content": ask}])
@@ -81,9 +86,11 @@ def opus_propose(log=print):
         for cnd in reversed(m):
             try: b = json.loads(cnd); break
             except Exception: continue
-    if b is None:
-        log(f"  Opus output not parseable: {text[:90]!r}"); return None
-    log(f"  Opus ({MODEL}) proposed:\n    τ(p⁴) = {b['p4']}\n    τ(p⁵) = {b['p5']}")
+    if b is None or not all(f"p{k}" in b for k in TARGETS):
+        log(f"  Opus output not parseable / incomplete: {text[:90]!r}"); return None
+    log(f"  Opus ({MODEL}) proposed:")
+    for k in TARGETS:
+        log(f"    τ(p^{k}) = {b[f'p{k}']}")
     return b
 
 
@@ -96,35 +103,36 @@ def main():
         return
     verified = {}
 
-    # --- gate τ(p⁴) ---
-    print("\n  [1] kernel-checking τ(p⁴) proposal ...")
-    ok4, out4 = kernel_check([thm("tau_prime_p4", 4, prop["p4"])])
-    print(f"      VERDICT: {'VERIFIED ✓' if ok4 else 'REJECTED ✗ — ' + out4.strip()[:160]}")
-    if ok4:
-        verified[4] = prop["p4"]
+    # --- chain-verify each target on its ALREADY-verified predecessors (the kernel gates every step) ---
+    for k in TARGETS:
+        print(f"\n  [{k}] kernel-checking τ(p^{k}) proposal (chained on verified p4..p{k-1}) ...")
+        chain = [thm(f"tau_prime_p{j}", j, verified[j]) for j in verified]        # verified predecessors
+        chain.append(thm(f"tau_prime_p{k}", k, prop[f"p{k}"]))                    # the new candidate
+        ok, out = kernel_check(chain)
+        print(f"      VERDICT: {'VERIFIED ✓' if ok else 'REJECTED ✗ — ' + out.strip()[:160]}")
+        if ok:
+            verified[k] = prop[f"p{k}"]
+        else:
+            print(f"      chain broken at p^{k} — stopping (downstream forms depend on it)."); break
 
-    # --- adversarial canary: a deliberately WRONG τ(p⁴) (off by +1). The kernel MUST reject it. ---
-    print("\n  [canary] kernel-checking a deliberately WRONG τ(p⁴) (= proposal + 1) ...")
-    okc, _ = kernel_check([thm("tau_prime_p4_bad", 4, f"({prop['p4']}) + 1")])
-    print(f"      canary {'KILLED by kernel ✓ (gate has teeth)' if not okc else 'SURVIVED ✗✗ — gate is broken!'}")
-
-    # --- gate τ(p⁵), chained on the VERIFIED τ(p⁴) ---
-    if ok4:
-        print("\n  [2] kernel-checking τ(p⁵) proposal (using the verified τ(p⁴)) ...")
-        chain = [thm("tau_prime_p4", 4, verified[4]), thm("tau_prime_p5", 5, prop["p5"])]
-        ok5, out5 = kernel_check(chain)
-        print(f"      VERDICT: {'VERIFIED ✓' if ok5 else 'REJECTED ✗ — ' + out5.strip()[:160]}")
-        if ok5:
-            verified[5] = prop["p5"]
+    # --- adversarial canary at the deepest verified target: a WRONG form (off by +1) MUST be rejected ---
+    if verified:
+        kc = max(verified)
+        print(f"\n  [canary] kernel-checking a deliberately WRONG τ(p^{kc}) (= proposal + 1) ...")
+        chain = [thm(f"tau_prime_p{j}", j, verified[j]) for j in verified if j < kc]
+        chain.append(thm(f"tau_prime_p{kc}", kc, f"({verified[kc]}) + 1"))
+        okc, _ = kernel_check(chain)
+        print(f"      canary {'KILLED by kernel ✓ (gate has teeth)' if not okc else 'SURVIVED ✗✗ — gate is broken!'}")
 
     # --- persist ONLY kernel-verified forms into the repo, then full-build ---
-    if 4 in verified and 5 in verified:
-        print("\n  [3] both kernel-verified — writing RamanujanTau/HeckePowers.lean and building ...")
+    if set(TARGETS).issubset(verified):
+        print(f"\n  [persist] all of {['p'+str(k) for k in TARGETS]} kernel-verified — writing HeckePowers.lean ...")
         write_repo_file(verified)
         ok, tail = full_build()
         print(f"      full repo build: {'SUCCESS ✓' if ok else 'FAILED ✗'}\n      {tail}")
     else:
-        print("\n  not both verified — nothing written (only kernel-certified forms are ever persisted).")
+        print(f"\n  verified {sorted(verified)} of {TARGETS} — nothing written unless ALL verify "
+              f"(only kernel-certified forms are ever persisted).")
 
     print("\n" + "=" * 90)
     print("  The model proposed the mathematics; the Lean kernel decided what is true. A wrong form would fail")
@@ -133,19 +141,17 @@ def main():
 
 
 def write_repo_file(verified: dict):
-    p4 = thm("tau_prime_p4", 4, verified[4])
-    p5 = thm("tau_prime_p5", 5, verified[5])
+    thms = "\n\n".join(
+        f"/-- **τ(p^{k})** closed form (proofworld-discovered, kernel-verified). -/\n"
+        + thm(f"tau_prime_p{k}", k, verified[k]) for k in TARGETS)
     src = ("import RamanujanTau.EulerFactor\n\n"
            "/-! # Higher prime-power closed forms for `τ`, discovered via proofworld + kernel-gated\n\n"
-           "`τ(p⁴)` and `τ(p⁵)` as polynomials in `τ(p)` and `p`, derived from the Hecke recurrence and the\n"
-           "lower closed forms. These were PROPOSED by the proofworld LLM generator and VERIFIED by the Lean\n"
-           "kernel (each via `rw [recurrence, lower forms]; ring`); only kernel-certified forms appear here.\n"
-           "They continue the Euler-factor / Chebyshev-style structure: the coefficients are the Gegenbauer\n"
-           "numbers of the recurrence `τ(p^{r+1}) = τ(p)·τ(p^r) − p¹¹·τ(p^{r-1})`. -/\n\n"
-           "namespace RamanujanTau\n\nvariable [TauHeckeRecurrence]\n\n"
-           "/-- **τ(p⁴)** closed form (proofworld-discovered, kernel-verified). -/\n" + p4 + "\n\n"
-           "/-- **τ(p⁵)** closed form (proofworld-discovered, kernel-verified). -/\n" + p5 + "\n\n"
-           "end RamanujanTau\n")
+           f"`τ(p⁴)`…`τ(p^{max(TARGETS)})` as polynomials in `τ(p)` and `p`, derived from the Hecke recurrence and\n"
+           "the lower closed forms. Each was PROPOSED by the proofworld LLM generator and VERIFIED by the Lean\n"
+           "kernel (via `rw [recurrence, lower forms]; ring`); only kernel-certified forms appear here. They\n"
+           "continue the Euler-factor / Chebyshev-style structure: the coefficients are the Gegenbauer numbers\n"
+           "of the recurrence `τ(p^{r+1}) = τ(p)·τ(p^r) − p¹¹·τ(p^{r-1})`. -/\n\n"
+           "namespace RamanujanTau\n\nvariable [TauHeckeRecurrence]\n\n" + thms + "\n\nend RamanujanTau\n")
     open(os.path.join(REPO, "RamanujanTau", "HeckePowers.lean"), "w").write(src)
     # wire into root
     root = os.path.join(REPO, "RamanujanTau.lean"); s = open(root).read()
