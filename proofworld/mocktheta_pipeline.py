@@ -23,7 +23,7 @@ REPO = os.path.expanduser("~/RamanujanTau")
 ELAN = os.path.expanduser("~/.elan/bin")
 MODEL = os.environ.get("PROOFWORLD_LLM_MODEL", "claude-opus-4-8")
 
-PREAMBLE = "import RamanujanTau.MockTheta5Series\n\nnamespace MockTheta5\nopen PowerSeries\n\n"
+PREAMBLE = "import RamanujanTau.MockTheta5Defs\n\nnamespace MockTheta5.Formal\nopen PowerSeries MockTheta5\n\n"
 
 # --- the curriculum: layer-1 q-Pochhammer lemmas (statement = the math target; the loop supplies the PROOF) ---
 # each: name, Lean statement (no ':= proof'), and DREAMER seed tactics (used when the LLM gate is off).
@@ -72,6 +72,13 @@ CURRICULUM = [
                 "intro n _ hn; exact hf n (by simp only [Finset.mem_range, not_lt] at hn; omega)",
                 "by rw [map_sum]; symm; apply Finset.sum_subset (Finset.range_subset.mpr hM); "
                 "intro n _ hn; exact hf n (by simp only [Finset.mem_range, not_lt] at hn; omega)"]),
+    # --- BAILEY rungs: the actual identity content (research-level; expect Opus to extend or leave OPEN) ---
+    dict(name="mtc5_coeff_one",
+         stmt="theorem mtc5_coeff_one : coeff 1 chi0 = 2 * coeff 1 F0 - (-1) ^ 1 * coeff 1 phi0",
+         seeds=["by rfl"]),     # honest non-proof (fails); Opus must compute the order-1 coeffs
+    dict(name="mtc5_chi0_identity",
+         stmt="theorem mtc5_chi0_identity : chi0 = C (2 : ℤ) * F0 - phi0NegQ",
+         seeds=["by rfl"]),     # the FULL identity = the Bailey wall; expect OPEN
 ]
 
 CANARY = dict(name="mt_canary_false",
@@ -85,13 +92,15 @@ def kernel_check(verified_texts: list[str], stmt: str, proof: str, log=print) ->
     Success ⇔ the Lean kernel accepts it. A wrong proof fails to compile and is discarded."""
     body = "\n\n".join(verified_texts + [f"{stmt} := {proof}"])
     path = os.path.join(REPO, "_pw_mocktheta_cand.lean")
-    open(path, "w").write(PREAMBLE + body + "\n\nend MockTheta5\n")
+    open(path, "w").write(PREAMBLE + body + "\n\nend MockTheta5.Formal\n")
     env = dict(os.environ, PATH=ELAN + os.pathsep + os.environ.get("PATH", ""))
     try:
         r = subprocess.run(["lake", "env", "lean", "_pw_mocktheta_cand.lean"], cwd=REPO, env=env,
                            capture_output=True, text=True, timeout=300)
         out = (r.stdout + r.stderr)
-        ok = r.returncode == 0 and "error:" not in out
+        # gate integrity: reject errors AND any sorry/admit (which compile with only a warning) -- no false proofs
+        ok = (r.returncode == 0 and "error:" not in out
+              and "sorry" not in out and "declaration uses" not in out and "admit" not in out)
         return ok, out[:300]
     finally:
         try: os.remove(path)
@@ -103,10 +112,15 @@ def opus_propose_proof(name: str, stmt: str, verified_texts: list[str], log=prin
     if os.environ.get("PROOFWORLD_LLM") != "1" or not os.environ.get("ANTHROPIC_API_KEY"):
         return []
     import anthropic
-    ctx = ("Available (already proven, in scope): qpoch a n := ∏ k ∈ Finset.range n, (1 - a*X^k); "
-           "qpoch_zero : qpoch a 0 = 1; qpoch_succ : qpoch a (n+1) = qpoch a n * (1 - a*X^n); "
-           "constantCoeff_qpoch (ha : constantCoeff a = 0) : constantCoeff (qpoch a n) = 1; "
-           "isUnit_qpoch (ha : constantCoeff a = 0) : IsUnit (qpoch a n); plus all of Mathlib.\n"
+    ctx = ("In scope (namespace MockTheta5.Formal, open PowerSeries MockTheta5). q-Pochhammer: "
+           "qpoch a n, qpoch_zero, qpoch_succ, isUnit_qpoch; general qpochG a q n + isUnit_qpochG. "
+           "Summable family: mt_coeff_Xpow_mul_zero (coeff k (X^j*φ)=0 for k<j), "
+           "mt_coeff_sum_eq (coeff k (∑_{n<M} f n) = ∑_{n<k+1} coeff k (f n) for M≥k+1). "
+           "The functions: F0,chi0,phi0 : PowerSeries ℤ; phi0NegQ := rescale (-1) phi0; "
+           "F0term/chi0term/phi0term n; coeff_F0/coeff_chi0/coeff_phi0 (M≥k+1) : coeff k _ = coeff k (∑_{n<M} _term n); "
+           "coeff_phi0NegQ : coeff k phi0NegQ = (-1)^k*coeff k phi0; "
+           "mtc5_chi0_of_coeff : (∀k, coeff k chi0 = 2*coeff k F0 - (-1)^k*coeff k phi0) → chi0 = C 2 * F0 - phi0NegQ; "
+           "coeff_zero_F0/chi0/phi0 = 1. Plus all of Mathlib (Bailey pairs are NOT in Mathlib). \n"
            + ("Earlier proven lemmas you may use:\n" + "\n".join(verified_texts) if verified_texts else ""))
     ask = (f"In Lean 4 (Mathlib, namespace MockTheta5, `open PowerSeries`), prove:\n  {stmt}\n\n{ctx}\n\n"
            "Reply with 3 candidate proof scripts, one per line, each a complete Lean term starting with `by `. "
@@ -163,7 +177,8 @@ def main():
         print(f"  {goal['name']:22} {tag}")
     if verified and canary_killed:
         write_lemmas([t for _, t in verified], [n for n, _ in verified])
-        print(f"\n  [persist] wrote {len(verified)} kernel-verified lemma(s) to MockTheta5Lemmas.lean.")
+        print(f"\n  [persist] wrote {len(verified)} kernel-verified lemma(s) to _pw_llm_verified.lean (scratch; "
+              f"promote by hand — the committed MockTheta5Lemmas/Defs are never auto-clobbered).")
     elif not canary_killed:
         print("\n  [persist] SKIPPED — canary survived, so the gate is not trustworthy this run.")
     else:
@@ -175,15 +190,11 @@ def main():
 
 
 def write_lemmas(texts: list[str], names: list[str]):
-    hdr = ("/-! # 5th-order mock theta — layer-1 lemmas (proofworld-proposed, kernel-verified)\n\n"
-           "q-Pochhammer building blocks over `PowerSeries ℤ`, toward the infinite identities. Each PROOF was\n"
-           "proposed by the proofworld loop and accepted by the Lean kernel; nothing unproven appears here. -/\n")
-    src = "import RamanujanTau.MockTheta5Series\n\n" + hdr + "\nnamespace MockTheta5\nopen PowerSeries\n\n" + \
-          "\n\n".join(texts) + "\n\nend MockTheta5\n"
-    open(os.path.join(REPO, "RamanujanTau", "MockTheta5Lemmas.lean"), "w").write(src)
-    root = os.path.join(REPO, "RamanujanTau.lean"); s = open(root).read()
-    if "MockTheta5Lemmas" not in s:
-        open(root, "a").write("import RamanujanTau.MockTheta5Lemmas\n")
+    # exploratory LLM run: write to a SCRATCH file (not wired into the build) so the committed
+    # MockTheta5Lemmas.lean / MockTheta5Defs.lean are never clobbered. Promote by hand if desired.
+    src = ("import RamanujanTau.MockTheta5Defs\n\nnamespace MockTheta5.Formal\nopen PowerSeries MockTheta5\n\n"
+           + "\n\n".join(texts) + "\n\nend MockTheta5.Formal\n")
+    open(os.path.join(REPO, "_pw_llm_verified.lean"), "w").write(src)
 
 
 if __name__ == "__main__":
