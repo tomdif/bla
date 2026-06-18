@@ -53,6 +53,25 @@ CURRICULUM = [
                 "rw [Nat.add_succ, qpoch_succ, qpoch_succ, ih, pow_add]; ring",
                 "by induction n with | zero => simp | succ k ih => "
                 "rw [← Nat.add_one, ← Nat.add_assoc, qpoch_succ, qpoch_succ, ih, pow_add, mul_assoc]"]),
+    # --- SUMMABLE-FAMILY rung: makes the infinite sums Σ_n X^{e(n)}·(unit) well-defined coefficient-wise ---
+    # per-term vanishing: a term of order ≥ j contributes nothing to coefficient k < j.
+    dict(name="mt_coeff_Xpow_mul_zero",
+         stmt="theorem mt_coeff_Xpow_mul_zero (φ : PowerSeries ℤ) (j k : ℕ) (h : k < j) : "
+              "coeff k ((X : PowerSeries ℤ) ^ j * φ) = 0",
+         seeds=["by rw [coeff_X_pow_mul', if_neg (Nat.not_le.mpr h)]",
+                "by rw [coeff_X_pow_mul']; exact if_neg (Nat.not_le.mpr h)",
+                "by simp [coeff_X_pow_mul', Nat.not_le.mpr h]"]),
+    # the PAYOFF: coefficient stabilization — once you include all terms reaching degree k (the first k+1),
+    # the k-th coefficient of any larger partial sum is unchanged, so the infinite sum's coeff is THIS finite sum.
+    dict(name="mt_coeff_sum_eq",
+         stmt="theorem mt_coeff_sum_eq (f : ℕ → PowerSeries ℤ) (k : ℕ) "
+              "(hf : ∀ n, k < n → coeff k (f n) = 0) (M : ℕ) (hM : k + 1 ≤ M) : "
+              "coeff k (∑ n ∈ Finset.range M, f n) = ∑ n ∈ Finset.range (k + 1), coeff k (f n)",
+         seeds=["by rw [map_sum]; symm; apply Finset.sum_subset "
+                "(by intro x hx; exact Finset.mem_range.mpr (lt_of_lt_of_le (Finset.mem_range.mp hx) hM)); "
+                "intro n _ hn; exact hf n (by simp only [Finset.mem_range, not_lt] at hn; omega)",
+                "by rw [map_sum]; symm; apply Finset.sum_subset (Finset.range_subset.mpr hM); "
+                "intro n _ hn; exact hf n (by simp only [Finset.mem_range, not_lt] at hn; omega)"]),
 ]
 
 CANARY = dict(name="mt_canary_false",
