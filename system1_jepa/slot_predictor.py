@@ -53,6 +53,14 @@ class SlotPredictorConfig:
     # Used only when update_mode == "id_dyn_split".
     id_dim: int = 0           # if 0 and update_mode=="id_dyn_split", defaults to slot_dim // 2
     id_ema_alpha: float = 0.05  # EMA step size for the id half (small = slow)
+    # The slot STATE is a pure residual accumulation: next = slots + change_mask * delta,
+    # and change_mask is a sigmoid so it is never 0 -- every slot is updated every step.
+    # Measured at init: mean slot norm grows 0.78 -> 3.00 over a 32-step rollout (3.9x),
+    # with change_mask flat at ~0.256 throughout. The LayerNorm at self.norm normalises the
+    # transformer's activations, not the state that is carried between frames. Enabling this
+    # renormalises the carried state, which is what 'slot persistence requires LayerNorm'
+    # was about. Off by default: it changes the learned dynamics and needs its own A/B.
+    inter_frame_norm: bool = False
 
 
 class SlotDeltaPredictor(nn.Module):
@@ -81,6 +89,8 @@ class SlotDeltaPredictor(nn.Module):
         )
         self.blocks = nn.TransformerEncoder(layer, num_layers=cfg.n_layers)
         self.norm = nn.LayerNorm(d)
+        # Applied to the slot state carried to the next frame, not to activations.
+        self.state_norm = nn.LayerNorm(d) if cfg.inter_frame_norm else None
 
         # Two heads per slot: scalar change logit + raw delta vector.
         self.change_head = nn.Linear(d, 1)
@@ -196,6 +206,9 @@ class SlotDeltaPredictor(nn.Module):
             next_slots = slots + active_mask * change_mask * delta
         else:
             raise ValueError(f"unknown update_mode: {self.cfg.update_mode}")
+
+        if self.state_norm is not None:
+            next_slots = self.state_norm(next_slots)
 
         out = {
             "next_slots": next_slots,

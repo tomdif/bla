@@ -120,6 +120,10 @@ def parse_args():
     p.add_argument("--output", required=True)
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--inter-frame-norm", action="store_true",
+                   help="LayerNorm the slot state carried between frames. The state is a "
+                        "residual accumulation and its norm grows ~3.9x over 32 steps at "
+                        "init. Changes the learned dynamics: needs its own A/B.")
     return p.parse_args()
 
 
@@ -171,6 +175,7 @@ def build_modules(args, device):
             mask_bias_init=args.mask_bias_init,
             update_mode=args.update_mode,
             target_active_slots=args.target_active_slots,
+            inter_frame_norm=args.inter_frame_norm,
         )
         slot_predictor = SlotDeltaPredictor(pred_cfg).to(device)
 
@@ -376,6 +381,12 @@ def _train_linear_probe(states_train, targets_train, lr, epochs,
     in the caller)."""
     in_dim = states_train.size(-1)
     out_dim = targets_train.size(-1)
+    # NOTE: this fits RAW slot states. The slot state is a residual accumulation whose norm
+    # grows within an episode (0.78 -> 5.92 over 64 steps at init, see --inter-frame-norm), so
+    # the probe's inputs carry a timestep-correlated scale. Global per-feature standardisation
+    # was tried and reverted: it cannot remove a time-varying scale, and under weight decay it
+    # was strictly worse on a scale-skewed control (test MSE 0.59 vs 0.00). Fixing this belongs
+    # in the state, not the probe.
     probe = nn.Linear(in_dim, out_dim)
     opt = torch.optim.AdamW(probe.parameters(), lr=lr, weight_decay=weight_decay)
     bs = min(256, states_train.size(0))
