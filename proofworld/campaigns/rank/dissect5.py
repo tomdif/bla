@@ -59,3 +59,32 @@ for k in (0, 1):
     c = mul(Ts[k], Qp)
     cls4 = [c[5*n+4] for n in range(M-2)]
     print(f"class4(T{k}·Q):", cls4[:12])
+# 5-dissection components of T0, T1 (as Q-series, Q=q^5)
+comp = lambda f, r: [f[5*n+r] if 5*n+r <= K else 0 for n in range(M)]
+Aq = comp(A, 0); Bq = comp(B, 0)
+for k in (0, 1):
+    for r in range(5):
+        c = comp(Ts[k], r)
+        print(f"T{k} class {r}:", c[:14])
+def prod_exponents(f, nmax=60):
+    # f = c q^a (1 + ...); find c_n with f/(c q^a) = prod (1-q^n)^{c_n}
+    a = next(i for i, x in enumerate(f) if x != 0); c0 = f[a]
+    g = [Fraction(x, 1) / c0 for x in f[a:a + nmax + 1]]
+    cs = []
+    cur = g[:]
+    for n in range(1, nmax + 1):
+        cn = -cur[n]          # coefficient of q^n must be killed by (1-q^n)^{c}: first-order term = -c
+        cs.append(cn)
+        # divide cur by (1-q^n)^{cn}: multiply by (1-q^n)^{-cn} using binomial series
+        if cn != 0:
+            # (1-x)^{-cn} = sum binom(-cn,k)(-x)^k ; do it with general binomial
+            mult = [Fraction(0)] * (nmax + 1); k = 0; b = Fraction(1)
+            while k * n <= nmax:
+                mult[k * n] = b * (-1) ** k
+                b = b * (-cn - k) / (k + 1); k += 1
+            cur = [sum(cur[i] * mult[j - i] for i in range(j + 1)) for j in range(nmax + 1)]
+    return a, c0, cs
+for k, r in [(1, 0), (1, 3), (1, 4), (0, 0), (0, 1), (0, 2)]:
+    c = comp(Ts[k], r)
+    a, c0, cs = prod_exponents(c, 40)
+    print(f"T{k} class {r}: lead {c0}Q^{a}, exponents", [str(x) for x in cs[:30]])
