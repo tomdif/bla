@@ -18,6 +18,7 @@ Run:  python3 -m proofworld.mocktheta_pipeline            (dreamer)
 """
 from __future__ import annotations
 import os, subprocess
+from proofworld import gate
 
 REPO = os.path.expanduser("~/RamanujanTau")
 ELAN = os.path.expanduser("~/.elan/bin")
@@ -87,24 +88,29 @@ CANARY = dict(name="mt_canary_false",
                      "by rw [qpoch_succ, qpoch_zero, pow_zero, mul_one, one_mul]"])
 
 
+def _as_claim(stmt: str, proof: str, trusted: bool) -> "gate.Claim":
+    return gate.Claim.from_decl(stmt, proof, trusted=trusted)
+
+
 def kernel_check(verified_texts: list[str], stmt: str, proof: str, log=print) -> tuple[bool, str]:
-    """THE GATE: compile a candidate (verified-so-far lemmas + the new lemma) importing MockTheta5Series.
-    Success ⇔ the Lean kernel accepts it. A wrong proof fails to compile and is discarded."""
-    body = "\n\n".join(verified_texts + [f"{stmt} := {proof}"])
-    path = os.path.join(REPO, "_pw_mocktheta_cand.lean")
-    open(path, "w").write(PREAMBLE + body + "\n\nend MockTheta5.Formal\n")
-    env = dict(os.environ, PATH=ELAN + os.pathsep + os.environ.get("PATH", ""))
+    """THE GATE (proofworld.gate): verified-so-far lemmas + the new candidate in one Lean run importing
+    MockTheta5Defs; ok iff the NEW lemma is PROVED (axiom footprint checked by the kernel's collectAxioms --
+    the old text scan for "sorry" missed injected axioms, native_decide, and timeouts-as-silence).
+    The library itself uses native_decide, so footprints inherited from it are allowed but labelled."""
+    chain = []
+    for t in verified_texts:                                   # "stmt := proof" texts we produced earlier
+        st, pf = t.split(" := ", 1)                            # curriculum statements contain no ':='
+        chain.append(_as_claim(st, pf, trusted=False))
     try:
-        r = subprocess.run(["lake", "env", "lean", "_pw_mocktheta_cand.lean"], cwd=REPO, env=env,
-                           capture_output=True, text=True, timeout=300)
-        out = (r.stdout + r.stderr)
-        # gate integrity: reject errors AND any sorry/admit (which compile with only a warning) -- no false proofs
-        ok = (r.returncode == 0 and "error:" not in out
-              and "sorry" not in out and "declaration uses" not in out and "admit" not in out)
-        return ok, out[:300]
-    finally:
-        try: os.remove(path)
-        except OSError: pass
+        new = _as_claim(stmt, proof, trusted=False)            # proof is LLM/dreamer text -> linted
+    except ValueError as e:
+        return False, f"malformed: {e}"
+    chain.append(new)
+    vs = gate.check(chain, preamble="import RamanujanTau.MockTheta5Defs\n", namespace="MockTheta5.Formal",
+                    opens="open PowerSeries MockTheta5", project=REPO, tag=f"mocktheta:{new.name}",
+                    allow_native=True)
+    v = vs[new.name]
+    return v.proved, (f"error: {v.status} {v.detail}" if not v.proved else f"{v.register} {v.detail}")
 
 
 def opus_propose_proof(name: str, stmt: str, verified_texts: list[str], log=print) -> list[str]:

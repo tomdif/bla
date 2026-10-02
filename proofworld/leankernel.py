@@ -11,33 +11,23 @@ Run: python3 -m proofworld.leankernel    (uses the installed lean toolchain; ~3s
 """
 from __future__ import annotations
 from dataclasses import dataclass
-import os, subprocess, tempfile, glob
+import os, subprocess, tempfile
 
-def _toolchain() -> str:
-    """prefer an already-installed pinned toolchain so we never trigger a multi-minute elan download."""
-    pref = os.environ.get("PROOFWORLD_LEAN_TOOLCHAIN")
-    if pref: return pref
-    installed = sorted(glob.glob(os.path.expanduser("~/.elan/toolchains/leanprover--lean4---v*")))
-    for want in ("v4.30.0", ):                                     # known-good, present on this machine
-        for p in installed:
-            if p.endswith(want): return f"leanprover/lean4:{want}"
-    if installed:                                                  # fall back to newest installed (no download)
-        tag = installed[-1].split("---")[-1]; return f"leanprover/lean4:{tag}"
-    return "leanprover/lean4:v4.30.0"
+from proofworld import gate
 
-TOOLCHAIN = _toolchain()
+TOOLCHAIN = gate.default_toolchain()
 
 
 @dataclass
 class LeanResult:
     ok: bool                  # kernel accepted the proof
-    status: str               # VERIFIED | PROOF_FAILED | ERROR
+    status: str               # VERIFIED | PROOF_FAILED | REFUSED | ERROR
     detail: str               # first error line, if any
 
 
 def lean_check(source: str, timeout=60) -> LeanResult:
-    """write `source` to a temp .lean file and run the Lean kernel on it. ok iff lean exits 0 with no 'error:'.
-    THIS is where truth lives -- the elaborator + kernel, not any learned model."""
+    """low-level "does this file compile" probe. NOT the trust boundary -- it cannot see axiom footprints, so
+    beliefs must go through `verify_theorem` / proofworld.gate. Rejects `sorry` (a warning, rc 0) explicitly."""
     with tempfile.TemporaryDirectory() as d:
         f = os.path.join(d, "Check.lean")
         with open(f, "w") as fh: fh.write(source)
@@ -49,15 +39,24 @@ def lean_check(source: str, timeout=60) -> LeanResult:
         out = (p.stdout + p.stderr).strip()
         err = next((ln for ln in out.splitlines() if "error:" in ln), "")
         msg = err.split("error:", 1)[1].strip() if err else ""        # strip the temp-path prefix
+        if "declaration uses `sorry`" in out or "declaration uses 'sorry'" in out:
+            return LeanResult(False, "REFUSED", "uses sorry")
         if p.returncode == 0 and "error:" not in out:
             return LeanResult(True, "VERIFIED", "")
         return LeanResult(False, "PROOF_FAILED" if err else "ERROR", msg or (out.splitlines()[0] if out else "?"))
 
 
-def verify_theorem(statement: str, proof: str, preamble: str = "") -> LeanResult:
-    """statement e.g. 'theorem t (n : Nat) : n <= n + 1'; proof e.g. 'by omega'."""
-    src = (preamble + "\n" if preamble else "") + f"{statement} := {proof}\n"
-    return lean_check(src)
+_STATUS = {"PROVED": "VERIFIED", "FAILED": "PROOF_FAILED", "REFUSED": "REFUSED", "INCONCLUSIVE": "ERROR"}
+
+
+def verify_theorem(statement: str, proof: str, preamble: str = "", trusted: bool = False) -> LeanResult:
+    """statement e.g. 'theorem t (n : Nat) : n <= n + 1'; proof e.g. 'by omega'. Goes through proofworld.gate:
+    ok only if the kernel reports a clean axiom footprint (no sorry / native_decide / injected axiom)."""
+    try:
+        v = gate.check_one(statement, proof, trusted=trusted, preamble=preamble, toolchain=TOOLCHAIN, tag="leankernel")
+    except ValueError as e:                                   # malformed / smuggled declaration text
+        return LeanResult(False, "REFUSED", str(e)[:120])
+    return LeanResult(v.proved, _STATUS[v.status], v.detail)
 
 
 # ----------------------------- the tactic dreamer (propose proof scripts; Lean owns truth) -----------------------------

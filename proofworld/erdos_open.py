@@ -14,6 +14,7 @@ We do NOT solve either. We engage them rigorously; every claim is kernel-checked
 """
 from __future__ import annotations
 import os, re, subprocess, tempfile
+from proofworld import gate
 
 HERE = os.path.dirname(os.path.abspath(__file__)); LEAN_PROJECT = os.path.join(HERE, "lean")
 
@@ -75,16 +76,15 @@ def part_B():
 
 
 def lean_check(examples):
-    src = "import Mathlib\n" + "\n".join(examples) + "\n"
-    with tempfile.TemporaryDirectory() as td:
-        f = os.path.join(td, "O.lean"); open(f, "w").write(src)
-        try:
-            r = subprocess.run(["lake", "env", "lean", f], cwd=LEAN_PROJECT, capture_output=True, text=True, timeout=240)
-        except subprocess.TimeoutExpired:
-            return [False] * len(examples)
-    out = r.stdout + r.stderr
-    bad = {int(m.group(1)) for m in re.finditer(r"O\.lean:(\d+):\d+: error:", out)}
-    return [(2 + k) not in bad for k in range(len(examples))]
+    """kernel-check `example : P := proof` blocks through proofworld.gate (one Lean run). Returns [bool]: True only
+    for PROVED (clean axiom footprint). The old version marked a block OK whenever no error landed on its line,
+    so a timeout, failed import, or `sorry` all read as "VERIFIED"."""
+    claims = []
+    for k, ex in enumerate(examples):
+        m = re.match(r"\s*example\s*(.*?)\s*:=\s*(.*)\Z", ex, re.DOTALL)
+        claims.append(gate.Claim(f"pw_erdos_{k}", m.group(1), m.group(2), trusted=True))
+    vs = gate.check(claims, preamble="import Mathlib\n", project=LEAN_PROJECT, timeout=240, tag="erdos_open")
+    return [vs[c.name].proved for c in claims]
 
 
 def main():

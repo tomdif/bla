@@ -14,6 +14,7 @@ Run:  PROOFWORLD_LLM=1 python3 -m proofworld.ramanujan_pipeline
 """
 from __future__ import annotations
 import os, json, subprocess, re
+from proofworld import gate
 
 REPO = os.path.expanduser("~/RamanujanTau")
 ELAN = os.path.expanduser("~/.elan/bin")
@@ -30,7 +31,7 @@ SCAFFOLD = {
 }
 
 
-def lean_candidate(theorems: list[str]) -> str:
+def lean_candidate(theorems: list[str]) -> str:   # (kept for write-out; checking goes through `kernel_check`)
     """Assemble a Lean file (in the RamanujanTau project) holding candidate theorems."""
     body = "\n\n".join(theorems)
     return ("import RamanujanTau.EulerFactor\n\nnamespace RamanujanTau\n\n"
@@ -45,19 +46,27 @@ def thm(name: str, k: int, rhs: str) -> str:
             f"  rw [h, {lowers}]; ring")
 
 
-def kernel_check(theorems: list[str], log=print) -> tuple[bool, str]:
-    """THE GATE: compile the candidate file with the Lean kernel. Success ⇔ kernel-verified."""
-    path = os.path.join(REPO, "_pw_cand.lean")
-    open(path, "w").write(lean_candidate(theorems))
-    env = dict(os.environ, PATH=ELAN + os.pathsep + os.environ.get("PATH", ""))
-    try:
-        r = subprocess.run(["lake", "env", "lean", "_pw_cand.lean"], cwd=REPO, env=env,
-                           capture_output=True, text=True, timeout=300)
-        ok = r.returncode == 0
-        return ok, (r.stdout + r.stderr)[:400]
-    finally:
-        try: os.remove(path)
-        except OSError: pass
+def claim(name: str, k: int, rhs: str) -> "gate.Claim":
+    """the same theorem as `thm`, as a gate Claim. The RHS is LLM text inside the STATEMENT -> untrusted (linted)."""
+    r, kk, rm1, lowers = SCAFFOLD[k]
+    return gate.Claim(name, f"{{p : ℕ}} (hp : p.Prime) : τ (p ^ {kk}) = {rhs}",
+                      f"by\n  have h := TauHeckeRecurrence.hecke hp {r} (by norm_num)\n"
+                      f"  rw [show ({r} : ℕ) + 1 = {kk} from rfl, show ({r} : ℕ) - 1 = {rm1} from rfl] at h\n"
+                      f"  rw [h, {lowers}]; ring")
+
+
+def kernel_check(chain: list, log=print) -> tuple[bool, str]:
+    """THE GATE (proofworld.gate): the chain of Claims is checked in one Lean run inside the RamanujanTau
+    project; ok iff EVERY claim is PROVED (clean axiom footprint). The old check was `returncode == 0`, which a
+    `sorry` passes (it is only a warning). Returns (ok, first problem)."""
+    vs = gate.check(chain, preamble="import RamanujanTau.EulerFactor\n", namespace="RamanujanTau",
+                    opens="variable [TauHeckeRecurrence]", project=REPO, tag="ramanujan_pipeline",
+                    allow_native=True)   # RamanujanTau's base (tau_one) is native_decide; verdicts are labelled
+    bad = [v for v in vs.values() if not v.proved]
+    if bad:
+        return False, f"{bad[0].name}: {bad[0].status} {bad[0].detail}"
+    regs = sorted({v.register for v in vs.values()})
+    return True, f"register={','.join(regs)}"
 
 
 def opus_propose(log=print):
@@ -106,10 +115,10 @@ def main():
     # --- chain-verify each target on its ALREADY-verified predecessors (the kernel gates every step) ---
     for k in TARGETS:
         print(f"\n  [{k}] kernel-checking τ(p^{k}) proposal (chained on verified p4..p{k-1}) ...")
-        chain = [thm(f"tau_prime_p{j}", j, verified[j]) for j in verified]        # verified predecessors
-        chain.append(thm(f"tau_prime_p{k}", k, prop[f"p{k}"]))                    # the new candidate
+        chain = [claim(f"tau_prime_p{j}", j, verified[j]) for j in verified]      # verified predecessors
+        chain.append(claim(f"tau_prime_p{k}", k, prop[f"p{k}"]))                  # the new candidate
         ok, out = kernel_check(chain)
-        print(f"      VERDICT: {'VERIFIED ✓' if ok else 'REJECTED ✗ — ' + out.strip()[:160]}")
+        print(f"      VERDICT: {'VERIFIED ✓ (' + out + ')' if ok else 'REJECTED ✗ — ' + out.strip()[:160]}")
         if ok:
             verified[k] = prop[f"p{k}"]
         else:
@@ -119,8 +128,8 @@ def main():
     if verified:
         kc = max(verified)
         print(f"\n  [canary] kernel-checking a deliberately WRONG τ(p^{kc}) (= proposal + 1) ...")
-        chain = [thm(f"tau_prime_p{j}", j, verified[j]) for j in verified if j < kc]
-        chain.append(thm(f"tau_prime_p{kc}", kc, f"({verified[kc]}) + 1"))
+        chain = [claim(f"tau_prime_p{j}", j, verified[j]) for j in verified if j < kc]
+        chain.append(claim(f"tau_prime_p{kc}", kc, f"({verified[kc]}) + 1"))
         okc, _ = kernel_check(chain)
         print(f"      canary {'KILLED by kernel ✓ (gate has teeth)' if not okc else 'SURVIVED ✗✗ — gate is broken!'}")
 

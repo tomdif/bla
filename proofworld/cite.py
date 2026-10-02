@@ -14,7 +14,8 @@ Pipeline:  goal -> premise_select (rank corpus facts by IDF overlap) -> dream pr
 Run:  python3 -m proofworld.cite
 """
 from __future__ import annotations
-import os, re, math, json, subprocess, tempfile
+import os, re, math, json
+from proofworld import gate
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS_JSONL = os.path.join(HERE, "corpus", "corpus.jsonl")
@@ -55,23 +56,11 @@ def premise_select(goal, project, corpus, idf, k=6):
     return scored[:k]
 
 
-def lean_verify(imp, source, project_dir, timeout=120):
-    """run `lake env lean` in the project; return (ok, axioms_list)."""
-    d = os.path.expanduser(project_dir)
-    with tempfile.TemporaryDirectory() as td:
-        f = os.path.join(td, "Cite.lean")
-        with open(f, "w") as fh:
-            fh.write(source)
-        try:
-            p = subprocess.run(["lake", "env", "lean", f], cwd=d, capture_output=True, text=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            return False, []
-    out = p.stdout + p.stderr
-    ok = (p.returncode == 0 and "error:" not in out)
-    axline = next((l for l in out.splitlines() if "depends on axioms" in l), "")
-    axs = re.findall(r"[A-Za-z_][A-Za-z0-9_.]*", axline.split(":", 1)[1]) if ":" in axline else []
-    axs = [a for a in axs if a not in ("depends", "on", "axioms")]
-    return ok, axs
+def lean_verify(imp, goal, tactic, project_dir, timeout=300):
+    """one cited proof attempt through the trust gate. Returns (ok, axioms) -- ok means PROVED (clean footprint)."""
+    v = gate.check([gate.Claim("pw_cite", f": {goal}", tactic)], preamble=f"import {imp}\n",
+                   project=project_dir, timeout=timeout, tag="cite")["pw_cite"]
+    return v.proved, v.axioms
 
 
 def candidate_tactics(names):
@@ -87,15 +76,18 @@ def cite_and_verify(goal, project, corpus, idf, log=print):
     for sc, r in picks:
         log(f"    {sc:5.1f}  {r['name']}   [{r['statement'][:48]}]")
     names = [r["name"] for _, r in picks]
-    for tac in candidate_tactics(names):
-        src = f"import {cfg['imp']}\ntheorem pw_cite : {goal} := {tac}\n#print axioms pw_cite\n"
-        ok, axs = lean_verify(cfg["imp"], src, cfg["dir"])
-        if ok:
-            clean = bool(axs) and set(axs) <= STD_AXIOMS
+    tacs = candidate_tactics(names)
+    # every candidate in ONE gated Lean run (one project import instead of one per tactic)
+    claims = [gate.Claim(f"pw_cite_{i}", f": {goal}", tac) for i, tac in enumerate(tacs)]
+    vs = gate.check(claims, preamble=f"import {cfg['imp']}\n", project=cfg["dir"], tag="cite")
+    for i, tac in enumerate(tacs):
+        v = vs[f"pw_cite_{i}"]
+        if v.proved:
             log(f"  PROVED by: {tac}")
-            log(f"  kernel axioms of the NEW theorem: {axs}  -> {'AXIOM-CLEAN (corpus-grade)' if clean else 'NOT clean'}")
-            return True, tac, axs, clean
-    log("  no cited proof closed it (try a larger k or different closer).")
+            log(f"  kernel axioms of the NEW theorem: {v.axioms}  -> AXIOM-CLEAN (corpus-grade)")
+            return True, tac, v.axioms, True
+    worst = sorted({v.status for v in vs.values()})
+    log(f"  no cited proof closed it (statuses: {worst}; try a larger k or different closer).")
     return False, None, None, False
 
 

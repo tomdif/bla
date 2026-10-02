@@ -15,48 +15,37 @@ The verifier tells it WHEN to decompose (direct failed) and WHETHER a split work
 Opus proposes the structure; z3/Lean own truth. Run: PROOFWORLD_LLM=1 python3 -m proofworld.decompose
 """
 from __future__ import annotations
-import os, re, json, glob, subprocess, tempfile
+import os, re, json
+from proofworld import gate
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJECT = os.path.join(HERE, "lean")                       # portable Mathlib project (lake exe cache get)
-STD = {"propext", "Classical.choice", "Quot.sound"}
 PREAMBLE = ("import Mathlib.Tactic\n"
             "def f : ℕ → ℕ\n  | 0 => 0\n  | (n+1) => f n + 2*n + 1\n")   # f n = n^2 (sum of odds)
 GOAL = ("pw_goal", "(n : ℕ) : f n = n^2")
 DIRECT = ["by rfl", "by simp", "by omega", "by decide", "by norm_num", "by simp [f]"]   # the cheap budget
 
 
-def _lean(body, timeout=120):
-    src = PREAMBLE + body
-    with tempfile.TemporaryDirectory() as td:
-        p = os.path.join(td, "Dec.lean")
-        open(p, "w").write(src)
-        try:
-            r = subprocess.run(["lake", "env", "lean", p], cwd=PROJECT, capture_output=True, text=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            return "", {99999}
-    out = r.stdout + r.stderr
-    errlines = {int(m.group(1)) for m in re.finditer(r"Dec\.lean:(\d+):\d+: error:", out)}
-    return out, errlines
-
-
-def _axioms(out, thm):
-    ax = next((l for l in out.splitlines() if "depends on axioms" in l), "")
-    return [a for a in re.findall(r"[A-Za-z_][A-Za-z0-9_.]*", ax.split(":", 1)[1]) if a not in ("depends", "on", "axioms")] if ":" in ax else []
-
-
-def try_direct(stmt):
-    """one Lean call: attempt every cheap tactic; return (tactic, axioms) for the first that closes clean."""
-    base = len(PREAMBLE.splitlines())
-    lines, where = [], {}
+def try_direct(name, stmt):
+    """one Lean call: attempt every cheap tactic; return the first tactic the GATE certifies (clean footprint).
+    (The old version scanned for error lines inside each attempt's span, so a timeout or a failed import --
+    no errors *inside* any span -- counted as a clean compile and "proved" the goal.)"""
+    claims = [gate.Claim(f"pw_d{i}", stmt, tac) for i, tac in enumerate(DIRECT)]
+    vs = gate.check(claims, preamble=PREAMBLE, project=PROJECT, tag=f"decompose.direct:{name}")
     for i, tac in enumerate(DIRECT):
-        where[base + len(lines) + 1] = i
-        lines.append(f"theorem pw_d{i} {stmt} := {tac}")
-    out, errs = _lean("\n".join(lines) + "\n")
-    for ln, i in where.items():
-        if ln not in errs and "sorry" not in out:                  # clean compile of attempt i
-            return DIRECT[i], []
+        if vs[f"pw_d{i}"].proved:
+            return tac, vs[f"pw_d{i}"].axioms
     return None, None
+
+
+def _tree(node):
+    """all PROVED descendants in dependency (post-)order -- a sub-lemma proved by decomposition needs its own
+    sub-lemmas in the file too (the old assembly only included immediate children)."""
+    out = []
+    for s in node.get("subs", []):
+        out += _tree(s)
+        out.append(s)
+    return out
 
 
 def opus_decompose(name, stmt, err=None, log=print):
@@ -84,7 +73,7 @@ def opus_decompose(name, stmt, err=None, log=print):
 
 def prove(name, stmt, depth=0, indent="  ", log=print):
     log(f"{indent}GOAL [{name}]: {stmt}")
-    tac, _ = try_direct(stmt)
+    tac, _ = try_direct(name, stmt)
     if tac:
         log(f"{indent}  try-direct: PROVED by `{tac}`  (leaf)")
         return {"ok": True, "name": name, "stmt": stmt, "kind": "direct", "proof": tac, "subs": []}
@@ -102,19 +91,22 @@ def prove(name, stmt, depth=0, indent="  ", log=print):
         for L in dec["lemmas"]:
             r = prove(L["name"], L["sig"], depth + 1, indent + "    ")       # RECURSE
             if r["ok"]: subs.append(r)
-        # GATE: assemble proved sub-lemmas + the goal (via main_proof); the KERNEL verifies the whole tree
-        body = "".join(f"theorem {s['name']} {s['stmt']} := {s['proof']}\n" for s in subs)
-        body += f"theorem {name} {stmt} := {dec['main_proof']}\n#print axioms {name}\n"
-        out, errs = _lean(body)
-        gline = len(PREAMBLE.splitlines()) + len(subs) + 1
-        ok = (gline not in errs) and "sorry" not in out and "error:" not in out
-        ax = _axioms(out, name); clean = ok and bool(ax) and set(ax) <= STD
-        if clean:
-            log(f"{indent}  GATE: composition VERIFIED by the kernel, axiom-clean {ax}")
+        # GATE: assemble every proved descendant + the goal (via main_proof); the KERNEL verifies the whole tree
+        node = {"subs": subs}
+        claims = [gate.Claim(d["name"], d["stmt"], d["proof"]) for d in _tree(node)]
+        claims.append(gate.Claim(name, stmt, dec["main_proof"]))
+        try:
+            vs = gate.check(claims, preamble=PREAMBLE, project=PROJECT, tag=f"decompose.compose:{name}")
+        except ValueError as e:                                # e.g. the LLM reused a lemma name
+            log(f"{indent}  GATE: malformed decomposition ({e}) -> repair"); err = str(e); continue
+        v = vs[name]
+        if v.proved:
+            log(f"{indent}  GATE: composition VERIFIED by the kernel, axiom-clean {v.axioms}")
             return {"ok": True, "name": name, "stmt": stmt, "kind": "decomp", "proof": dec["main_proof"], "subs": subs}
-        err = next((l for l in out.splitlines() if "error:" in l), "unknown")[:300]
-        log(f"{indent}  GATE: composition rejected by kernel ({err[:70]}) -> repair")
-    return {"ok": False, "out": out}
+        log(f"{indent}  GATE: composition {v.status} ({v.detail[:70]}) -> repair")
+        err = v.detail[:300]
+        continue
+    return {"ok": False}
 
 
 def render(node, indent="    "):

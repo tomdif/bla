@@ -17,6 +17,7 @@ Run:  python3 -m proofworld.research_lean    (uses installed lean toolchain; ~1-
 """
 from __future__ import annotations
 import os, subprocess, tempfile
+from proofworld import gate
 from proofworld.leankernel import TOOLCHAIN
 
 DOUBLE = "def double : Nat → Nat\n  | 0 => 0\n  | (n+1) => double n + 2\n"   # double n = 2n, recursively
@@ -56,13 +57,12 @@ def _lean(source: str, timeout=60):
 
 
 def prove_clean(statement: str):
-    """SOUNDNESS: try to PROVE the statement with the kernel using real tactics (no sorry). Returns the winning
-    tactic, or None if the kernel cannot prove it (false / out of reach) -- in which case it is NOT justified."""
-    for tac in TACTICS:
-        ok, _sorry, _err = _lean(DOUBLE + statement + " := " + tac + "\n")
-        if ok:
-            return tac
-    return None
+    """SOUNDNESS: is the statement PROVABLE by the kernel with a real tactic? All tactics go into ONE gated Lean
+    run; returns the first tactic whose proof the gate certifies (clean axiom footprint), else None."""
+    c0 = gate.Claim.from_decl(statement, "by rfl")
+    claims = [gate.Claim(f"{c0.name}__t{i}", c0.sig, tac) for i, tac in enumerate(TACTICS)]
+    vs = gate.check(claims, preamble=DOUBLE, project=None, tag="research_lean.prove_clean")
+    return next((TACTICS[i] for i in range(len(TACTICS)) if vs[f"{c0.name}__t{i}"].proved), None)
 
 
 def prop_of(stmt: str) -> str:
@@ -100,9 +100,11 @@ def main():
     # 5) COMPOSE: prove the goal by induction, citing a justified lemma; the kernel confirms
     print("  --- compose: prove the goal BY INDUCTION citing the justified lemma (kernel owns truth) ---")
     cite = next((s for n, s, _ in justified if n == "aux_unfold"), None)
-    source = DOUBLE + cite + " := by rfl\n" + \
-        GOAL_STMT + " := by\n  induction n with\n  | zero => simp [double]\n  | succ k ih => rw [aux_unfold]; omega\n"
-    ok, _s, err = _lean(source)
+    vs = gate.check([gate.Claim.from_decl(cite, "by rfl"),
+                     gate.Claim.from_decl(GOAL_STMT, "by\n  induction n with\n  | zero => simp [double]\n"
+                                          "  | succ k ih => rw [aux_unfold]; omega", trusted=True)],
+                    preamble=DOUBLE, tag="research_lean.compose")
+    v = vs["G"]; ok, err = v.proved, f"{v.status}: {v.detail}"
     print(f"    aux_unfold (rfl)  +  G by induction [rw aux_unfold; omega]  ->  {'VERIFIED by Lean' if ok else 'FAILED: ' + err}")
     # 6) record + canaries
     print(f"\n  --- atlas record ---")

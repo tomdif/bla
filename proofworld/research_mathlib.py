@@ -18,6 +18,7 @@ Run:  python3 -m proofworld.research_mathlib   (reuses a built Mathlib; ~14s per
 """
 from __future__ import annotations
 import os, glob, subprocess, tempfile
+from proofworld import gate
 
 # ---- discover a project with a BUILT Mathlib whose toolchain is installed (no rebuild) ----
 def _installed_toolchains():
@@ -87,11 +88,13 @@ def _lean(source: str, timeout=120):
 
 
 def prove_clean(statement: str):
-    for tac in TACTICS:
-        ok, _s, _e = _lean(PREAMBLE + statement + " := " + tac + "\n")
-        if ok:
-            return tac
-    return None
+    """SOUNDNESS: is the statement PROVABLE by the kernel with a real tactic? All tactics go into ONE gated Lean
+    run; returns the first tactic whose proof the gate certifies (clean axiom footprint), else None."""
+    c0 = gate.Claim.from_decl(statement, "by rfl")
+    claims = [gate.Claim(f"{c0.name}__t{i}", c0.sig, tac) for i, tac in enumerate(TACTICS)]
+    vs = gate.check(claims, preamble=PREAMBLE, project=PROJECT, tag="research_mathlib.prove_clean")
+    return next((TACTICS[i] for i in range(len(TACTICS)) if vs[f"{c0.name}__t{i}"].proved), None)
+
 
 def prop_of(stmt: str) -> str:
     return stmt.split(") : ")[-1] if ") : " in stmt else stmt.split(" : ", 1)[-1]
@@ -131,10 +134,11 @@ def main():
     print(f"\n  justified, non-circular lemmas: {[n for n, _, _ in justified]}\n")
     # 5) COMPOSE
     print("  --- compose: prove the goal by induction + nlinarith, citing the justified lemma (kernel owns truth) ---")
-    source = (PREAMBLE + "theorem aux_unfold (n : ℕ) : oddSum (n+1) = oddSum n + (2*n+1) := by rfl\n" +
-              GOAL_STMT + " := by\n  induction n with\n  | zero => simp [oddSum]\n"
-              "  | succ k ih => rw [aux_unfold]; nlinarith [ih]\n")
-    ok, _s, err = _lean(source)
+    vs = gate.check([gate.Claim("aux_unfold", "(n : ℕ) : oddSum (n+1) = oddSum n + (2*n+1)", "by rfl", trusted=True),
+                     gate.Claim.from_decl(GOAL_STMT, "by\n  induction n with\n  | zero => simp [oddSum]\n"
+                                          "  | succ k ih => rw [aux_unfold]; nlinarith [ih]", trusted=True)],
+                    preamble=PREAMBLE, project=PROJECT, tag="research_mathlib.compose")
+    v = vs[gate.Claim.from_decl(GOAL_STMT, "_").name]; ok, err = v.proved, f"{v.status}: {v.detail}"
     print(f"    aux_unfold (rfl) + G by induction [rw aux_unfold; nlinarith] -> {'VERIFIED by Mathlib kernel' if ok else 'FAILED: ' + err}")
     # 6) record + canaries
     print(f"\n  --- atlas record ---")

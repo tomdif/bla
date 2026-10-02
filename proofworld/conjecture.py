@@ -16,13 +16,13 @@ then proves. Data corrects the over-generalization; the kernel certifies the sur
 Run:  python3 -m proofworld.conjecture        (live LLM proposals if PROOFWORLD_LLM=1; enumerator otherwise)
 """
 from __future__ import annotations
-import os, re, json, subprocess, tempfile
+import os, re, json
+from proofworld import gate, numeric
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS_JSONL = os.path.join(HERE, "corpus", "corpus.jsonl")
 DISCOVERED_JSONL = os.path.join(HERE, "corpus", "discovered.jsonl")
 PROJECT_DIR, PROJECT_IMP = "~/RamanujanTau", "RamanujanTau"
-STD_AXIOMS = {"propext", "Classical.choice", "Quot.sound"}
 SIG = re.compile(r"RamanujanTau\.sigma(\d+) (\d+) = (-?\d+)")
 
 
@@ -59,7 +59,7 @@ def llm_propose(data, log=print):
     if os.environ.get("PROOFWORLD_LLM") != "1" or not os.environ.get("ANTHROPIC_API_KEY"):
         return []
     import anthropic
-    sample = {k: dict(sorted(v.items())) for k, v in data.items()}
+    sample = {k: dict(sorted(v.items())) for k, v in data.items()}   # callers pass ONLY the proposer's `seen` split
     prompt = ("Here are computed values of divisor-power-sum functions sigma_k(n) = sum of d^k over divisors d of n:\n"
               f"{json.dumps(sample)}\n\n"
               "Propose general LAWS these satisfy. Reply ONLY a compact JSON array of objects "
@@ -83,24 +83,25 @@ def llm_propose(data, log=print):
 
 
 def eval_formula(formula, n):
-    return int(eval(formula, {"__builtins__": {}}, {"n": n, "p": n}))
+    """safe: AST-whitelisted integer arithmetic only (LLM output is never passed to eval())."""
+    return numeric.compile_formula(formula, names=("n", "p"))(n)
+
+
+DOMAINS = {"all": lambda n: True, "prime": lambda n: is_prime(n), "prime_power": lambda n: is_prime_power(n)}
 
 
 # ---------------- grounded gates ----------------
-def kill_test(conj, data):
-    """cheap NUMERICAL falsifier: does the formula match EVERY corpus instance in its claimed domain?"""
-    insts = data.get(conj["k"], {})
-    checked = 0
-    for n, v in sorted(insts.items()):
-        if conj["domain"] == "prime" and not is_prime(n): continue
-        if conj["domain"] == "prime_power" and not (is_prime_power(n)): continue
-        try:
-            if eval_formula(conj["formula"], n) != v:
-                return ("refuted", n, v, eval_formula(conj["formula"], n), checked)
-        except Exception:
-            return ("uneval", n, v, None, checked)
-        checked += 1
-    return ("survives", None, None, None, checked)
+def kill_test(conj, seen, held, min_support=3):
+    """cheap NUMERICAL falsifier (proofworld.numeric): refuted by ANY instance, but it only counts as evidence
+    when >= min_support HELD-OUT instances (never shown to the proposer) agree. Thin data -> INSUFFICIENT."""
+    if conj["domain"] not in DOMAINS:
+        return numeric.NumVerdict("UNEVALUABLE", detail=f"unknown domain {conj['domain']!r}")
+    try:
+        law = numeric.compile_formula(conj["formula"], names=("n", "p"))
+    except numeric.UnsafeExpr as e:
+        return numeric.NumVerdict("UNEVALUABLE", detail=f"unsafe formula: {e}")
+    return numeric.heldout_kill_test(law, seen.get(conj["k"], {}), held.get(conj["k"], {}),
+                                     DOMAINS[conj["domain"]], min_support=min_support)
 
 def is_prime_power(n):
     if n < 2: return False
@@ -112,25 +113,27 @@ def is_prime_power(n):
     return False
 
 
-def lean_verify_prime_formula(k, timeout=120):
-    """verify σ_k(p) = p^k + 1 for prime p on the Mathlib kernel (only for the recognized provable template)."""
-    src = (f"import {PROJECT_IMP}\nopen {PROJECT_IMP}\n"
-           f"theorem conj (p : ℕ) (hp : p.Prime) : sigma{k} p = (p:ℤ)^{k} + 1 := by\n"
-           f"  unfold sigma{k}; rw [hp.divisors, Finset.sum_pair hp.one_lt.ne]; push_cast; ring\n"
-           f"#print axioms conj\n")
-    d = os.path.expanduser(PROJECT_DIR)
-    with tempfile.TemporaryDirectory() as td:
-        f = os.path.join(td, "Conj.lean")
-        with open(f, "w") as fh: fh.write(src)
-        try:
-            p = subprocess.run(["lake", "env", "lean", f], cwd=d, capture_output=True, text=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            return False, [], src
-    out = p.stdout + p.stderr
-    ok = (p.returncode == 0 and "error:" not in out)
-    axline = next((l for l in out.splitlines() if "depends on axioms" in l), "")
-    axs = [a for a in re.findall(r"[A-Za-z_][A-Za-z0-9_.]*", axline.split(":", 1)[1]) if a not in ("depends","on","axioms")] if ":" in axline else []
-    return ok, axs, src
+def _sigma_claim(k):
+    return gate.Claim(f"conj_sigma{k}", f"(p : ℕ) (hp : p.Prime) : sigma{k} p = (p:ℤ)^{k} + 1",
+                      f"by\n  unfold sigma{k}; rw [hp.divisors, Finset.sum_pair hp.one_lt.ne]; push_cast; ring",
+                      trusted=True)
+
+
+def lean_verify_prime_formulas(ks, timeout=600):
+    """verify σ_k(p) = p^k + 1 (prime p) for every k in ONE gated Mathlib run (one import, not one per law).
+    Returns {k: Verdict}."""
+    claims = {k: _sigma_claim(k) for k in sorted(set(ks))}
+    if not claims:
+        return {}
+    vs = gate.check(list(claims.values()), preamble=f"import {PROJECT_IMP}\n", opens=f"open {PROJECT_IMP}",
+                    project=PROJECT_DIR, timeout=timeout, tag="conjecture.sigma")
+    return {k: vs[c.name] for k, c in claims.items()}
+
+
+def lean_verify_prime_formula(k, timeout=300):
+    """single-law convenience wrapper. Returns (ok, axioms, verdict)."""
+    v = lean_verify_prime_formulas([k], timeout)[k]
+    return v.proved, v.axioms, v
 
 def is_prime_power_law(conj):
     """recognize the provable template: formula n**k+1 over the prime domain."""
@@ -141,43 +144,59 @@ def main():
     corpus = [json.loads(l) for l in open(CORPUS_JSONL)] if os.path.exists(CORPUS_JSONL) else []
     data = mine_instances(corpus)
     print("=== proofworld.conjecture :: corpus DATA -> conjectured general law -> kernel-verified theorem ===\n")
-    print(f"  mined instances from corpus: " + "; ".join(f"σ_{k} at n={sorted(v)}" for k, v in sorted(data.items())) + "\n")
-    conjectures = enumerate_conjectures(data) + llm_propose(data)
-    verified, discovered = 0, []
-    seen = set()
+    print(f"  mined instances from corpus: " + "; ".join(f"σ_{k} at n={sorted(v)}" for k, v in sorted(data.items())))
+    # INDEPENDENCE: the proposer only ever sees `seen`; numeric evidence for a law comes from `held`
+    split = {k: numeric.split(v, salt=f"sigma{k}") for k, v in data.items()}
+    seen = {k: sv for k, (sv, _) in split.items()}
+    held = {k: hv for k, (_, hv) in split.items()}
+    print(f"  held out from the proposer: " + "; ".join(f"σ_{k} n={sorted(held[k])}" for k in sorted(held)) + "\n")
+    nc = numeric.controls()
+    if not nc["ok"]:
+        print("  numeric kill-test FAILED its planted controls -- refusing to run."); return
+    conjectures = enumerate_conjectures(data) + llm_propose(seen)
+    verified, discovered, queued = 0, [], []
+    seen_keys = set()
     for c in conjectures:
         try:                                                  # dedup by MATHEMATICAL content, not formula spelling
             sig = tuple(eval_formula(c["formula"], n) for n in (2, 3, 5))
-        except Exception:
+        except (numeric.UnsafeExpr, ZeroDivisionError):
             sig = (c["formula"],)
         key = (c["k"], c["domain"], sig)
-        if key in seen: continue
-        seen.add(key)
-        verdict, n, v, got, checked = kill_test(c, data)
-        if verdict == "refuted":
+        if key in seen_keys: continue
+        seen_keys.add(key)
+        nv = kill_test(c, seen, held)
+        if nv.status == "REFUTED":
+            n, v, got = nv.counterexample
             print(f"  [{c['desc']}]\n      KILLED by data: at n={n}, corpus says {v} but formula gives {got} (cheap, pre-proof)")
             continue
-        if verdict != "survives":
-            print(f"  [{c['desc']}]  -> skipped ({verdict})"); continue
-        print(f"  [{c['desc']}]\n      survives numerical kill-test ({checked} corpus instances) -> Lean:", end=" ")
+        if nv.status == "UNEVALUABLE":
+            print(f"  [{c['desc']}]  -> skipped ({nv.detail})"); continue
+        evidence = (f"survives held-out kill-test ({nv.checked} unseen instances)" if nv.survives else
+                    f"no refutation, but numeric evidence INSUFFICIENT ({nv.detail})")
+        print(f"  [{c['desc']}]\n      {evidence}" + (" -> queued for the kernel" if is_prime_power_law(c) else
+              f"; no provable template wired -- NOT a law (numeric: {nv.status}, register=numeric, not proved)"))
         if is_prime_power_law(c):
-            ok, axs, src = lean_verify_prime_formula(c["k"])
-            clean = ok and bool(axs) and set(axs) <= STD_AXIOMS
-            print(f"{'VERIFIED, axiom-clean ' + str(axs) if clean else ('proved but ' + str(axs)) if ok else 'proof FAILED'}")
-            if clean:
-                verified += 1
-                discovered.append({"name": f"RamanujanTau.sigma{c['k']}_prime", "statement": f"∀ p, p.Prime → sigma{c['k']} p = (p:ℤ)^{c['k']} + 1",
-                                   "axioms": axs, "project": "RamanujanTau", "domain": "modular forms / Ramanujan tau",
-                                   "source": "proofworld.conjecture (data->law->kernel)"})
-        else:
-            print(f"numerically supported, no provable template wired (honest: proof TODO)")
+            queued.append((c, nv))
+    # one batched kernel run for every queued law (Mathlib import paid once)
+    verdicts = lean_verify_prime_formulas([c["k"] for c, _ in queued])
+    print()
+    for c, nv in queued:
+        v = verdicts[c["k"]]
+        print(f"  KERNEL [{c['desc']}] -> {'PROVED, axiom-clean ' + str(v.axioms) if v.proved else v.status + ': ' + v.detail[:80]}")
+        if v.proved:
+            verified += 1
+            discovered.append({"name": f"RamanujanTau.sigma{c['k']}_prime", "statement": f"∀ p, p.Prime → sigma{c['k']} p = (p:ℤ)^{c['k']} + 1",
+                               "axioms": v.axioms, "project": "RamanujanTau", "domain": "modular forms / Ramanujan tau",
+                               "source": "proofworld.conjecture (data->law->kernel)",
+                               "numeric": {"status": nv.status, "heldout_checked": nv.checked, **nv.provenance},
+                               "gate": {"env": v.env, "source_sha": v.source_sha}})
     # RE-ADMIT verified laws to the growing corpus
     if discovered:
         os.makedirs(os.path.dirname(DISCOVERED_JSONL), exist_ok=True)
         with open(DISCOVERED_JSONL, "w") as fh:
             for r in discovered: fh.write(json.dumps(r) + "\n")
         print(f"\n  RE-ADMITTED {len(discovered)} kernel-verified general laws -> corpus/discovered.jsonl (the library grows)")
-    print(f"\n  RESULT: {verified} NEW general laws conjectured from data and PROVEN on the kernel (each axiom-clean).")
+    print(f"\n  RESULT: {verified} NEW general laws conjectured from data and PROVED through the gate (each axiom-clean).")
     print("  The data refuted the over-general forms for free; the kernel certified the survivors. Insight, grounded:")
     print("  the model imagines from real verified structure, and nothing becomes a 'law' until the kernel proves it.")
 
