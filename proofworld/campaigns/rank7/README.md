@@ -25,3 +25,18 @@ verification to 70+ coefficients KILLS overfits, survivors become Lean claims fo
 Proof plan (guess-and-verify): R_g := these closed forms; show F(ζ₇)·R_g = H18(ζ₇) class by class using
 (a) generalized orbit_mock bijections at p = 7 (k = 1..5, several prefactors), (b) F(ζ₇) 7-dissection (Garvan 5.1),
 (c) the E² 7-dissection, (d) residual theta-quotient identities (to be enumerated). F unit ⇒ R = R_g ⇒ R₅ = 0.
+
+## ⭐ Probe verdict: GO (2026-10-03)
+`consist7.py`: with R_g = fitted dissection (R7_dissection_fit.txt), F(ζ₇) = J₇,₃ + q·s₁J₇,₂ − q³·s₂J₇,₁
+(s₁ = ζ²+ζ³+ζ⁴+ζ⁵, s₂ = ζ³+ζ⁴; verified), E² classes (E2_dissection_fit.txt) and the 12 orbit pieces,
+the class identities (F·R_g)_c = (H18(ζ₇))_c hold FORMALLY in all 7 classes — Φ₁, Φ₂, Φ₃ coefficients cancel
+identically (using Φ₄ = qΦ₃+1−q, Φ₅ = q³Φ₂+1−q³, Φ₆ = q⁵Φ₁+1−q⁵) — modulo ONE theta identity:
+    T :  J₇,₂³·J₇,₃ = J₇,₁·J₇,₃³ + q·J₇,₁³·J₇,₂      (checked to q³⁰⁰)
+(Parser note: basis "q^{-s}·f" means q^{-s}(f − low terms); fixed in consist7.py.)
+
+Lean architecture for rank mod 7 (all pieces identified):
+ 1. p = 7 versions of RankSpec (z = q^k, base q⁷) + RankP2 orbit bijections for the 12 pieces (fits list the forms).
+ 2. Φ_{7−k} = q^{?}Φ_k + 1 − q^{?} relations.
+ 3. F(ζ₇) 7-dissection (thL_dissect at p = 7) and the E² 7-dissection (from qfacInf_dissection7 / x,y,z).
+ 4. Identity T (likely from the x,y,z cube relations in Ramanujan7Identity.lean, or Weierstrass/quintuple).
+ 5. Assembly: F unit ⇒ R(ζ₇) = R_g ⇒ R₅ = 0 ⇒ cyclotomic ⇒ N(k,7,7n+5) = p(7n+5)/7.
