@@ -49,3 +49,15 @@ Lean architecture for rank mod 7 (all pieces identified):
 * Normalized orbit pieces (pieces_normalized.txt) contain ALL nine J₇,ⱼΦ_k:
   j = k  ← (2.18) at z = q^k;  j ≡ ±2k ← (2.20) at z = q^k [(z²q)(z⁻²q) → J₇,₂ₖ];  j ≡ ±3k ← a "z³" analogue
   ((1+z+z²)(z³q)(z⁻³q)(q)R(z;q) = Hecke series?).  Gating items: formal (2.20) and its m = 3 analogue.
+
+## Hecke families m = 2, 3 (2026-10-03)
+* hecke_m.py / hecke_template.py: H_m(z) := (1+…+z^{m−1})(z^m q)(z^{−m} q)(q)·R(z;q).
+  m = 2 recovered as Garvan's (2.20) exactly (weights z^{n+1}+z^{−n} on V(n,j)). m = 3 EXISTS (sparse ±1
+  z^c-coefficients = partial thetas 3t²+βt+γ, period-3 in c, symmetric c ↔ 2−c) but does NOT fit the
+  (2.18)/(2.20) template — needs its own form.
+* Uniform proof route: Appell–Lerch form. Per z^c:  E²·[z^c]H_m = Σ_s (−1)^s q^{C(s,2)} S_{c−ms},
+  S_t = [z^t] Σ_n (−1)^n q^{n(3n+1)/2}/(1−zq^n). Verified for m = 1 (al_probe.py, c = 0..4), where
+  E²·[z^c]H_1 = E·(−1)^c q^{T(c)} PT_c is ALREADY a proved object (bailey_k). NOT a pure bijection
+  (#terms differ) → needs a sign-reversing involution (like RankHR2Core).
+Remaining plan: (2a) AL form per z^c via involution (m = 1), then m = 2, 3 analogues; (2b) specialize at
+z = q^k, base q⁷ → E(Q)·J₇,ₘₖΦ_k; (3) orbit-piece identities + assembly + cyclotomic finish.
