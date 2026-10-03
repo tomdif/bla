@@ -96,3 +96,15 @@ New files: RankTheta (step-a Pochhammers Pinf, Euler, J_{a,b} JTP `jtp_ab`), Ran
 generic 5-dissection `thL_dissect`, F(ζ) dissection, θ₄ dissection, E·E(q⁵)=F(ω)F(ω²), J52 = α J51),
 RankMod5 (class selection via ZMod 5 `decide`, z=1 evaluations, eqs (3.15)-(3.17), product ids (3.19),
 3×3 solve by one linear_combination + constant-term nonvanishing (s+1 ≠ 0), cyclotomic counting).
+
+## Mod 7 status (2026-10-03): Garvan's route is OPEN (his Problem 1)
+mod7_probe.py / mod7_pieces.py: at ζ₇ the only single-orbit theta-product classes are (2.18) class 4 and (2.19)
+class 2; the latter involves R₁,R₃,R₄ only. Every class containing R₅ also contains a mock component (R₀/R₂/R₆).
+
+## Ramanujan's Lost Notebook identity (4.1), mod 5
+DONE (RankRamanujan5.lean, axioms clean): R₄ = 0, R₁ = J₅²/J_{5,1}, R₂ = (ζ+ζ⁴)J₅²/J_{5,2} (from the mod-5 solve
++ prod_id1/2). REMAINING R₀, R₃ (mock parts φ, ψ): r0_probe.py shows class 0 of (2.18) at ζ = theta part + 4·J_{5,2}·φ
+(orbit-1 piece). Needs an identity tying a Hecke sub-sum to φ = R(q;q⁵)-type series. Garvan uses (2.20) at z = q, base q⁵.
+NOTE: (2.20) does NOT factor as θ(z)·(2.18) — (z²q;q) ≠ (zq)(−zq); that factorization is (z²q²;q²), i.e. (2.21).
+Infrastructure needed: (a) (2.20) (likely via Appell–Lerch form of R(z;q)); (b) two-variable lift ℤ[z,z⁻¹]⟦q⟧
+(Laurent-polynomial-agree-on-ℂˣ ⇒ equal); (c) specialization z ↦ q^k, q ↦ q^5 on z-bounded series. Multi-session.
