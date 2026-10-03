@@ -12,3 +12,16 @@ Strategy (scaling the mod-5 Lost Notebook route, campaigns/rank):
 
 Pipeline = proofworld: fit7.py PROPOSES identities (exact rational fit on 60 coefficients),
 verification to 70+ coefficients KILLS overfits, survivors become Lean claims for the gate.
+
+## Probe results (2026-10-03)
+* **H7 holds** (fit7x.py → orbit_pieces_fit.txt): all 12 non-orbit-0 pieces G_{c,o} of (2.18) at ζ₇ are
+  explicit combinations of J_{7,j}·Φ_k (k = 1..4) and theta quotients (weights ½, 1); orbit-0 pieces follow
+  from the z = 1 relation. Exact reindexing identities found (reindex7.py):
+  G(3,2) = M₁ = J₇,₁Φ₁;  G(0,3) = M₂ − J₇,₂;  q·G(2,1) = M₃ − J₇,₃;  q²·G(2,1) = M₄ − J₇,₄;  q³·G(0,3) = M₅ − J₇,₅
+  (M_k = Σ_b w_b(q^k) Hblk_b(q⁷) = J_{7,k}Φ_k, the (2.18) specialization at z = q^k, base q⁷).
+* **Explicit 7-dissection of R(ζ₇;q)** (fitR7.py → R7_dissection_fit.txt; ζ-coordinates in basis 1..ζ⁵):
+  R₁ = J₇²/J₇,₁;  R₃, R₄ theta quotients (match Garvan);  R₀ ∋ Φ₁, R₂ ∋ q⁻¹Φ₃, R₆ ∋ q⁻¹Φ₂ (+ theta);  **R₅ = 0**.
+  Theta parts: R₀ ~ J₇²J₇,₃/(J₇,₁J₇,₂), R₂ ~ J₇²J₇,₂/(J₇,₁J₇,₃), R₆ ~ q⁻¹(J₇²J₇,₂/J₇,₁² − J₇²J₇,₃²/(J₇,₁J₇,₂²)), …
+Proof plan (guess-and-verify): R_g := these closed forms; show F(ζ₇)·R_g = H18(ζ₇) class by class using
+(a) generalized orbit_mock bijections at p = 7 (k = 1..5, several prefactors), (b) F(ζ₇) 7-dissection (Garvan 5.1),
+(c) the E² 7-dissection, (d) residual theta-quotient identities (to be enumerated). F unit ⇒ R = R_g ⇒ R₅ = 0.
