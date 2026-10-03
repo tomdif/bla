@@ -61,3 +61,10 @@ Lean architecture for rank mod 7 (all pieces identified):
   (#terms differ) → needs a sign-reversing involution (like RankHR2Core).
 Remaining plan: (2a) AL form per z^c via involution (m = 1), then m = 2, 3 analogues; (2b) specialize at
 z = q^k, base q⁷ → E(Q)·J₇,ₘₖΦ_k; (3) orbit-piece identities + assembly + cyclotomic finish.
+
+## Option 2 (3D involution search) — NEGATIVE (2026-10-03)
+cross3d.py / iso3d.py / iso3d_b.py: cross identity J₇,₁·G(1,1) = −J₇,₂·M₁ (true) is NOT a signed bijection
+(518 vs 258 terms). Both sides live on the same ternary form 2Y² − 6A² + 3W² (168E + 101; b = 0 terms of M₁
+sit at A = −2), but the best rational isometries (L→R sign-correct or L→L sign-reversing) cover ≤ 16/192
+terms (≈ 8%). ⇒ the cross identities are not reindexing identities; they need genuine theory
+(general Bailey lemma with ρ₁ = z, ρ₂ = 1/z → Appell–Lerch/Lambert form, or Hickerson–Mortenson f_{a,b,c}).
