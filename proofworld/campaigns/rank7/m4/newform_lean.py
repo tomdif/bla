@@ -1,0 +1,21 @@
+from num import th, A, E, Rk, Z
+import cmath
+q=0.6*cmath.exp(0.3j); p=q**3
+def Ab(a,b,cx,cp): return A(cx*q**a, cp*q**b, p)
+def T3(e,c): return th(c*q**e, p)
+z=Z; kap=-E(p)**3; Eq=E(q)
+Ai0=Ab(1,-1,z**3,1); Ai1=Ab(0,0,z**3,1); Ai2=Ab(-1,1,z**3,1)
+B2=Ab(2,0,z**4,z**2); B1=Ab(1,0,z**4,z**2); Tm=T3(0,z**2)
+print("rank_bridge", abs(Eq*Rk(z,q,N=200)-(1-z)*(-q*Ai0-z*Ai1-z*z/q*Ai2)))
+print("newformula", abs(Rk(z,q,N=200)*Tm-(1-z)*(Tm-B2-z**6*B1)))
+print("(a)",abs(Ai1-kap/T3(0,z**3)))
+print("(b)",abs(B1-(-z**5/q*Ab(-1,0,z**3,z**5))))
+print("(c)",abs(B2-(-z**(-2)/q**2*Ab(-2,0,z**3,z**5))))
+print("(d)",abs(Ab(1,-3,z**3,z**5)-(T3(-3,z**5)+z/q**5*Ab(-2,0,z**3,z**5))))
+print("(e)",abs(Ab(1,0,z**3,z**5)-(-q**3*z**2*Ab(1,-3,z**3,z**5))))
+X1=Ab(1,1,z**3,1); X2=Ab(-1,2,z**3,1)
+def coz1(b1,c1): return T3(b1,c1)*X1/T3(1,1)-q*kap*T3(-1+b1,c1)*T3(2+b1,z**3*c1)/(T3(1,1)*T3(2,z**3)*T3(1+b1,z**3*c1))
+def coz2(b1,c1): return T3(b1,c1)*X2/T3(2,1)-q**2*kap*T3(-2+b1,c1)*T3(1+b1,z**3*c1)/(T3(2,1)*T3(1,z**3)*T3(-1+b1,z**3*c1))
+print("(f)",abs(Ab(1,0,z**3,z**5)-coz1(0,z**5)),abs(Ai0-coz1(-1,1)))
+print("(g)",abs(Ab(-1,0,z**3,z**5)-coz2(0,z**5)),abs(Ai2-coz2(1,1)))
+print("E=theta(1)(1)",abs(Eq-T3(1,1)))
