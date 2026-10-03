@@ -40,3 +40,12 @@ Lean architecture for rank mod 7 (all pieces identified):
  3. F(ζ₇) 7-dissection (thL_dissect at p = 7) and the E² 7-dissection (from qfacInf_dissection7 / x,y,z).
  4. Identity T (likely from the x,y,z cube relations in Ramanujan7Identity.lean, or Weierstrass/quintuple).
  5. Assembly: F unit ⇒ R(ζ₇) = R_g ⇒ R₅ = 0 ⇒ cyclotomic ⇒ N(k,7,7n+5) = p(7n+5)/7.
+
+## Lean progress + Part B structure (2026-10-03)
+* DONE (RamanujanLean e6e6d38, RankMod7a.lean, axioms clean): F7_dissect (Garvan 5.1), xyz_J
+  (x = J₇,₂/J₇,₁, y = J₇,₃/J₇,₂, z = J₇,₁/J₇,₃ — via F(ζ)F(ζ²)F(ζ³) = E²E(q⁷), NO quintuple product), identity_T.
+* Branch maps at p = 7 (symbolic): M_k → G is type-PRESERVING (P→P, M→M), a = 7b ∓ 2k, r' = 7r + ρ;
+  M₁→(3,2), M₂,M₅→(0,3), M₃,M₄→(2,1), M₆→(3,2) (shifts 0,0,−1,−2,−3,−5).
+* Normalized orbit pieces (pieces_normalized.txt) contain ALL nine J₇,ⱼΦ_k:
+  j = k  ← (2.18) at z = q^k;  j ≡ ±2k ← (2.20) at z = q^k [(z²q)(z⁻²q) → J₇,₂ₖ];  j ≡ ±3k ← a "z³" analogue
+  ((1+z+z²)(z³q)(z⁻³q)(q)R(z;q) = Hecke series?).  Gating items: formal (2.20) and its m = 3 analogue.
