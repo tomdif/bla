@@ -108,3 +108,11 @@ DONE (RankRamanujan5.lean, axioms clean): R₄ = 0, R₁ = J₅²/J_{5,1}, R₂ 
 NOTE: (2.20) does NOT factor as θ(z)·(2.18) — (z²q;q) ≠ (zq)(−zq); that factorization is (z²q²;q²), i.e. (2.21).
 Infrastructure needed: (a) (2.20) (likely via Appell–Lerch form of R(z;q)); (b) two-variable lift ℤ[z,z⁻¹]⟦q⟧
 (Laurent-polynomial-agree-on-ℂˣ ⇒ equal); (c) specialization z ↦ q^k, q ↦ q^5 on z-bounded series. Multi-session.
+
+## ⭐ Ramanujan's Lost Notebook rank identity (4.1) FULLY PROVED (2026-10-03), axioms clean
+`CrankProof.lost_notebook_rank_mod5` (RankR03.lean). Route avoided (2.20) entirely:
+* RankSpec `spec_coeff`: (2.18) at z = q^k, base q⁵, proved directly in ℤ⟦q⟧ (HR1 proof with exponent 5E + k(i−j)).
+* RankP2 `orbit_mock`: q^{k−1}·U_{5,2k−1}(Σ_{a≡±2k} Hblk_a) = J_{5,k}(1 − Φ_k), by 5 index bijections
+  (a = 5b ∓ 2k, r' = 5r + {k+1, 1−k, k−1, −k−1}; leftovers = J_{5,k}), residues via ZMod 5 `decide`.
+* RankR03: class 1/3 of F(ζ)R(ζ) split by orbit; z=1 counterpart; algebra with st = −1, s+t = −1.
+Probes: spec_probe.py, fit3.py, p2_probe.py, p2_map.py.
